@@ -1,4 +1,6 @@
-use crate::{composer::Composer, ContainerModifier, Modifier, Modify, Semantics, Widget};
+use crate::{
+    composer::Composer, modify::container::ContainerModifier, Modifier, Modify, Semantics, Widget,
+};
 use accesskit::{Node, NodeId};
 use std::{any, mem, panic::Location};
 
