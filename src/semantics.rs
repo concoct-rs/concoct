@@ -64,6 +64,12 @@ impl Semantics {
         self.insert(node)
     }
 
+    pub fn end_group_with_node(&mut self, mut node: Node) -> NodeId {
+        node.children = self.children.pop().unwrap();
+
+        self.insert(node)
+    }
+
     pub fn end_group_update(&mut self, id: NodeId) {
         let children = self.children.pop().unwrap();
         let node = Node {

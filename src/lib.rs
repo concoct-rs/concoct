@@ -3,6 +3,9 @@ use std::any::Any;
 pub mod composer;
 pub use composer::Composer;
 
+mod container;
+pub use container::container;
+
 mod semantics;
 pub use semantics::Semantics;
 

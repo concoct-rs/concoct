@@ -1,20 +1,23 @@
-use std::any;
-
 use crate::{composer::Composer, Semantics, Widget};
 use accesskit::{Node, NodeId};
+use std::{any, panic::Location};
 
+#[track_caller]
 pub fn text(string: String) {
+    let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
-        cx.insert_or_update(
-            || TextWidget {
+        let id = cx.id(location);
+
+        if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
+            widget.text = string.clone();
+        } else {
+            let widget = TextWidget {
                 text: string.clone(),
                 node_id: None,
-            },
-            |widget| {
-                widget.text = string.clone();
-            },
-        );
+            };
+            cx.insert(id, widget, None);
+        }
     })
 }
 
