@@ -1,16 +1,12 @@
 use accesskit::Role;
-use concoct::{container, text, Composer, Semantics};
+use concoct::{container, text, Composer, Modifier, Semantics};
 
 #[test]
 fn it_works() {
     fn app() {
-        container(
-            Role::Button,
-            || {
-                text(String::from("Hello World!"));
-            },
-            true,
-        );
+        container(Modifier::default().merge_descendants(), Role::Row, || {
+            text(String::from("Hello World!"));
+        })
     }
 
     app();

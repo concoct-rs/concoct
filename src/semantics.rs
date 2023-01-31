@@ -69,7 +69,7 @@ impl Semantics {
 
         if merge {
             for id in &children {
-                let child = self.nodes.remove(id).unwrap();
+                let child = self.remove(*id).unwrap();
                 if let Some(value) = &child.value {
                     if node.value.is_none() {
                         node.value = Some(value.clone());

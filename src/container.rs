@@ -1,9 +1,18 @@
-use crate::{composer::Composer, Semantics, Widget};
+use crate::{composer::Composer, ContainerModifier, Modifier, Modify, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use std::{any, mem, panic::Location};
 
 #[track_caller]
-pub fn container(role: Role, mut f: impl FnMut() + 'static, merge: bool) {
+pub fn container(
+    mut modifier: Modifier<ContainerModifier, impl Modify<ContainerModifier>>,
+    role: Role,
+    mut f: impl FnMut() + 'static,
+) {
+    let mut container_modifier = ContainerModifier {
+        merge_descendants: false,
+    };
+    modifier.modify.modify(&mut container_modifier);
+
     let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
@@ -22,7 +31,7 @@ pub fn container(role: Role, mut f: impl FnMut() + 'static, merge: bool) {
             let widget = ContainerWidget {
                 role,
                 node_id: None,
-                merge,
+                merge: container_modifier.merge_descendants,
             };
             cx.insert(id, widget, Some(children));
         }
