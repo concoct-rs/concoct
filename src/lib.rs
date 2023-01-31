@@ -74,6 +74,16 @@ impl Semantics {
         self.update(id, node);
     }
 
+    pub fn remove(&mut self, id: NodeId) -> Option<Arc<Node>> {
+        if let Some(node) = self.nodes.remove(&id) {
+            self.unused_ids.push(id);
+
+            Some(node)
+        } else {
+            None
+        }
+    }
+
     pub fn tree_update(&mut self) -> TreeUpdate {
         mem::take(&mut self.tree_update)
     }
@@ -93,13 +103,13 @@ impl fmt::Debug for Semantics {
     }
 }
 
-pub struct Wrap<'a> {
+struct Wrap<'a> {
     children: &'a [NodeId],
     semantics: &'a Semantics,
 }
 
 impl fmt::Debug for Wrap<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for node_id in self.children {
             let node = &self.semantics.nodes[node_id];
 
@@ -124,37 +134,5 @@ impl fmt::Debug for Wrap<'_> {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let mut semantics = Semantics::default();
-
-        semantics.start_group();
-
-        semantics.insert(Node {
-            value: Some("Hello World!".into()),
-            ..Node::default()
-        });
-
-        semantics.end_group();
-
-        semantics.start_group();
-
-        semantics.start_group();
-        semantics.insert(Node {
-            value: Some("Hello World!".into()),
-            ..Node::default()
-        });
-        semantics.end_group();
-
-        semantics.end_group();
-
-        dbg!(semantics);
     }
 }
