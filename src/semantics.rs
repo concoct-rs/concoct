@@ -1,4 +1,4 @@
-use accesskit::{Node, NodeId, TreeUpdate};
+use accesskit::{Action, Node, NodeId, TreeUpdate};
 use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 
 pub struct Semantics {
@@ -7,16 +7,18 @@ pub struct Semantics {
     high_water_mark: NonZeroU128,
     unused_ids: Vec<NodeId>,
     tree_update: TreeUpdate,
+    pub handlers: HashMap<NodeId, Box<dyn FnMut(Action)>>,
 }
 
 impl Default for Semantics {
     fn default() -> Self {
         Self {
-            nodes: Default::default(),
+            nodes: HashMap::new(),
             children: vec![Vec::new()],
             high_water_mark: NonZeroU128::new(1).unwrap(),
-            unused_ids: Default::default(),
+            unused_ids: Vec::new(),
             tree_update: TreeUpdate::default(),
+            handlers: HashMap::new(),
         }
     }
 }

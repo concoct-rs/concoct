@@ -1,11 +1,16 @@
-use accesskit::Role;
+use accesskit::{Action, Role};
 use concoct::{container, text, Composer, Modifier, Semantics};
 
 #[test]
 fn it_works() {
     fn app() {
         container(
-            Modifier::default().merge_descendants().role(Role::Button),
+            Modifier::default()
+                .clickable(|action_request| {
+                    dbg!(action_request);
+                })
+                .merge_descendants()
+                .role(Role::Button),
             || {
                 text(String::from("Hello World!"));
             },
@@ -20,6 +25,8 @@ fn it_works() {
         let mut semantics = Semantics::default();
         cx.semantics(&mut semantics);
 
-        dbg!(semantics);
+        for handler in semantics.handlers.values_mut() {
+            handler(Action::Default)
+        }
     });
 }

@@ -6,7 +6,7 @@ use std::{any, mem, panic::Location};
 
 #[track_caller]
 pub fn container(
-    mut modifier: Modifier<ContainerModifier, impl Modify<ContainerModifier>>,
+    mut modifier: Modifier<ContainerModifier, impl Modify<ContainerModifier> + 'static>,
     mut f: impl FnMut() + 'static,
 ) {
     let mut container_modifier = ContainerModifier::default();
@@ -31,6 +31,7 @@ pub fn container(
             let widget = ContainerWidget {
                 modifier: container_modifier,
                 node_id: None,
+                modify: Box::new(modifier.modify),
             };
             cx.insert(id, widget, Some(children));
         }
@@ -40,12 +41,14 @@ pub fn container(
 struct ContainerWidget {
     modifier: ContainerModifier,
     node_id: Option<NodeId>,
+    modify: Box<dyn Modify<ContainerModifier>>,
 }
 
 impl Widget for ContainerWidget {
     fn semantics(&mut self, semantics: &mut Semantics) {
-        if let Some(node_id) = self.node_id {
+        let id = if let Some(node_id) = self.node_id {
             semantics.end_group_update(node_id);
+            node_id
         } else {
             let node = Node {
                 role: self.modifier.role,
@@ -54,7 +57,10 @@ impl Widget for ContainerWidget {
 
             let id = semantics.end_group_with_node(node, self.modifier.merge_descendants);
             self.node_id = Some(id);
-        }
+            id
+        };
+
+        self.modify.semantics(id, semantics);
     }
 
     fn any_mut(&mut self) -> &mut dyn any::Any {

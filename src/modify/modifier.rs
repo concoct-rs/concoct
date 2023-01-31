@@ -1,5 +1,5 @@
-use super::{container::MergeDescendants, Chain};
-use accesskit::Role;
+use super::{container::MergeDescendants, Chain, Clickable};
+use accesskit::{Action, Role};
 use std::marker::PhantomData;
 
 pub struct Modifier<T, M> {
@@ -26,6 +26,13 @@ impl<T, M> Modifier<T, M> {
             a: self.modify,
             b: modify,
         })
+    }
+
+    pub fn clickable<F: FnMut(Action) + 'static>(
+        self,
+        on_click: F,
+    ) -> Modifier<T, Chain<M, Clickable<F>>> {
+        self.chain(Clickable { f: Some(on_click) })
     }
 
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {
