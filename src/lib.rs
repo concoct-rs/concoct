@@ -64,13 +64,23 @@ impl Semantics {
         self.insert(node)
     }
 
+    pub fn end_group_update(&mut self, id: NodeId) {
+        let children = self.children.pop().unwrap();
+        let node = Node {
+            children,
+            ..Node::default()
+        };
+
+        self.update(id, node);
+    }
+
     pub fn tree_update(&mut self) -> TreeUpdate {
         mem::take(&mut self.tree_update)
     }
 }
 
 impl fmt::Debug for Semantics {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Semantics")
             .field(
                 "nodes",
