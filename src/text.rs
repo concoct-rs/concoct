@@ -1,3 +1,5 @@
+use std::any;
+
 use crate::{composer::Composer, Semantics, Widget};
 use accesskit::{Node, NodeId};
 
@@ -31,7 +33,12 @@ impl Widget for TextWidget {
         if let Some(node_id) = self.node_id {
             semantics.update(node_id, node);
         } else {
-            semantics.insert(node);
+            let id = semantics.insert(node);
+            self.node_id = Some(id);
         }
+    }
+
+    fn any_mut(&mut self) -> &mut dyn any::Any {
+        self
     }
 }

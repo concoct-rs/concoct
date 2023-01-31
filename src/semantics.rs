@@ -2,7 +2,7 @@ use accesskit::{Node, NodeId, TreeUpdate};
 use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 
 pub struct Semantics {
-    nodes: HashMap<NodeId, Arc<Node>>,
+    pub nodes: HashMap<NodeId, Arc<Node>>,
     children: Vec<Vec<NodeId>>,
     high_water_mark: NonZeroU128,
     unused_ids: Vec<NodeId>,

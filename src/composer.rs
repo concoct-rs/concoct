@@ -1,5 +1,4 @@
 use std::{any::Any, cell::RefCell, collections::HashMap, panic::Location};
-
 use crate::Widget;
 
 
@@ -16,7 +15,7 @@ pub struct Id {
 
 #[derive(Default)]
 pub struct Composer {
-    widgets: HashMap<Id, Box<dyn Widget>>,
+    pub widgets: HashMap<Id, Box<dyn Widget>>,
 }
 
 impl Composer {
@@ -35,7 +34,7 @@ impl Composer {
         on_insert: impl FnOnce() -> W,
         on_update: impl FnOnce(&mut W),
     ) where
-        W: Widget + Any + 'static,
+        W: Widget  + 'static,
     {
         let id = Id {
             path: vec![IdSegment {
@@ -43,8 +42,10 @@ impl Composer {
                 location: Location::caller(),
             }],
         };
+      
         if let Some(widget) = self.widgets.get_mut(&id) {
-            on_update((widget as &mut dyn Any).downcast_mut().unwrap());
+            on_update(widget.any_mut().downcast_mut().unwrap());
+           
         } else {
             let widget = on_insert();
             self.widgets.insert(id, Box::new(widget));
