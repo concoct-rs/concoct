@@ -121,6 +121,7 @@ impl fmt::Debug for Wrap<'_> {
 
             let mut debug_struct = f.debug_struct("Node");
             debug_struct.field("id", &node_id.0);
+            debug_struct.field("role", &node.role);
 
             if let Some(value) = &node.value {
                 debug_struct.field("value", value);

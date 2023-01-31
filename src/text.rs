@@ -1,5 +1,5 @@
 use crate::{composer::Composer, Semantics, Widget};
-use accesskit::{Node, NodeId};
+use accesskit::{Node, NodeId, Role};
 use std::{any, panic::Location};
 
 #[track_caller]
@@ -29,6 +29,7 @@ pub struct TextWidget {
 impl Widget for TextWidget {
     fn semantics(&mut self, semantics: &mut Semantics) {
         let node = Node {
+            role: Role::StaticText,
             value: Some(self.text.clone().into_boxed_str()),
             ..Node::default()
         };
