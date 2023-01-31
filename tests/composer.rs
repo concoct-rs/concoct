@@ -4,11 +4,13 @@ use concoct::{container, text, Composer, Semantics};
 #[test]
 fn it_works() {
     fn app() {
-        container(Role::Column, || {
-            container(Role::Row, || {
+        container(
+            Role::Button,
+            || {
                 text(String::from("Hello World!"));
-            });
-        });
+            },
+            true,
+        );
     }
 
     app();

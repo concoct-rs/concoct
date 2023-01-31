@@ -64,8 +64,21 @@ impl Semantics {
         self.insert(node)
     }
 
-    pub fn end_group_with_node(&mut self, mut node: Node) -> NodeId {
-        node.children = self.children.pop().unwrap();
+    pub fn end_group_with_node(&mut self, mut node: Node, merge: bool) -> NodeId {
+        let children = self.children.pop().unwrap();
+
+        if merge {
+            for id in &children {
+                let child = self.nodes.remove(id).unwrap();
+                if let Some(value) = &child.value {
+                    if node.value.is_none() {
+                        node.value = Some(value.clone());
+                    }
+                }
+            }
+        } else {
+            node.children = children;
+        }
 
         self.insert(node)
     }

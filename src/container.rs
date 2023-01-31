@@ -3,7 +3,7 @@ use accesskit::{Node, NodeId, Role};
 use std::{any, mem, panic::Location};
 
 #[track_caller]
-pub fn container(role: Role, mut f: impl FnMut() + 'static) {
+pub fn container(role: Role, mut f: impl FnMut() + 'static, merge: bool) {
     let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
@@ -22,6 +22,7 @@ pub fn container(role: Role, mut f: impl FnMut() + 'static) {
             let widget = ContainerWidget {
                 role,
                 node_id: None,
+                merge,
             };
             cx.insert(id, widget, Some(children));
         }
@@ -31,6 +32,7 @@ pub fn container(role: Role, mut f: impl FnMut() + 'static) {
 struct ContainerWidget {
     role: Role,
     node_id: Option<NodeId>,
+    merge: bool,
 }
 
 impl Widget for ContainerWidget {
@@ -43,7 +45,7 @@ impl Widget for ContainerWidget {
                 ..Node::default()
             };
 
-            let id = semantics.end_group_with_node(node);
+            let id = semantics.end_group_with_node(node, self.merge);
             self.node_id = Some(id);
         }
     }
