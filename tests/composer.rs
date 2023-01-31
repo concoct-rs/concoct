@@ -1,5 +1,5 @@
 use accesskit::Role;
-use concoct::{container, text, Composer};
+use concoct::{container, text, Composer, Semantics};
 
 #[test]
 fn it_works() {
@@ -12,6 +12,11 @@ fn it_works() {
     app();
 
     Composer::with(|composer| {
-        dbg!(composer.borrow());
+        let mut cx = composer.borrow_mut();
+
+        let mut semantics = Semantics::default();
+        cx.semantics(&mut semantics);
+
+        dbg!(semantics);
     });
 }

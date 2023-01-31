@@ -14,7 +14,7 @@ fn it_works() {
 
     semantics.end_group();
 
-    dbg!(semantics);
+    //  dbg!(semantics);
 }
 
 #[test]
@@ -30,11 +30,11 @@ fn it_updates() {
 
     let group_id = semantics.end_group();
 
-    dbg!(semantics.tree_update());
+    //dbg!(semantics.tree_update());
 
     semantics.start_group();
     semantics.remove(text_id);
     semantics.end_group_update(group_id);
 
-    dbg!(semantics.tree_update());
+    // dbg!(semantics.tree_update());
 }

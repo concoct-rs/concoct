@@ -1,7 +1,4 @@
-use crate::{
-    composer::{Composer, Id},
-    Semantics, Widget,
-};
+use crate::{composer::Composer, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use std::{any, mem, panic::Location};
 
@@ -20,7 +17,7 @@ pub fn container(role: Role, mut f: impl FnMut() + 'static) {
         let mut cx = composer.borrow_mut();
         let children = mem::replace(&mut cx.children, parent_children);
 
-        if let Some(widget) = cx.get_mut::<ContainerWidget>(&id) {
+        if let Some(_widget) = cx.get_mut::<ContainerWidget>(&id) {
         } else {
             let widget = ContainerWidget {
                 role,
@@ -29,18 +26,6 @@ pub fn container(role: Role, mut f: impl FnMut() + 'static) {
             cx.insert(id, widget, Some(children));
         }
     })
-}
-
-struct ContainerStartWidget {}
-
-impl Widget for ContainerStartWidget {
-    fn semantics(&mut self, semantics: &mut Semantics) {
-        semantics.start_group();
-    }
-
-    fn any_mut(&mut self) -> &mut dyn any::Any {
-        self
-    }
 }
 
 struct ContainerWidget {

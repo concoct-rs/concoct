@@ -1,4 +1,4 @@
-use crate::Widget;
+use crate::{Semantics, Widget};
 use std::{cell::RefCell, collections::HashMap, fmt, panic::Location};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -13,8 +13,14 @@ pub struct Id {
 }
 
 pub struct WidgetNode {
-    widget: Box<dyn Widget>,
-    children: Option<Vec<Id>>,
+    pub widget: Box<dyn Widget>,
+    pub children: Option<Vec<Id>>,
+}
+
+pub trait Visitor {
+    fn visit_child(&mut self, widget: &mut Box<dyn Widget>);
+
+    fn visit_group(&mut self);
 }
 
 #[derive(Default)]
@@ -95,6 +101,50 @@ impl Composer {
             },
         );
     }
+
+    pub fn visit(&mut self, mut visitor: impl Visitor) {
+        enum Item {
+            Group(Id),
+            Child(Id),
+        }
+
+        let mut items: Vec<_> = self
+            .children
+            .iter()
+            .map(|id| Item::Child(id.clone()))
+            .collect();
+
+        let mut idx = 0;
+        while idx < items.len() {
+            match &items[idx] {
+                Item::Group(id) => {
+                    let node = self.widgets.get_mut(id).unwrap();
+                    visitor.visit_child(&mut node.widget)
+                }
+                Item::Child(id) => {
+                    let node = self.widgets.get_mut(id).unwrap();
+
+                    if let Some(children) = &node.children {
+                        visitor.visit_group();
+
+                        let end_id = id.clone();
+                        let children = children.iter().map(|id| Item::Child(id.clone())).clone();
+                        items.extend(children);
+                        items.push(Item::Group(end_id))
+                    } else {
+                        visitor.visit_child(&mut node.widget);
+                    }
+                }
+            }
+
+            idx += 1;
+        }
+    }
+
+    pub fn semantics(&mut self, semantics: &mut Semantics) {
+        let visitor = SemanticsVisitor { semantics };
+        self.visit(visitor);
+    }
 }
 
 impl fmt::Debug for Composer {
@@ -138,5 +188,19 @@ impl fmt::Debug for Wrap<'_> {
         }
 
         Ok(())
+    }
+}
+
+struct SemanticsVisitor<'a> {
+    semantics: &'a mut Semantics,
+}
+
+impl Visitor for SemanticsVisitor<'_> {
+    fn visit_child(&mut self, widget: &mut Box<dyn Widget>) {
+        widget.semantics(self.semantics);
+    }
+
+    fn visit_group(&mut self) {
+        self.semantics.start_group()
     }
 }
