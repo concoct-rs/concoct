@@ -4,8 +4,10 @@ use concoct::{container, text, Composer, Semantics};
 #[test]
 fn it_works() {
     fn app() {
-        container(Role::Row, || {
-            text(String::from("Hello World!"));
+        container(Role::Column, || {
+            container(Role::Row, || {
+                text(String::from("Hello World!"));
+            });
         });
     }
 

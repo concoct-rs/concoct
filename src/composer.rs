@@ -115,22 +115,24 @@ impl Composer {
             .collect();
 
         let mut idx = 0;
-        while idx < items.len() {
-            match &items[idx] {
+        while let Some(item) = items.pop() {
+            match item {
                 Item::Group(id) => {
-                    let node = self.widgets.get_mut(id).unwrap();
+                    let node = self.widgets.get_mut(&id).unwrap();
                     visitor.visit_child(&mut node.widget)
                 }
                 Item::Child(id) => {
-                    let node = self.widgets.get_mut(id).unwrap();
+                    let node = self.widgets.get_mut(&id).unwrap();
 
                     if let Some(children) = &node.children {
                         visitor.visit_group();
 
                         let end_id = id.clone();
-                        let children = children.iter().map(|id| Item::Child(id.clone())).clone();
-                        items.extend(children);
-                        items.push(Item::Group(end_id))
+                        for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
+                            items.insert(idx, child);
+                        }
+
+                        items.insert(idx, Item::Group(end_id))
                     } else {
                         visitor.visit_child(&mut node.widget);
                     }
@@ -142,7 +144,7 @@ impl Composer {
     }
 
     pub fn semantics(&mut self, semantics: &mut Semantics) {
-        let visitor = SemanticsVisitor { semantics };
+        let visitor = SemanticsVisitor::new(semantics);
         self.visit(visitor);
     }
 }
@@ -191,8 +193,14 @@ impl fmt::Debug for Wrap<'_> {
     }
 }
 
-struct SemanticsVisitor<'a> {
+pub struct SemanticsVisitor<'a> {
     semantics: &'a mut Semantics,
+}
+
+impl<'a> SemanticsVisitor<'a> {
+    pub fn new(semantics: &'a mut Semantics) -> Self {
+        Self { semantics }
+    }
 }
 
 impl Visitor for SemanticsVisitor<'_> {
