@@ -1,16 +1,13 @@
 use crate::{composer::Composer, ContainerModifier, Modifier, Modify, Semantics, Widget};
-use accesskit::{Node, NodeId, Role};
+use accesskit::{Node, NodeId};
 use std::{any, mem, panic::Location};
 
 #[track_caller]
 pub fn container(
     mut modifier: Modifier<ContainerModifier, impl Modify<ContainerModifier>>,
-    role: Role,
     mut f: impl FnMut() + 'static,
 ) {
-    let mut container_modifier = ContainerModifier {
-        merge_descendants: false,
-    };
+    let mut container_modifier = ContainerModifier::default();
     modifier.modify.modify(&mut container_modifier);
 
     let location = Location::caller();
@@ -26,12 +23,12 @@ pub fn container(
         let mut cx = composer.borrow_mut();
         let children = mem::replace(&mut cx.children, parent_children);
 
-        if let Some(_widget) = cx.get_mut::<ContainerWidget>(&id) {
+        if let Some(widget) = cx.get_mut::<ContainerWidget>(&id) {
+            widget.modifier = container_modifier;
         } else {
             let widget = ContainerWidget {
-                role,
+                modifier: container_modifier,
                 node_id: None,
-                merge: container_modifier.merge_descendants,
             };
             cx.insert(id, widget, Some(children));
         }
@@ -39,9 +36,8 @@ pub fn container(
 }
 
 struct ContainerWidget {
-    role: Role,
+    modifier: ContainerModifier,
     node_id: Option<NodeId>,
-    merge: bool,
 }
 
 impl Widget for ContainerWidget {
@@ -50,11 +46,11 @@ impl Widget for ContainerWidget {
             semantics.end_group_update(node_id);
         } else {
             let node = Node {
-                role: self.role,
+                role: self.modifier.role,
                 ..Node::default()
             };
 
-            let id = semantics.end_group_with_node(node, self.merge);
+            let id = semantics.end_group_with_node(node, self.modifier.merge_descendants);
             self.node_id = Some(id);
         }
     }

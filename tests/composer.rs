@@ -4,9 +4,12 @@ use concoct::{container, text, Composer, Modifier, Semantics};
 #[test]
 fn it_works() {
     fn app() {
-        container(Modifier::default().merge_descendants(), Role::Row, || {
-            text(String::from("Hello World!"));
-        })
+        container(
+            Modifier::default().merge_descendants().role(Role::Button),
+            || {
+                text(String::from("Hello World!"));
+            },
+        )
     }
 
     app();

@@ -1,6 +1,7 @@
 use std::{any::Any, marker::PhantomData};
 
 pub mod composer;
+use accesskit::Role;
 pub use composer::Composer;
 
 mod container;
@@ -47,6 +48,10 @@ impl<T, M> Modifier<T, M> {
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {
         self.chain(MergeDescendants)
     }
+
+    pub fn role(self, role: Role) -> Modifier<T, Chain<M, Role>> {
+        self.chain(role)
+    }
 }
 
 pub trait Modify<T> {
@@ -71,6 +76,22 @@ impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<A, B> {
 
 pub struct ContainerModifier {
     merge_descendants: bool,
+    role: Role,
+}
+
+impl Default for ContainerModifier {
+    fn default() -> Self {
+        Self {
+            merge_descendants: false,
+            role: Role::default(),
+        }
+    }
+}
+
+impl AsMut<Role> for ContainerModifier {
+    fn as_mut(&mut self) -> &mut Role {
+        &mut self.role
+    }
 }
 
 pub struct MergeDescendants;
@@ -78,5 +99,14 @@ pub struct MergeDescendants;
 impl Modify<ContainerModifier> for MergeDescendants {
     fn modify(&mut self, value: &mut ContainerModifier) {
         value.merge_descendants = true;
+    }
+}
+
+impl<T> Modify<T> for Role
+where
+    T: AsMut<Role>,
+{
+    fn modify(&mut self, value: &mut T) {
+        *value.as_mut() = *self;
     }
 }
