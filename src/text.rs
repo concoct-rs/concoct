@@ -6,9 +6,7 @@ use skia_safe::{
 };
 use std::{
     any,
-    cell::RefCell,
     panic::Location,
-    rc::Rc,
     sync::{Arc, Mutex},
 };
 use taffy::{
@@ -60,32 +58,31 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
 
-        let paragraph_style = ParagraphStyle::new();
-        let mut font_collection = FontCollection::new();
-        font_collection.set_default_font_manager(FontMgr::new(), None);
-        let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
-
-        let mut text_style = TextStyle::new();
-        text_style.set_font_families(&["serif"]);
-        text_style.set_color(RGB::from((0, 0, 0)));
-        text_style.set_font_size(100.);
-        paragraph_builder.push_style(&text_style);
-
-        paragraph_builder.add_text(&self.text);
-        paragraph_builder.pop();
-
-        let mut paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
-
-        self.paragraph = Some(paragraph.clone());
-
-        if let Some(layout_id) = self.layout_id {
+        if let Some(_layout_id) = self.layout_id {
         } else {
+            let paragraph_style = ParagraphStyle::new();
+            let mut font_collection = FontCollection::new();
+            font_collection.set_default_font_manager(FontMgr::new(), None);
+            let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
+
+            let mut text_style = TextStyle::new();
+            text_style.set_font_families(&["serif"]);
+            text_style.set_color(RGB::from((0, 0, 0)));
+            text_style.set_font_size(100.);
+            paragraph_builder.push_style(&text_style);
+
+            paragraph_builder.add_text(&self.text);
+            paragraph_builder.pop();
+
+            let paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
+            self.paragraph = Some(paragraph.clone());
+
             let layout_id = semantics
                 .taffy
                 .new_leaf_with_measure(
                     Style::default(),
                     taffy::node::MeasureFunc::Boxed(Box::new(
-                        move |known_dimensions, available_space| {
+                        move |_known_dimensions, available_space| {
                             let mut paragraph = paragraph.lock().unwrap();
                             let max_width = match available_space.width {
                                 AvailableSpace::Definite(px) => px,
@@ -95,7 +92,7 @@ impl Widget for TextWidget {
                             paragraph.layout(max_width);
 
                             Size {
-                                width: paragraph.max_width(),
+                                width: paragraph.longest_line(),
                                 height: paragraph.height(),
                             }
                         },
@@ -111,13 +108,14 @@ impl Widget for TextWidget {
         }
     }
 
-    fn paint(&mut self, _semantics: &Semantics, canvas: &mut skia_safe::Canvas) {
+    fn paint(&mut self, semantics: &Semantics, canvas: &mut skia_safe::Canvas) {
+        let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
         self.paragraph
             .as_ref()
             .unwrap()
             .lock()
             .unwrap()
-            .paint(canvas, (100., 100.))
+            .paint(canvas, (layout.location.x, layout.location.y))
     }
 
     fn remove(&mut self, semantics: &mut Semantics) {

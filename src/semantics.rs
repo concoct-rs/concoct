@@ -120,7 +120,6 @@ impl Semantics {
         }
     }
 
-
     pub fn tree_update(&mut self) -> TreeUpdate {
         mem::take(&mut self.tree_update)
     }
