@@ -23,6 +23,14 @@ pub struct WidgetNode {
     pub children: Option<Vec<Id>>,
 }
 
+impl<T> AsMut<T> for WidgetNode
+where
+    T: 'static,
+{
+    fn as_mut(&mut self) -> &mut T {
+        self.widget.any_mut().downcast_mut().unwrap()
+    }
+}
 pub trait Visitor {
     fn visit_child(&mut self, widget: &mut Box<dyn Widget>);
 
@@ -76,6 +84,11 @@ impl Composer {
         self.widgets
             .get_mut(id)
             .map(|widget| widget.widget.any_mut().downcast_mut().unwrap())
+    }
+
+    #[track_caller]
+    pub fn get_node_mut(&mut self, id: &Id) -> Option<&mut WidgetNode> {
+        self.widgets.get_mut(id)
     }
 
     #[track_caller]
@@ -190,7 +203,7 @@ impl Composer {
                 cx.current_group_id = parent_id.clone();
                 drop(cx);
 
-                let (_children, removed) = Self::group(&parent_id, &mut f);
+                let (children, removed) = Self::group(&parent_id, &mut f);
                 if let Some(mut removed) = removed {
                     for widget in &mut removed {
                         widget.widget.remove(semantics);
@@ -198,7 +211,10 @@ impl Composer {
                 }
 
                 let mut cx = composer.borrow_mut();
-                let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
+                let node = cx.get_node_mut(&parent_id).unwrap();
+                node.children = Some(children);
+
+                let container: &mut ContainerWidget = node.as_mut();
                 container.f = Some(f);
             }
         });

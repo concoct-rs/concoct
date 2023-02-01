@@ -56,3 +56,21 @@ fn it_removes_unused_widgets() {
     assert!(tester.get_text("toggle").is_some());
     assert!(tester.get_text("toggle").is_none());
 }
+
+#[test]
+fn it_inserts_new_elements() {
+    let mut tester = Tester::new(|| {
+        container(Modifier::default(), || {
+            let is_shown = state(|| false);
+
+            if is_shown.get().cloned() {
+                text("A");
+            }
+
+            *is_shown.get().as_mut() = true;
+        })
+    });
+
+    assert!(tester.get_text("A").is_none());
+    assert!(tester.get_text("A").is_some());
+}
