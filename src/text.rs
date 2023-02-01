@@ -1,10 +1,20 @@
-use crate::{composer::Composer, Semantics, Widget};
+use crate::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
     FontMgr, RGB,
 };
-use std::{any, panic::Location};
+use std::{
+    any,
+    cell::RefCell,
+    panic::Location,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
+use taffy::{
+    prelude::{AvailableSpace, Size},
+    style::Style,
+};
 
 #[track_caller]
 pub fn text(string: impl Into<String>) {
@@ -20,6 +30,7 @@ pub fn text(string: impl Into<String>) {
             let widget = TextWidget {
                 text: string.into(),
                 node_id: None,
+                layout_id: None,
                 paragraph: None,
             };
             cx.insert(id, widget, None);
@@ -30,7 +41,8 @@ pub fn text(string: impl Into<String>) {
 pub struct TextWidget {
     text: String,
     node_id: Option<NodeId>,
-    paragraph: Option<Paragraph>,
+    layout_id: Option<LayoutNode>,
+    paragraph: Option<Arc<Mutex<Paragraph>>>,
 }
 
 impl Widget for TextWidget {
@@ -62,13 +74,50 @@ impl Widget for TextWidget {
         paragraph_builder.add_text(&self.text);
         paragraph_builder.pop();
 
-        let mut paragraph = paragraph_builder.build();
-        paragraph.layout(f32::MAX);
-        self.paragraph = Some(paragraph);
+        let mut paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
+
+        self.paragraph = Some(paragraph.clone());
+
+        if let Some(layout_id) = self.layout_id {
+        } else {
+            let layout_id = semantics
+                .taffy
+                .new_leaf_with_measure(
+                    Style::default(),
+                    taffy::node::MeasureFunc::Boxed(Box::new(
+                        move |known_dimensions, available_space| {
+                            let mut paragraph = paragraph.lock().unwrap();
+                            let max_width = match available_space.width {
+                                AvailableSpace::Definite(px) => px,
+                                AvailableSpace::MaxContent => f32::MAX,
+                                AvailableSpace::MinContent => f32::MIN,
+                            };
+                            paragraph.layout(max_width);
+
+                            Size {
+                                width: paragraph.max_width(),
+                                height: paragraph.height(),
+                            }
+                        },
+                    )),
+                )
+                .unwrap();
+            semantics
+                .layout_children
+                .last_mut()
+                .unwrap()
+                .push(layout_id);
+            self.layout_id = Some(layout_id);
+        }
     }
 
     fn paint(&mut self, _semantics: &Semantics, canvas: &mut skia_safe::Canvas) {
-        self.paragraph.as_ref().unwrap().paint(canvas, (100., 100.))
+        self.paragraph
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .paint(canvas, (100., 100.))
     }
 
     fn remove(&mut self, semantics: &mut Semantics) {

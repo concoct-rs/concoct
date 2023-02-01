@@ -9,7 +9,7 @@ use taffy::{
     Taffy,
 };
 
-type LayoutNode = taffy::prelude::Node;
+pub type LayoutNode = taffy::prelude::Node;
 
 pub struct Semantics {
     pub nodes: HashMap<NodeId, Arc<Node>>,
@@ -18,9 +18,8 @@ pub struct Semantics {
     unused_ids: Vec<NodeId>,
     tree_update: TreeUpdate,
     pub handlers: HashMap<NodeId, Box<dyn FnMut(Action)>>,
-    taffy: Taffy,
-    measure:
-        HashMap<LayoutNode, Box<dyn FnMut(Size<Option<f32>>, Size<AvailableSpace>) -> Size<f32>>>,
+    pub taffy: Taffy,
+    pub layout_children: Vec<Vec<LayoutNode>>,
 }
 
 impl Default for Semantics {
@@ -33,7 +32,7 @@ impl Default for Semantics {
             tree_update: TreeUpdate::default(),
             handlers: HashMap::new(),
             taffy: Taffy::new(),
-            measure: HashMap::new(),
+            layout_children: vec![Vec::new()],
         }
     }
 }
@@ -120,6 +119,7 @@ impl Semantics {
             None
         }
     }
+
 
     pub fn tree_update(&mut self) -> TreeUpdate {
         mem::take(&mut self.tree_update)

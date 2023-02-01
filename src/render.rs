@@ -22,6 +22,7 @@ use std::{
     num::{NonZeroU128, NonZeroU32},
     sync::Arc,
 };
+use taffy::{prelude::Size, style::Style};
 use winit::{
     event::{Event, KeyboardInput, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
@@ -260,7 +261,14 @@ pub fn run_with_event_loop_builder(
                 if let Some(env) = &mut env {
                     Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
 
-                    // taffy
+                    let root = semantics
+                        .taffy
+                        .new_with_children(
+                            Style::DEFAULT,
+                            semantics.layout_children.first().unwrap(),
+                        )
+                        .unwrap();
+                    taffy::compute_layout(&mut semantics.taffy, root, Size::MAX_CONTENT).unwrap();
 
                     let mut canvas = env.surface.canvas();
                     canvas.clear(Color::WHITE);
