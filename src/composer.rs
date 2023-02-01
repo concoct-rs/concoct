@@ -1,14 +1,11 @@
-use slotmap::{SlotMap, DefaultKey};
+use slotmap::{DefaultKey, SlotMap};
 
-use crate::{
-    container::{container, ContainerWidget},
-    Modifier, Semantics, Widget,
-};
+use crate::{container::ContainerWidget, Semantics, Widget};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
     fmt,
-    panic::Location, any::Any,
+    panic::Location,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -92,9 +89,8 @@ impl Composer {
         }
     }
 
-
     #[track_caller]
-    pub fn get<W>(& self, id: &Id) -> Option<& W>
+    pub fn get<W>(&self, id: &Id) -> Option<&W>
     where
         W: Widget + 'static,
     {
@@ -171,11 +167,22 @@ impl Composer {
         self.visit(visitor);
     }
 
-    pub fn recompose(&mut self) {
-        if let Some(parent_id) = self.changed.iter().max_by_key(|id| id.path.len()).cloned() {
-            let container: &mut ContainerWidget = self.get_mut(&parent_id).unwrap();
-            (container.f)();
-        }
+    pub fn recompose() {
+        Self::with(|composer| {
+            let mut cx = composer.borrow_mut();
+            if let Some(parent_id) = cx.changed.iter().min_by_key(|id| id.path.len()).cloned() {
+                let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
+                let mut f = container.f.take().unwrap();
+                cx.current_group_id = parent_id.clone();
+                drop(cx);
+
+                f();
+
+                let mut cx = composer.borrow_mut();
+                let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
+                container.f = Some(f);
+            }
+        });
     }
 }
 

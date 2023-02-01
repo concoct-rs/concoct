@@ -18,11 +18,13 @@ pub fn container(
 
         let id = cx.id(location);
         let parent_children = mem::take(&mut cx.children);
+        let parent_group_id = mem::replace(&mut cx.current_group_id, id.clone());
         drop(cx);
 
         f();
 
         let mut cx = composer.borrow_mut();
+        cx.current_group_id = parent_group_id;
         let children = mem::replace(&mut cx.children, parent_children);
 
         if let Some(widget) = cx.get_mut::<ContainerWidget>(&id) {
@@ -32,7 +34,7 @@ pub fn container(
                 modifier: container_modifier,
                 node_id: None,
                 modify: Box::new(modifier.modify),
-                f: Box::new(f),
+                f: Some(Box::new(f)),
             };
             cx.insert(id, widget, Some(children));
         }
@@ -43,7 +45,7 @@ pub struct ContainerWidget {
     modifier: ContainerModifier,
     node_id: Option<NodeId>,
     pub modify: Box<dyn Modify<ContainerModifier>>,
-    pub f: Box<dyn FnMut()>,
+    pub f: Option<Box<dyn FnMut()>>,
 }
 
 impl Widget for ContainerWidget {

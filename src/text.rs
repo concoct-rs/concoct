@@ -41,7 +41,7 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
     }
-    fn any(& self) -> & dyn any::Any {
+    fn any(&self) -> &dyn any::Any {
         self
     }
 

@@ -1,4 +1,4 @@
-use crate::{Composer, Widget};
+use crate::{composer::Id, Composer, Widget};
 use slotmap::DefaultKey;
 use std::{
     any::Any,
@@ -23,10 +23,10 @@ pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
             let value = f();
             let widget = StateWidget {
                 key,
-                value: Rc::new(RefCell::new(Box::new(value))),
+                value: Rc::new(RefCell::new(value)),
+                group_id: cx.current_group_id.clone(),
             };
-
-            cx.insert(id.clone(), widget, None);
+            cx.insert(id, widget, None);
 
             key
         }
@@ -43,14 +43,27 @@ pub struct State<T> {
     _marker: PhantomData<T>,
 }
 
+impl<T> Clone for State<T> {
+    fn clone(&self) -> Self {
+        Self {
+            key: self.key.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T> Copy for State<T> {}
+
 impl<T: 'static> State<T> {
     pub fn get(self) -> StateRef<T> {
         Composer::with(|composer| {
             let cx = composer.borrow();
             let id = &cx.states[self.key];
+
             let widget = cx.get::<StateWidget<T>>(id).unwrap();
 
             StateRef {
+                group_id: widget.group_id.clone(),
                 rc: widget.value.clone(),
             }
         })
@@ -58,6 +71,7 @@ impl<T: 'static> State<T> {
 }
 
 pub struct StateRef<T> {
+    group_id: Id,
     rc: Rc<RefCell<T>>,
 }
 
@@ -70,6 +84,8 @@ impl<T> StateRef<T> {
     /// Return a mutable reference to this state's value.
     /// This will trigger a recompose for this state's parent.
     pub fn as_mut(&self) -> RefMut<'_, T> {
+        Composer::with(|composer| composer.borrow_mut().changed.insert(self.group_id.clone()));
+
         self.rc.as_ref().borrow_mut()
     }
 
@@ -84,10 +100,11 @@ impl<T> StateRef<T> {
 pub struct StateWidget<T> {
     key: DefaultKey,
     value: Rc<RefCell<T>>,
+    group_id: Id,
 }
 
 impl<T: 'static> Widget for StateWidget<T> {
-    fn semantics(&mut self, semantics: &mut crate::Semantics) {}
+    fn semantics(&mut self, _semantics: &mut crate::Semantics) {}
 
     fn any(&self) -> &dyn Any {
         self

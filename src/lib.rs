@@ -20,7 +20,7 @@ pub use text::text;
 pub trait Widget: Any {
     fn semantics(&mut self, semantics: &mut Semantics);
 
-    fn any(& self) -> & dyn Any;
+    fn any(&self) -> &dyn Any;
 
     fn any_mut(&mut self) -> &mut dyn Any;
 }

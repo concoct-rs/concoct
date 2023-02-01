@@ -1,5 +1,5 @@
 use accesskit::{Action, Role};
-use concoct::{container, text, Composer, Modifier, Semantics};
+use concoct::{container, state::state, text, Composer, Modifier, Semantics};
 
 #[test]
 fn it_works() {
@@ -29,4 +29,27 @@ fn it_works() {
             handler(Action::Default)
         }
     });
+}
+
+#[test]
+fn state_works() {
+    fn app() {
+        container(Modifier::default(), || {
+            let count = state(|| 0);
+
+            text(String::from(count.get().cloned().to_string()));
+
+            *count.get().as_mut() += 1;
+        })
+    }
+
+    app();
+
+    Composer::recompose();
+
+    Composer::with(|composer| {
+        let mut semantics = Semantics::default();
+        composer.borrow_mut().semantics(&mut semantics);
+        dbg!(&semantics);
+    })
 }
