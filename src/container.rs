@@ -4,7 +4,7 @@ use crate::{
     Modifier, Modify, Semantics, Widget,
 };
 use accesskit::{Node, NodeId};
-use std::{any, mem, panic::Location};
+use std::{any, panic::Location};
 
 #[track_caller]
 pub fn container(
@@ -16,40 +16,13 @@ pub fn container(
 
     let location = Location::caller();
     Composer::with(|composer| {
-        let mut cx = composer.borrow_mut();
-
+        let cx = composer.borrow();
         let id = cx.id(location);
-        let parent_children = mem::take(&mut cx.children);
-        let parent_group_id = mem::replace(&mut cx.current_group_id, id.clone());
         drop(cx);
 
-        f();
+        let (children, removed) = Composer::group(&id, &mut f);
 
         let mut cx = composer.borrow_mut();
-        cx.current_group_id = parent_group_id;
-        let children = mem::replace(&mut cx.children, parent_children);
-
-        let removed = if let Some(node) = cx.widgets.get(&id) {
-            let removed: Vec<_> = node
-                .children
-                .as_ref()
-                .unwrap()
-                .iter()
-                .filter(|id| !children.contains(id))
-                .cloned()
-                .collect();
-
-            Some(removed)
-        } else {
-            None
-        };
-        let removed = removed.map(|removed| {
-            removed
-                .iter()
-                .map(|id| cx.widgets.remove(id).unwrap())
-                .collect()
-        });
-
         if let Some(node) = cx.widgets.get_mut(&id) {
             let widget: &mut ContainerWidget = node.widget.any_mut().downcast_mut().unwrap();
             widget.modifier = container_modifier;
