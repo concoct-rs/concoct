@@ -7,7 +7,7 @@ fn it_updates_state_and_recomposes() {
         container(Modifier::default(), || {
             let count = state(|| 0);
 
-            text(count.get().cloned().to_string());
+            text(Modifier::default(), count.get().cloned().to_string());
 
             *count.get().as_mut() += 1;
         })
@@ -29,7 +29,7 @@ fn it_triggers_click_events_and_recomposes() {
                     .clickable(move |_action_request| *count.get().as_mut() += 1)
                     .merge_descendants()
                     .role(Role::Button),
-                move || text(count.get().cloned().to_string()),
+                move || text(Modifier::default(), count.get().cloned().to_string()),
             )
         })
     });
@@ -46,7 +46,7 @@ fn it_removes_unused_widgets() {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
-                text("toggle");
+                text(Modifier::default(), "toggle");
             }
 
             *is_shown.get().as_mut() = false;
@@ -64,7 +64,7 @@ fn it_inserts_new_widgets() {
             let is_shown = state(|| false);
 
             if is_shown.get().cloned() {
-                text("A");
+                text(Modifier::default(), "A");
             }
 
             *is_shown.get().as_mut() = true;
@@ -82,9 +82,9 @@ fn it_replaces_widgets() {
             let is_a_shown = state(|| true);
 
             if is_a_shown.get().cloned() {
-                text("A");
+                text(Modifier::default(), "A");
             } else {
-                text("B");
+                text(Modifier::default(), "B");
             }
 
             *is_a_shown.get().as_mut() = false;

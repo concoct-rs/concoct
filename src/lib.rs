@@ -3,6 +3,8 @@ use std::any::Any;
 pub mod composer;
 pub use composer::Composer;
 
+pub mod composable;
+
 mod container;
 pub use container::container;
 

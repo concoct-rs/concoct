@@ -1,4 +1,4 @@
-use crate::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
+use crate::{composer::Composer, semantics::LayoutNode, Modifier, Modify, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
@@ -14,8 +14,26 @@ use taffy::{
     style::Style,
 };
 
+pub struct TextModifier {
+    style: Style,
+}
+
+impl AsMut<Style> for TextModifier {
+    fn as_mut(&mut self) -> &mut Style {
+        &mut self.style
+    }
+}
+
 #[track_caller]
-pub fn text(string: impl Into<String>) {
+pub fn text(
+    mut modifier: Modifier<TextModifier, impl Modify<TextModifier> + 'static>,
+    string: impl Into<String>,
+) {
+    let mut text_modifier = TextModifier {
+        style: Style::default(),
+    };
+    modifier.modify.modify(&mut text_modifier);
+
     let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
@@ -30,6 +48,8 @@ pub fn text(string: impl Into<String>) {
                 node_id: None,
                 layout_id: None,
                 paragraph: None,
+                modify: Box::new(modifier.modify),
+                modifier: text_modifier,
             };
             cx.insert(id, widget, None);
         }
@@ -41,6 +61,8 @@ pub struct TextWidget {
     node_id: Option<NodeId>,
     layout_id: Option<LayoutNode>,
     paragraph: Option<Arc<Mutex<Paragraph>>>,
+    modify: Box<dyn Modify<TextModifier>>,
+    modifier: TextModifier,
 }
 
 impl Widget for TextWidget {
@@ -78,7 +100,7 @@ impl Widget for TextWidget {
             self.paragraph = Some(paragraph.clone());
 
             let layout_id = semantics.insert_layout_with_measure(
-                Style::default(),
+                self.modifier.style,
                 move |_known_dimensions, available_space| {
                     let mut paragraph = paragraph.lock().unwrap();
                     let max_width = match available_space.width {
