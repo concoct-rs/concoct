@@ -59,7 +59,6 @@ impl Composer {
         Id { path }
     }
 
-
     #[track_caller]
     pub fn get<W>(&self, id: &Id) -> Option<&W>
     where
@@ -124,7 +123,6 @@ impl Composer {
                             } else {
                                 items.push(child);
                             }
-                            
                         }
 
                         items.insert(idx, Item::Group(end_id))
