@@ -21,7 +21,7 @@ impl Tester {
         mut f: impl FnMut(NodeId, Arc<Node>) -> bool,
     ) -> Option<TestNode<'a>> {
         if self.should_recompose {
-            Composer::recompose();
+            Composer::recompose(&mut self.semantics);
         } else {
             self.should_recompose = true;
         }

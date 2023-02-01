@@ -50,13 +50,11 @@ fn it_removes_unused_widgets() {
         container(Modifier::default(), || {
             let is_shown = state(|| true);
 
-            container(Modifier::default(), move || {
-                if is_shown.get().cloned() {
-                    text(String::from("toggle"));
-                }
+            if is_shown.get().cloned() {
+                text(String::from("toggle"));
+            }
 
-                *is_shown.get().as_mut() = false;
-            })
+            *is_shown.get().as_mut() = false;
         })
     });
 
@@ -67,7 +65,4 @@ fn it_removes_unused_widgets() {
     assert!(tester
         .get(|_id, node| node.value.as_deref() == Some("toggle"))
         .is_none());
-
-    dbg!(tester.semantics.nodes.len());
-    // dbg!(tester.semantics);
 }

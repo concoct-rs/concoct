@@ -4,7 +4,7 @@ use crate::{container::ContainerWidget, Semantics, Widget};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
-    fmt,
+    fmt, mem,
     panic::Location,
 };
 
@@ -91,6 +91,43 @@ impl Composer {
         );
     }
 
+    pub fn group(id: &Id, f: impl FnOnce()) -> Option<Vec<WidgetNode>> {
+        Composer::with(|composer| {
+            let mut cx = composer.borrow_mut();
+
+            let parent_children = mem::take(&mut cx.children);
+            let parent_group_id = mem::replace(&mut cx.current_group_id, id.clone());
+            drop(cx);
+
+            f();
+
+            let mut cx = composer.borrow_mut();
+            cx.current_group_id = parent_group_id;
+            let children = mem::replace(&mut cx.children, parent_children);
+
+            let removed = if let Some(node) = cx.widgets.get(&id) {
+                let removed: Vec<_> = node
+                    .children
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .filter(|id| !children.contains(id))
+                    .cloned()
+                    .collect();
+
+                Some(removed)
+            } else {
+                None
+            };
+            removed.map(|removed| {
+                removed
+                    .iter()
+                    .map(|id| cx.widgets.remove(id).unwrap())
+                    .collect()
+            })
+        })
+    }
+
     pub fn visit(&mut self, mut visitor: impl Visitor) {
         enum Item {
             Group(Id),
@@ -145,7 +182,7 @@ impl Composer {
         self.visit(visitor);
     }
 
-    pub fn recompose() {
+    pub fn recompose(semantics: &mut Semantics) {
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();
             if let Some(parent_id) = cx.changed.iter().min_by_key(|id| id.path.len()).cloned() {
@@ -154,7 +191,11 @@ impl Composer {
                 cx.current_group_id = parent_id.clone();
                 drop(cx);
 
-                f();
+                if let Some(mut removed) = Self::group(&parent_id, &mut f) {
+                    for widget in &mut removed {
+                        widget.widget.remove(semantics);
+                    }
+                }
 
                 let mut cx = composer.borrow_mut();
                 let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
