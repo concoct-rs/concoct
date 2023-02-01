@@ -17,6 +17,7 @@ pub use semantics::Semantics;
 pub mod state;
 
 mod tester;
+use skia_safe::Canvas;
 pub use tester::Tester;
 
 mod text;
@@ -24,6 +25,8 @@ pub use text::text;
 
 pub trait Widget: Any {
     fn semantics(&mut self, semantics: &mut Semantics);
+
+    fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas);
 
     fn remove(&mut self, semantics: &mut Semantics);
 

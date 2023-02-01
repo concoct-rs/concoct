@@ -108,6 +108,8 @@ pub struct StateWidget<T> {
 impl<T: 'static> Widget for StateWidget<T> {
     fn semantics(&mut self, _semantics: &mut Semantics) {}
 
+    fn paint(&mut self, _semantics: &Semantics, _canvas: &mut skia_safe::Canvas) {}
+
     fn remove(&mut self, _semantics: &mut Semantics) {}
 
     fn any(&self) -> &dyn Any {

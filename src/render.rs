@@ -1,7 +1,7 @@
 //! Render engine
 
 use crate::{Composer, Semantics};
-use accesskit::{NodeId, Role, Tree, TreeUpdate};
+use accesskit::{NodeId, Role};
 use accesskit_winit::{ActionRequestEvent, Adapter};
 use gl::types::*;
 use glutin::{
@@ -15,7 +15,7 @@ use glutin_winit::DisplayBuilder;
 use raw_window_handle::HasRawWindowHandle;
 use skia_safe::{
     gpu::{gl::FramebufferInfo, BackendRenderTarget, FlushInfo, SurfaceOrigin},
-    Color, ColorType, Point,
+    Color, ColorType,
 };
 use std::{
     ffi::CString,
@@ -86,8 +86,8 @@ impl Env {
     pub fn redraw(
         &mut self,
         _scale_factor: f64,
-        composer: &mut Composer,
-        semantics: &mut Semantics,
+        _composer: &mut Composer,
+        _semantics: &mut Semantics,
     ) {
         let canvas = self.surface.canvas();
         canvas.clear(Color::WHITE);
@@ -111,6 +111,8 @@ pub fn run_with_event_loop_builder(
     view_builder: fn(),
     mut event_loop_builder: EventLoopBuilder<UserEvent>,
 ) {
+    view_builder();
+
     let event_loop = event_loop_builder.build();
 
     let window_builder = if cfg!(wgl_backend) {
@@ -157,7 +159,7 @@ pub fn run_with_event_loop_builder(
 
     let mut cursor = None;
 
-    let root = Arc::new(accesskit::Node {
+    let _root = Arc::new(accesskit::Node {
         role: Role::Window,
         children: vec![],
         name: Some("WINDOW_TITLE".into()),
@@ -238,7 +240,7 @@ pub fn run_with_event_loop_builder(
                 }
                 WindowEvent::MouseInput {
                     device_id: _,
-                    state,
+                    state: _,
                     button: _,
                     ..
                 } => {}
@@ -246,15 +248,32 @@ pub fn run_with_event_loop_builder(
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {
-                            state,
-                            virtual_keycode,
+                            state: _,
+                            virtual_keycode: _,
                             ..
                         },
                     ..
                 } => {}
                 _ => (),
             },
-            Event::RedrawRequested(_) => {}
+            Event::RedrawRequested(_) => {
+                if let Some(env) = &mut env {
+                    Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
+
+                    // taffy
+
+                    let mut canvas = env.surface.canvas();
+                    canvas.clear(Color::WHITE);
+
+                    Composer::with(|composer| composer.borrow_mut().paint(&semantics, &mut canvas));
+
+                    env.gr_context.flush(&FlushInfo::default());
+                    env.windowed_context
+                        .surface
+                        .swap_buffers(&env.gl_context)
+                        .unwrap();
+                }
+            }
             Event::MainEventsCleared => {}
             Event::UserEvent(user_event) => match user_event {
                 UserEvent::ActionRequest(action_request) => {

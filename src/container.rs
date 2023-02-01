@@ -76,6 +76,8 @@ impl Widget for ContainerWidget {
         self.modify.semantics(id, semantics);
     }
 
+    fn paint(&mut self, _semantics: &Semantics, _canvas: &mut skia_safe::Canvas) {}
+
     fn remove(&mut self, semantics: &mut Semantics) {
         if let Some(node_id) = self.node_id {
             semantics.remove(node_id);

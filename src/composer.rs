@@ -1,4 +1,5 @@
 use crate::{container::ContainerWidget, Semantics, Widget};
+use skia_safe::Canvas;
 use slotmap::{DefaultKey, SlotMap};
 use std::{
     cell::RefCell,
@@ -194,6 +195,11 @@ impl Composer {
         self.visit(visitor);
     }
 
+    pub fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {
+        let visitor = PaintVisitor::new(semantics, canvas);
+        self.visit(visitor);
+    }
+
     pub fn recompose(semantics: &mut Semantics) {
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();
@@ -283,4 +289,23 @@ impl Visitor for SemanticsVisitor<'_> {
     fn visit_group(&mut self) {
         self.semantics.start_group()
     }
+}
+
+pub struct PaintVisitor<'a> {
+    semantics: &'a Semantics,
+    canvas: &'a mut Canvas,
+}
+
+impl<'a> PaintVisitor<'a> {
+    pub fn new(semantics: &'a Semantics, canvas: &'a mut Canvas) -> Self {
+        Self { semantics, canvas }
+    }
+}
+
+impl Visitor for PaintVisitor<'_> {
+    fn visit_child(&mut self, widget: &mut Box<dyn Widget>) {
+        widget.paint(self.semantics, self.canvas);
+    }
+
+    fn visit_group(&mut self) {}
 }
