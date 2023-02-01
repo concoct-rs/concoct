@@ -32,16 +32,18 @@ pub fn container(
                 modifier: container_modifier,
                 node_id: None,
                 modify: Box::new(modifier.modify),
+                f: Box::new(f),
             };
             cx.insert(id, widget, Some(children));
         }
     })
 }
 
-struct ContainerWidget {
+pub struct ContainerWidget {
     modifier: ContainerModifier,
     node_id: Option<NodeId>,
-    modify: Box<dyn Modify<ContainerModifier>>,
+    pub modify: Box<dyn Modify<ContainerModifier>>,
+    pub f: Box<dyn FnMut()>,
 }
 
 impl Widget for ContainerWidget {
@@ -61,6 +63,10 @@ impl Widget for ContainerWidget {
         };
 
         self.modify.semantics(id, semantics);
+    }
+
+    fn any(&self) -> &dyn any::Any {
+        self
     }
 
     fn any_mut(&mut self) -> &mut dyn any::Any {

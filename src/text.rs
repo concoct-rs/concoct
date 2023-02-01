@@ -41,6 +41,9 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
     }
+    fn any(& self) -> & dyn any::Any {
+        self
+    }
 
     fn any_mut(&mut self) -> &mut dyn any::Any {
         self

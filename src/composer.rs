@@ -1,5 +1,15 @@
-use crate::{Semantics, Widget};
-use std::{cell::RefCell, collections::HashMap, fmt, panic::Location};
+use slotmap::{SlotMap, DefaultKey};
+
+use crate::{
+    container::{container, ContainerWidget},
+    Modifier, Semantics, Widget,
+};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    fmt,
+    panic::Location, any::Any,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IdSegment {
@@ -28,6 +38,8 @@ pub struct Composer {
     pub widgets: HashMap<Id, WidgetNode>,
     pub children: Vec<Id>,
     pub current_group_id: Id,
+    pub states: SlotMap<DefaultKey, Id>,
+    pub changed: HashSet<Id>,
 }
 
 impl Composer {
@@ -78,6 +90,17 @@ impl Composer {
                 },
             );
         }
+    }
+
+
+    #[track_caller]
+    pub fn get<W>(& self, id: &Id) -> Option<& W>
+    where
+        W: Widget + 'static,
+    {
+        self.widgets
+            .get(id)
+            .map(|widget| widget.widget.any().downcast_ref().unwrap())
     }
 
     #[track_caller]
@@ -146,6 +169,13 @@ impl Composer {
     pub fn semantics(&mut self, semantics: &mut Semantics) {
         let visitor = SemanticsVisitor::new(semantics);
         self.visit(visitor);
+    }
+
+    pub fn recompose(&mut self) {
+        if let Some(parent_id) = self.changed.iter().max_by_key(|id| id.path.len()).cloned() {
+            let container: &mut ContainerWidget = self.get_mut(&parent_id).unwrap();
+            (container.f)();
+        }
     }
 }
 
