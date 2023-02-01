@@ -16,7 +16,9 @@ pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
         let id = cx.id(location);
 
         if let Some(widget) = cx.get_mut::<StateWidget<T>>(&id) {
-            widget.key
+            let key = widget.key;
+            cx.children.push(id);
+            key
         } else {
             let key = cx.states.insert(id.clone());
 

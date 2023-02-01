@@ -1,5 +1,5 @@
 use accesskit::Role;
-use concoct::{container, state::state, text, Modifier, Tester};
+use concoct::{container, state::state, text, Composer, Modifier, Tester};
 
 #[test]
 fn it_updates_state_and_recomposes() {
@@ -42,4 +42,31 @@ fn it_triggers_click_events_and_recomposes() {
             .unwrap()
             .click();
     }
+}
+
+#[test]
+fn it_removes_unused_widgets() {
+    let mut tester = Tester::new(|| {
+        container(Modifier::default(), || {
+            let is_shown = state(|| true);
+
+            if is_shown.get().cloned() {
+                text(String::from("toggle"));
+            }
+
+            *is_shown.get().as_mut() = false;
+        })
+    });
+
+    assert!(tester
+        .get(|_id, node| node.value.as_deref() == Some("toggle"))
+        .is_some());
+
+    assert!(tester
+        .get(|_id, node| node.value.as_deref() == Some("toggle"))
+        .is_some());
+
+    Composer::with(|composer| {
+        //  dbg!(composer.borrow());
+    })
 }

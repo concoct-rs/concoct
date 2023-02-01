@@ -3,7 +3,7 @@ use accesskit::{Action, Node, NodeId};
 use std::sync::Arc;
 
 pub struct Tester {
-    semantics: Semantics,
+    pub semantics: Semantics,
     should_recompose: bool,
 }
 

@@ -27,8 +27,24 @@ pub fn container(
         cx.current_group_id = parent_group_id;
         let children = mem::replace(&mut cx.children, parent_children);
 
-        if let Some(widget) = cx.get_mut::<ContainerWidget>(&id) {
+        if let Some(node) = cx.widgets.get_mut(&id) {
+            let removed: Vec<_> = node
+                .children
+                .as_ref()
+                .unwrap()
+                .iter()
+                .filter(|id| !children.contains(id))
+                .cloned()
+                .collect();
+
+            let widget: &mut ContainerWidget = node.widget.any_mut().downcast_mut().unwrap();
             widget.modifier = container_modifier;
+            cx.children.push(id);
+
+            for id in &removed {
+                dbg!(&id);
+                cx.widgets.remove(id);
+            }
         } else {
             let widget = ContainerWidget {
                 modifier: container_modifier,

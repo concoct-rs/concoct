@@ -11,6 +11,7 @@ pub fn text(string: String) {
 
         if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
             widget.text = string.clone();
+            cx.children.push(id);
         } else {
             let widget = TextWidget {
                 text: string.clone(),

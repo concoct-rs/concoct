@@ -111,23 +111,27 @@ impl Composer {
                     visitor.visit_child(&mut node.widget)
                 }
                 Item::Child(id) => {
-                    let node = self.widgets.get_mut(&id).unwrap();
+                    if let Some(node) = self.widgets.get_mut(&id) {
+                        if let Some(children) = &node.children {
+                            visitor.visit_group();
 
-                    if let Some(children) = &node.children {
-                        visitor.visit_group();
-
-                        let end_id = id.clone();
-                        for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
-                            if idx < items.len() {
-                                items.insert(idx, child);
-                            } else {
-                                items.push(child);
+                            let end_id = id.clone();
+                            for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
+                                if idx < items.len() {
+                                    items.insert(idx, child);
+                                } else {
+                                    items.push(child);
+                                }
                             }
-                        }
 
-                        items.insert(idx, Item::Group(end_id))
-                    } else {
-                        visitor.visit_child(&mut node.widget);
+                            if idx < items.len() {
+                                items.insert(idx, Item::Group(end_id))
+                            } else {
+                                items.push(Item::Group(end_id))
+                            }
+                        } else {
+                            visitor.visit_child(&mut node.widget);
+                        }
                     }
                 }
             }

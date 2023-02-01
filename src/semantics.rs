@@ -43,8 +43,9 @@ impl Semantics {
     }
 
     pub fn update(&mut self, id: NodeId, node: Node) {
-        let last_node = self.nodes.get_mut(&id).unwrap();
+        self.children.last_mut().unwrap().push(id);
 
+        let last_node = self.nodes.get_mut(&id).unwrap();
         if &node != &**last_node {
             let node = Arc::new(node);
             *last_node = node.clone();
@@ -87,6 +88,17 @@ impl Semantics {
 
     pub fn end_group_update(&mut self, id: NodeId) {
         let children = self.children.pop().unwrap();
+        let removed: Vec<_> = self.nodes[&id]
+            .children
+            .iter()
+            .filter(|child_id| !children.contains(&child_id))
+            .cloned()
+            .collect();
+        for child_id in &removed {
+            panic!("{:?}", child_id);
+            self.nodes.remove(&child_id);
+        }
+
         let node = Node {
             children,
             ..Node::default()
