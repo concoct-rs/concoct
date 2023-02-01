@@ -1,4 +1,4 @@
-use crate::{composer::Id, Composer, Widget};
+use crate::{composer::Id, Composer, Semantics, Widget};
 use slotmap::DefaultKey;
 use std::{
     any::Any,
@@ -106,7 +106,9 @@ pub struct StateWidget<T> {
 }
 
 impl<T: 'static> Widget for StateWidget<T> {
-    fn semantics(&mut self, _semantics: &mut crate::Semantics) {}
+    fn semantics(&mut self, _semantics: &mut Semantics) {}
+
+    fn remove(&mut self, _semantics: &mut Semantics) {}
 
     fn any(&self) -> &dyn Any {
         self

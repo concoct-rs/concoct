@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 
 pub struct Semantics {
     pub nodes: HashMap<NodeId, Arc<Node>>,
-    children: Vec<Vec<NodeId>>,
+    pub children: Vec<Vec<NodeId>>,
     high_water_mark: NonZeroU128,
     unused_ids: Vec<NodeId>,
     tree_update: TreeUpdate,
@@ -88,17 +88,6 @@ impl Semantics {
 
     pub fn end_group_update(&mut self, id: NodeId) {
         let children = self.children.pop().unwrap();
-        let removed: Vec<_> = self.nodes[&id]
-            .children
-            .iter()
-            .filter(|child_id| !children.contains(&child_id))
-            .cloned()
-            .collect();
-        for child_id in &removed {
-            panic!("{:?}", child_id);
-            self.nodes.remove(&child_id);
-        }
-
         let node = Node {
             children,
             ..Node::default()

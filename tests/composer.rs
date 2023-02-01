@@ -1,5 +1,5 @@
 use accesskit::Role;
-use concoct::{container, state::state, text, Composer, Modifier, Tester};
+use concoct::{container, state::state, text, Modifier, Tester};
 
 #[test]
 fn it_updates_state_and_recomposes() {
@@ -50,11 +50,13 @@ fn it_removes_unused_widgets() {
         container(Modifier::default(), || {
             let is_shown = state(|| true);
 
-            if is_shown.get().cloned() {
-                text(String::from("toggle"));
-            }
+            container(Modifier::default(), move || {
+                if is_shown.get().cloned() {
+                    text(String::from("toggle"));
+                }
 
-            *is_shown.get().as_mut() = false;
+                *is_shown.get().as_mut() = false;
+            })
         })
     });
 
@@ -64,9 +66,8 @@ fn it_removes_unused_widgets() {
 
     assert!(tester
         .get(|_id, node| node.value.as_deref() == Some("toggle"))
-        .is_some());
+        .is_none());
 
-    Composer::with(|composer| {
-        //  dbg!(composer.borrow());
-    })
+    dbg!(tester.semantics.nodes.len());
+    // dbg!(tester.semantics);
 }

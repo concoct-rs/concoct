@@ -42,6 +42,13 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
     }
+
+    fn remove(&mut self, semantics: &mut Semantics) {
+        if let Some(node_id) = self.node_id {
+            semantics.remove(node_id);
+        }
+    }
+
     fn any(&self) -> &dyn any::Any {
         self
     }
