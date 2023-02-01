@@ -58,7 +58,7 @@ fn it_removes_unused_widgets() {
 }
 
 #[test]
-fn it_inserts_new_elements() {
+fn it_inserts_new_widgets() {
     let mut tester = Tester::new(|| {
         container(Modifier::default(), || {
             let is_shown = state(|| false);
@@ -73,4 +73,24 @@ fn it_inserts_new_elements() {
 
     assert!(tester.get_text("A").is_none());
     assert!(tester.get_text("A").is_some());
+}
+
+#[test]
+fn it_replaces_widgets() {
+    let mut tester = Tester::new(|| {
+        container(Modifier::default(), || {
+            let is_a_shown = state(|| true);
+
+            if is_a_shown.get().cloned() {
+                text("A");
+            } else {
+                text("B");
+            }
+
+            *is_a_shown.get().as_mut() = false;
+        })
+    });
+
+    assert!(tester.get_text("A").is_some());
+    assert!(tester.get_text("B").is_some());
 }
