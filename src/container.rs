@@ -1,6 +1,7 @@
 use crate::{
     composer::{Composer, WidgetNode},
     modify::container::ContainerModifier,
+    semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
 };
 use accesskit::{Node, NodeId};
@@ -37,6 +38,7 @@ pub fn container(
                 modify: Box::new(modifier.modify),
                 f: Some(Box::new(f)),
                 removed: None,
+                layout_id: None
             };
             cx.insert(id, widget, Some(children));
         }
@@ -49,10 +51,24 @@ pub struct ContainerWidget {
     pub modify: Box<dyn Modify<ContainerModifier>>,
     pub f: Option<Box<dyn FnMut()>>,
     removed: Option<Vec<WidgetNode>>,
+    layout_id: Option<LayoutNode>,
 }
 
 impl Widget for ContainerWidget {
     fn semantics(&mut self, semantics: &mut Semantics) {
+        let layout_children = semantics.layout_children.pop().unwrap();
+
+        if let Some(layout_id) = self.layout_id {
+            semantics
+                .taffy
+                .set_children(layout_id, &layout_children)
+                .unwrap();
+        } else {
+            let layout_id =
+                semantics.insert_layout_with_children(self.modifier.style, &layout_children);
+            self.layout_id = Some(layout_id);
+        }
+
         if let Some(removed) = &mut self.removed {
             for child in removed {
                 child.widget.remove(semantics);

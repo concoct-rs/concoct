@@ -1,5 +1,6 @@
 use super::{container::MergeDescendants, Chain, Clickable};
 use accesskit::{Action, Role};
+use taffy::{prelude::Size, style::{Dimension, FlexDirection}};
 use std::marker::PhantomData;
 
 pub struct Modifier<T, M> {
@@ -35,11 +36,19 @@ impl<T, M> Modifier<T, M> {
         self.chain(Clickable { f: Some(on_click) })
     }
 
+    pub fn flex_direction(self, flex_direction: FlexDirection) -> Modifier<T, Chain<M, FlexDirection>> {
+        self.chain(flex_direction)
+    }
+
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {
         self.chain(MergeDescendants)
     }
 
     pub fn role(self, role: Role) -> Modifier<T, Chain<M, Role>> {
         self.chain(role)
+    }
+
+    pub fn size(self, size: Size<Dimension>) -> Modifier<T, Chain<M, Size<Dimension>>> {
+        self.chain(size)
     }
 }

@@ -5,6 +5,10 @@ pub mod container;
 
 mod modifier;
 pub use modifier::Modifier;
+use taffy::{
+    prelude::Size,
+    style::{Dimension, Style, FlexDirection},
+};
 
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
@@ -56,5 +60,17 @@ where
         if let Some(f) = self.f.take() {
             semantics.handlers.insert(node_id, Box::new(f));
         }
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexDirection {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_direction = *self;
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for Size<Dimension> {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().size = *self;
     }
 }

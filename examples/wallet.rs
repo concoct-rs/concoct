@@ -1,19 +1,27 @@
 use accesskit::{Node, NodeId, Role};
+use concoct::composable::material::button;
 use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
 use skia_safe::RGB;
 use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{any, panic::Location, sync::Arc};
+use taffy::style::FlexDirection;
 use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
 };
 
 fn app() {
-    container(Modifier::default(), || {
-        flex_text("Hello");
-    })
+    container(
+        Modifier::default().flex_direction(FlexDirection::Column),
+        || {
+            flex_text("Hello");
+            button("BTC", || {
+                dbg!("press");
+            })
+        },
+    )
 }
 
 fn main() {

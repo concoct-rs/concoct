@@ -70,6 +70,7 @@ impl Semantics {
 
     pub fn start_group(&mut self) {
         self.children.push(Vec::new());
+        self.layout_children.push(Vec::new());
     }
 
     pub fn end_group(&mut self) -> NodeId {
@@ -119,6 +120,20 @@ impl Semantics {
         } else {
             None
         }
+    }
+
+    pub fn insert_layout_with_children(
+        &mut self,
+        style: Style,
+       children: &[LayoutNode]
+    ) -> LayoutNode {
+        let layout_id = self
+            .taffy
+            .new_with_children(style, children)
+            .unwrap();
+        self.layout_children.last_mut().unwrap().push(layout_id);
+
+        layout_id
     }
 
     pub fn insert_layout_with_measure(
