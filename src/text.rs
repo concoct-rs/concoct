@@ -3,18 +3,18 @@ use accesskit::{Node, NodeId, Role};
 use std::{any, panic::Location};
 
 #[track_caller]
-pub fn text(string: String) {
+pub fn text(string: impl Into<String>) {
     let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
         let id = cx.id(location);
 
         if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
-            widget.text = string.clone();
+            widget.text = string.into();
             cx.children.push(id);
         } else {
             let widget = TextWidget {
-                text: string.clone(),
+                text: string.into(),
                 node_id: None,
             };
             cx.insert(id, widget, None);

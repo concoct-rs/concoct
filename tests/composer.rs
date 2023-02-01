@@ -7,7 +7,7 @@ fn it_updates_state_and_recomposes() {
         container(Modifier::default(), || {
             let count = state(|| 0);
 
-            text(String::from(count.get().cloned().to_string()));
+            text(count.get().cloned().to_string());
 
             *count.get().as_mut() += 1;
         })
@@ -29,7 +29,7 @@ fn it_triggers_click_events_and_recomposes() {
                     .clickable(move |_action_request| *count.get().as_mut() += 1)
                     .merge_descendants()
                     .role(Role::Button),
-                move || text(String::from(count.get().cloned().to_string())),
+                move || text(count.get().cloned().to_string()),
             )
         })
     });
@@ -46,7 +46,7 @@ fn it_removes_unused_widgets() {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
-                text(String::from("toggle"));
+                text("toggle");
             }
 
             *is_shown.get().as_mut() = false;
