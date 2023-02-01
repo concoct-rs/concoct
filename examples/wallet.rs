@@ -43,11 +43,11 @@ fn app() {
                     }
                 }),
             move || {
-                flex_text(format!("B {}", value.get().as_ref()));
+                flex_text(format!("B{}", value.get().as_ref()));
 
                 button("$20", || {
                     dbg!("press");
-                })
+                });
             },
         )
     });
@@ -120,7 +120,7 @@ impl Widget for TextWidget {
                 AvailableSpace::MinContent => f32::MIN,
             };
 
-            let mut font_size_value = font_size.load(Ordering::SeqCst);
+            let mut font_size_value = 400;
             let bounds = loop {
                 let font = Font::new(&typeface, font_size_value as f32);
                 let (_, bounds) = font.measure_str(&text, None);
