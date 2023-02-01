@@ -9,6 +9,8 @@ pub use container::container;
 pub mod modify;
 pub use modify::{Modifier, Modify};
 
+pub mod render;
+
 mod semantics;
 pub use semantics::Semantics;
 

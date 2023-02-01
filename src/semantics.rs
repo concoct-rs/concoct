@@ -19,6 +19,8 @@ pub struct Semantics {
     tree_update: TreeUpdate,
     pub handlers: HashMap<NodeId, Box<dyn FnMut(Action)>>,
     taffy: Taffy,
+    measure:
+        HashMap<LayoutNode, Box<dyn FnMut(Size<Option<f32>>, Size<AvailableSpace>) -> Size<f32>>>,
 }
 
 impl Default for Semantics {
@@ -31,6 +33,7 @@ impl Default for Semantics {
             tree_update: TreeUpdate::default(),
             handlers: HashMap::new(),
             taffy: Taffy::new(),
+            measure: HashMap::new(),
         }
     }
 }
