@@ -59,35 +59,6 @@ impl Composer {
         Id { path }
     }
 
-    #[track_caller]
-    pub fn insert_or_update<W>(
-        &mut self,
-        on_insert: impl FnOnce() -> W,
-        on_update: impl FnOnce(&mut W),
-    ) where
-        W: Widget + 'static,
-    {
-        let id = Id {
-            path: vec![IdSegment {
-                key: None,
-                location: Location::caller(),
-            }],
-        };
-        self.children.push(id.clone());
-
-        if let Some(widget) = self.widgets.get_mut(&id) {
-            on_update(widget.widget.any_mut().downcast_mut().unwrap());
-        } else {
-            let widget = on_insert();
-            self.widgets.insert(
-                id,
-                WidgetNode {
-                    widget: Box::new(widget),
-                    children: None,
-                },
-            );
-        }
-    }
 
     #[track_caller]
     pub fn get<W>(&self, id: &Id) -> Option<&W>
@@ -148,7 +119,12 @@ impl Composer {
 
                         let end_id = id.clone();
                         for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
-                            items.insert(idx, child);
+                            if idx < items.len() {
+                                items.insert(idx, child);
+                            } else {
+                                items.push(child);
+                            }
+                            
                         }
 
                         items.insert(idx, Item::Group(end_id))

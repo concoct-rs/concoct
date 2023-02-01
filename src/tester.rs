@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
-use accesskit::Node;
-
 use crate::{Composer, Semantics};
+use accesskit::{Action, Node, NodeId};
+use std::sync::Arc;
 
 pub struct Tester {
     semantics: Semantics,
@@ -18,7 +16,10 @@ impl Tester {
         }
     }
 
-    pub fn nodes(&mut self) -> impl Iterator<Item = &Arc<Node>> {
+    pub fn get<'a>(
+        &'a mut self,
+        mut f: impl FnMut(NodeId, Arc<Node>) -> bool,
+    ) -> Option<TestNode<'a>> {
         if self.should_recompose {
             Composer::recompose();
         } else {
@@ -27,6 +28,24 @@ impl Tester {
 
         Composer::with(|composer| composer.borrow_mut().semantics(&mut self.semantics));
 
-        self.semantics.nodes.values()
+        for (id, node) in &self.semantics.nodes {
+            if f(*id, node.clone()) {
+                return Some(TestNode { tester: self });
+            }
+        }
+
+        None
+    }
+}
+
+pub struct TestNode<'a> {
+    tester: &'a mut Tester,
+}
+
+impl<'a> TestNode<'a> {
+    pub fn click(&mut self) {
+        for handler in self.tester.semantics.handlers.values_mut() {
+            handler(Action::Default)
+        }
     }
 }
