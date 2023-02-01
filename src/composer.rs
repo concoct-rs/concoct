@@ -1,6 +1,5 @@
-use slotmap::{DefaultKey, SlotMap};
-
 use crate::{container::ContainerWidget, Semantics, Widget};
+use slotmap::{DefaultKey, SlotMap};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
