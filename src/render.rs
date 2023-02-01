@@ -32,11 +32,6 @@ use winit::{
 #[derive(Debug)]
 pub enum UserEvent {
     ActionRequest(ActionRequestEvent),
-    #[cfg(feature = "tokio")]
-    Task {
-        id: tokio::task::Id,
-        data: Box<dyn Any + Send>,
-    },
 }
 
 impl From<ActionRequestEvent> for UserEvent {
@@ -81,24 +76,6 @@ struct Env {
     gr_context: skia_safe::gpu::DirectContext,
     windowed_context: GlWindow,
     gl_context: PossiblyCurrentContext,
-}
-
-impl Env {
-    pub fn redraw(
-        &mut self,
-        _scale_factor: f64,
-        _composer: &mut Composer,
-        _semantics: &mut Semantics,
-    ) {
-        let canvas = self.surface.canvas();
-        canvas.clear(Color::WHITE);
-
-        self.gr_context.flush(&FlushInfo::default());
-        self.windowed_context
-            .surface
-            .swap_buffers(&self.gl_context)
-            .unwrap();
-    }
 }
 
 #[track_caller]

@@ -10,6 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use taffy::{
+    node::MeasureFunc,
     prelude::{AvailableSpace, Size},
     style::Style,
 };
@@ -81,22 +82,20 @@ impl Widget for TextWidget {
                 .taffy
                 .new_leaf_with_measure(
                     Style::default(),
-                    taffy::node::MeasureFunc::Boxed(Box::new(
-                        move |_known_dimensions, available_space| {
-                            let mut paragraph = paragraph.lock().unwrap();
-                            let max_width = match available_space.width {
-                                AvailableSpace::Definite(px) => px,
-                                AvailableSpace::MaxContent => f32::MAX,
-                                AvailableSpace::MinContent => f32::MIN,
-                            };
-                            paragraph.layout(max_width);
+                    MeasureFunc::Boxed(Box::new(move |_known_dimensions, available_space| {
+                        let mut paragraph = paragraph.lock().unwrap();
+                        let max_width = match available_space.width {
+                            AvailableSpace::Definite(px) => px,
+                            AvailableSpace::MaxContent => f32::MAX,
+                            AvailableSpace::MinContent => f32::MIN,
+                        };
+                        paragraph.layout(max_width);
 
-                            Size {
-                                width: paragraph.longest_line(),
-                                height: paragraph.height(),
-                            }
-                        },
-                    )),
+                        Size {
+                            width: paragraph.longest_line(),
+                            height: paragraph.height(),
+                        }
+                    })),
                 )
                 .unwrap();
             semantics

@@ -24,7 +24,7 @@ pub fn container(
 
         let mut cx = composer.borrow_mut();
         if let Some(node) = cx.widgets.get_mut(&id) {
-            let widget: &mut ContainerWidget = node.widget.any_mut().downcast_mut().unwrap();
+            let widget: &mut ContainerWidget = node.as_mut();
             widget.modifier = container_modifier;
             widget.removed = removed;
             node.children = Some(children);
