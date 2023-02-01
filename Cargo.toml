@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 accesskit = "0.8.1"
 slotmap = "1.0.6"
+taffy = "0.2.2"
