@@ -1,6 +1,6 @@
 use taffy::{prelude::Size, style::Dimension};
 
-use crate::{container, text, Modifier};
+use crate::{text, Modifier};
 
 pub fn button(label: impl Into<String>, mut on_press: impl FnMut() + 'static) {
     text(

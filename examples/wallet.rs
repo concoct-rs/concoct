@@ -24,15 +24,28 @@ fn app() {
                 .keyboard_handler(move |state, key_code| {
                     if state == ElementState::Pressed {
                         match key_code {
-                            VirtualKeyCode::A => value.get().as_mut().push('a'),
+                            VirtualKeyCode::Key0 | VirtualKeyCode::Numpad0 => {
+                                value.get().as_mut().push('0')
+                            }
+                            VirtualKeyCode::Key1 | VirtualKeyCode::Numpad1 => {
+                                value.get().as_mut().push('1')
+                            }
+                            VirtualKeyCode::Back => {
+                                value.get().as_mut().pop();
+                            }
+                            VirtualKeyCode::Period => {
+                                if !value.get().as_ref().contains('.') {
+                                    value.get().as_mut().push('.');
+                                }
+                            }
                             _ => {}
                         }
                     }
                 }),
             move || {
-                flex_text(value.get().cloned());
+                flex_text(format!("B {}", value.get().as_ref()));
 
-                button("BTC", || {
+                button("$20", || {
                     dbg!("press");
                 })
             },
@@ -92,52 +105,56 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
 
+        let font_size = self.font_size.clone();
+        let typeface = self.typeface.clone();
+        let text = self.text.clone();
+        let on_measure = move |_known_dimensions, available_space: Size<AvailableSpace>| {
+            let max_width = match available_space.width {
+                AvailableSpace::Definite(px) => px,
+                AvailableSpace::MaxContent => f32::MAX,
+                AvailableSpace::MinContent => f32::MIN,
+            };
+            let max_height = match available_space.height {
+                AvailableSpace::Definite(px) => px,
+                AvailableSpace::MaxContent => f32::MAX,
+                AvailableSpace::MinContent => f32::MIN,
+            };
+
+            let mut font_size_value = font_size.load(Ordering::SeqCst);
+            let bounds = loop {
+                let font = Font::new(&typeface, font_size_value as f32);
+                let (_, bounds) = font.measure_str(&text, None);
+
+                if bounds.width() <= max_width && bounds.height() <= max_height {
+                    break bounds;
+                }
+
+                font_size_value -= 10;
+            };
+
+            font_size.store(font_size_value, Ordering::SeqCst);
+
+            Size {
+                width: bounds.width(),
+                height: bounds.height(),
+            }
+        };
+
         if let Some(layout_id) = self.layout_id {
+            semantics
+                .taffy
+                .set_measure(
+                    layout_id,
+                    Some(taffy::node::MeasureFunc::Boxed(Box::new(on_measure))),
+                )
+                .unwrap();
             semantics
                 .layout_children
                 .last_mut()
                 .unwrap()
                 .push(layout_id);
         } else {
-            let font_size = self.font_size.clone();
-            let typeface = self.typeface.clone();
-            let text = self.text.clone();
-            let layout_id = semantics.insert_layout_with_measure(
-                Style::default(),
-                move |_known_dimensions, available_space| {
-                    let max_width = match available_space.width {
-                        AvailableSpace::Definite(px) => px,
-                        AvailableSpace::MaxContent => f32::MAX,
-                        AvailableSpace::MinContent => f32::MIN,
-                    };
-                    let max_height = match available_space.height {
-                        AvailableSpace::Definite(px) => px,
-                        AvailableSpace::MaxContent => f32::MAX,
-                        AvailableSpace::MinContent => f32::MIN,
-                    };
-
-                    let mut font_size_value = font_size.load(Ordering::SeqCst);
-                    loop {
-                        let font = Font::new(&typeface, font_size_value as f32);
-                        let (_, bounds) = font.measure_str(&text, None);
-
-                        dbg!(bounds.width(), max_width);
-
-                        if bounds.width() <= max_width && bounds.height() <= max_height {
-                            break;
-                        }
-
-                        font_size_value -= 10;
-                    }
-
-                    font_size.store(font_size_value, Ordering::SeqCst);
-
-                    Size {
-                        width: max_width,
-                        height: max_height,
-                    }
-                },
-            );
+            let layout_id = semantics.insert_layout_with_measure(Style::default(), on_measure);
             self.layout_id = Some(layout_id);
         }
     }
@@ -146,18 +163,19 @@ impl Widget for TextWidget {
         let paint = Paint::new(Color4f::from(RGB::from((0, 0, 0))), &ColorSpace::new_srgb());
 
         let font = Font::new(&self.typeface, self.font_size.load(Ordering::SeqCst) as f32);
-        let text_blob = TextBlob::new(&self.text, &font).unwrap();
+        if let Some(text_blob) = TextBlob::new(&self.text, &font) {
+            let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
+            let (_, bounds) = font.measure_str(&self.text, Some(&paint));
 
-        let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
-
-        canvas.draw_text_blob(
-            &text_blob,
-            (
-                layout.location.x,
-                layout.location.y + text_blob.bounds().height(),
-            ),
-            &paint,
-        );
+            canvas.draw_text_blob(
+                &text_blob,
+                (
+                    layout.location.x - bounds.left + (layout.size.width - bounds.width()) / 2.,
+                    layout.location.y + bounds.height(),
+                ),
+                &paint,
+            );
+        }
     }
 
     fn remove(&mut self, semantics: &mut Semantics) {

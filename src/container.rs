@@ -59,7 +59,6 @@ impl Widget for ContainerWidget {
         let layout_children = semantics.layout_children.pop().unwrap();
 
         if let Some(layout_id) = self.layout_id {
-            dbg!(&layout_children);
             semantics
                 .taffy
                 .set_children(layout_id, &layout_children)

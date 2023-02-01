@@ -1,5 +1,5 @@
 use crate::{Event, Semantics};
-use accesskit::{Action, NodeId, Role};
+use accesskit::{NodeId, Role};
 
 pub mod container;
 

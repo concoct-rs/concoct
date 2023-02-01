@@ -2,7 +2,7 @@ use crate::{composer::Composer, semantics::LayoutNode, Modifier, Modify, Semanti
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
-    FontMgr, RGB,
+    Canvas, FontMgr, RGB,
 };
 use std::{
     any,
@@ -120,7 +120,7 @@ impl Widget for TextWidget {
         }
     }
 
-    fn paint(&mut self, semantics: &Semantics, canvas: &mut skia_safe::Canvas) {
+    fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {
         let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
         self.paragraph
             .as_ref()
