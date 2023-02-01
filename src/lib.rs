@@ -11,7 +11,7 @@ pub use modify::{Modifier, Modify};
 
 pub mod render;
 
-mod semantics;
+pub mod semantics;
 pub use semantics::Semantics;
 
 pub mod state;

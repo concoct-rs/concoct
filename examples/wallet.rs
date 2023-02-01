@@ -1,25 +1,33 @@
-use crate::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
-use skia_safe::{
-    textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
-    FontMgr, RGB,
-};
-use std::{
-    any,
-    panic::Location,
-    sync::{Arc, Mutex},
-};
+use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
+use concoct::{container, render::run, Modifier};
+use skia_safe::RGB;
+use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::{any, panic::Location, sync::Arc};
 use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
 };
 
+fn app() {
+    container(Modifier::default(), || {
+        flex_text("Hello");
+    })
+}
+
+fn main() {
+    run(app)
+}
+
 #[track_caller]
-pub fn text(string: impl Into<String>) {
+pub fn flex_text(string: impl Into<String>) {
     let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
         let id = cx.id(location);
+
+        let typeface = Typeface::new("serif", FontStyle::bold()).unwrap();
 
         if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
             widget.text = string.into();
@@ -29,7 +37,8 @@ pub fn text(string: impl Into<String>) {
                 text: string.into(),
                 node_id: None,
                 layout_id: None,
-                paragraph: None,
+                typeface,
+                font_size: Arc::new(AtomicU32::new(400)),
             };
             cx.insert(id, widget, None);
         }
@@ -40,7 +49,8 @@ pub struct TextWidget {
     text: String,
     node_id: Option<NodeId>,
     layout_id: Option<LayoutNode>,
-    paragraph: Option<Arc<Mutex<Paragraph>>>,
+    typeface: Typeface,
+    font_size: Arc<AtomicU32>,
 }
 
 impl Widget for TextWidget {
@@ -60,37 +70,40 @@ impl Widget for TextWidget {
 
         if let Some(_layout_id) = self.layout_id {
         } else {
-            let paragraph_style = ParagraphStyle::new();
-            let mut font_collection = FontCollection::new();
-            font_collection.set_default_font_manager(FontMgr::new(), None);
-            let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
-
-            let mut text_style = TextStyle::new();
-            text_style.set_font_families(&["serif"]);
-            text_style.set_color(RGB::from((0, 0, 0)));
-            text_style.set_font_size(100.);
-            paragraph_builder.push_style(&text_style);
-
-            paragraph_builder.add_text(&self.text);
-            paragraph_builder.pop();
-
-            let paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
-            self.paragraph = Some(paragraph.clone());
-
+            let font_size = self.font_size.clone();
+            let typeface = self.typeface.clone();
+            let text = self.text.clone();
             let layout_id = semantics.insert_layout_with_measure(
                 Style::default(),
                 move |_known_dimensions, available_space| {
-                    let mut paragraph = paragraph.lock().unwrap();
                     let max_width = match available_space.width {
                         AvailableSpace::Definite(px) => px,
                         AvailableSpace::MaxContent => f32::MAX,
                         AvailableSpace::MinContent => f32::MIN,
                     };
-                    paragraph.layout(max_width);
+                    let max_height = match available_space.height {
+                        AvailableSpace::Definite(px) => px,
+                        AvailableSpace::MaxContent => f32::MAX,
+                        AvailableSpace::MinContent => f32::MIN,
+                    };
+
+                    let mut font_size_value = font_size.load(Ordering::SeqCst);
+                    loop {
+                        let font = Font::new(&typeface, font_size_value as f32);
+                        let (_, bounds) = font.measure_str(&text, None);
+
+                        if bounds.width() <= max_width && bounds.height() <= max_height {
+                            break;
+                        }
+
+                        font_size_value -= 10;
+                    }
+
+                    font_size.store(font_size_value, Ordering::SeqCst);
 
                     Size {
-                        width: paragraph.longest_line(),
-                        height: paragraph.height(),
+                        width: max_width,
+                        height: max_height,
                     }
                 },
             );
@@ -99,13 +112,21 @@ impl Widget for TextWidget {
     }
 
     fn paint(&mut self, semantics: &Semantics, canvas: &mut skia_safe::Canvas) {
+        let paint = Paint::new(Color4f::from(RGB::from((0, 0, 0))), &ColorSpace::new_srgb());
+
+        let font = Font::new(&self.typeface, self.font_size.load(Ordering::SeqCst) as f32);
+        let text_blob = TextBlob::new(&self.text, &font).unwrap();
+
         let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
-        self.paragraph
-            .as_ref()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .paint(canvas, (layout.location.x, layout.location.y))
+
+        canvas.draw_text_blob(
+            &text_blob,
+            (
+                layout.location.x,
+                layout.location.y + text_blob.bounds().height(),
+            ),
+            &paint,
+        );
     }
 
     fn remove(&mut self, semantics: &mut Semantics) {

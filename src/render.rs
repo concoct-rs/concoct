@@ -238,10 +238,17 @@ pub fn run_with_event_loop_builder(
                 if let Some(env) = &mut env {
                     Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
 
+                    let window_size = env.windowed_context.window.inner_size();
                     let root = semantics
                         .taffy
                         .new_with_children(
-                            Style::DEFAULT,
+                            Style {
+                                size: Size::from_points(
+                                    window_size.width as _,
+                                    window_size.height as _,
+                                ),
+                                ..Default::default()
+                            },
                             semantics.layout_children.first().unwrap(),
                         )
                         .unwrap();

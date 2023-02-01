@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 use taffy::{
     error::TaffyResult,
     layout::Cache,
+    node::{Measurable, MeasureFunc},
     prelude::{AvailableSpace, Layout, Size},
     style::Style,
     tree::LayoutTree,
@@ -118,6 +119,20 @@ impl Semantics {
         } else {
             None
         }
+    }
+
+    pub fn insert_layout_with_measure(
+        &mut self,
+        style: Style,
+        measure: impl Measurable + 'static,
+    ) -> LayoutNode {
+        let layout_id = self
+            .taffy
+            .new_leaf_with_measure(style, MeasureFunc::Boxed(Box::new(measure)))
+            .unwrap();
+        self.layout_children.last_mut().unwrap().push(layout_id);
+
+        layout_id
     }
 
     pub fn tree_update(&mut self) -> TreeUpdate {
