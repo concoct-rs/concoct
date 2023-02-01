@@ -14,9 +14,7 @@ fn it_updates_state_and_recomposes() {
     });
 
     for count in 0..5 {
-        assert!(tester
-            .get(|_id, node| node.value.as_deref() == Some(&count.to_string()))
-            .is_some());
+        assert!(tester.get_text(count.to_string()).is_some());
     }
 }
 
@@ -37,10 +35,7 @@ fn it_triggers_click_events_and_recomposes() {
     });
 
     for count in 0..5 {
-        tester
-            .get(|_id, node| node.value.as_deref() == Some(&count.to_string()))
-            .unwrap()
-            .click();
+        tester.get_text(count.to_string()).unwrap().click();
     }
 }
 
@@ -58,11 +53,6 @@ fn it_removes_unused_widgets() {
         })
     });
 
-    assert!(tester
-        .get(|_id, node| node.value.as_deref() == Some("toggle"))
-        .is_some());
-
-    assert!(tester
-        .get(|_id, node| node.value.as_deref() == Some("toggle"))
-        .is_none());
+    assert!(tester.get_text("toggle").is_some());
+    assert!(tester.get_text("toggle").is_none());
 }

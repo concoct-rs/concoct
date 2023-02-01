@@ -1,6 +1,18 @@
 use crate::{Composer, Semantics};
 use accesskit::{Action, Node, NodeId};
-use std::sync::Arc;
+
+pub trait Matcher {
+    fn is_match(&mut self, node_id: NodeId, node: &Node) -> bool;
+}
+
+impl<F> Matcher for F
+where
+    F: FnMut(NodeId, &Node) -> bool,
+{
+    fn is_match(&mut self, node_id: NodeId, node: &Node) -> bool {
+        self(node_id, node)
+    }
+}
 
 pub struct Tester {
     pub semantics: Semantics,
@@ -16,10 +28,7 @@ impl Tester {
         }
     }
 
-    pub fn get<'a>(
-        &'a mut self,
-        mut f: impl FnMut(NodeId, Arc<Node>) -> bool,
-    ) -> Option<TestNode<'a>> {
+    pub fn get(&mut self, mut matcher: impl Matcher) -> Option<TestNode> {
         if self.should_recompose {
             Composer::recompose(&mut self.semantics);
         } else {
@@ -29,12 +38,16 @@ impl Tester {
         Composer::with(|composer| composer.borrow_mut().semantics(&mut self.semantics));
 
         for (id, node) in &self.semantics.nodes {
-            if f(*id, node.clone()) {
+            if matcher.is_match(*id, node.as_ref()) {
                 return Some(TestNode { tester: self });
             }
         }
 
         None
+    }
+
+    pub fn get_text(&mut self, text: impl AsRef<str>) -> Option<TestNode<'_>> {
+        self.get(|_node_id, node: &Node| node.value.as_deref() == Some(text.as_ref()))
     }
 }
 
