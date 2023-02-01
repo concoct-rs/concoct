@@ -26,7 +26,7 @@ fn it_triggers_click_events_and_recomposes() {
 
             container(
                 Modifier::default()
-                    .clickable(move |_action_request| *count.get().as_mut() += 1)
+                    .clickable(move || *count.get().as_mut() += 1)
                     .merge_descendants()
                     .role(Role::Button),
                 move || text(Modifier::default(), count.get().cloned().to_string()),

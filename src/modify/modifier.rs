@@ -1,7 +1,11 @@
-use super::{container::MergeDescendants, Chain, Clickable};
+use super::{container::MergeDescendants, Chain, Clickable, KeyboardHandler};
 use accesskit::{Action, Role};
-use taffy::{prelude::Size, style::{Dimension, FlexDirection}};
 use std::marker::PhantomData;
+use taffy::{
+    prelude::Size,
+    style::{Dimension, FlexDirection},
+};
+use winit::event::{ElementState, VirtualKeyCode};
 
 pub struct Modifier<T, M> {
     pub modify: M,
@@ -29,15 +33,25 @@ impl<T, M> Modifier<T, M> {
         })
     }
 
-    pub fn clickable<F: FnMut(Action) + 'static>(
-        self,
-        on_click: F,
-    ) -> Modifier<T, Chain<M, Clickable<F>>> {
+    pub fn clickable<F>(self, on_click: F) -> Modifier<T, Chain<M, Clickable<F>>>
+    where
+        F: FnMut() + 'static,
+    {
         self.chain(Clickable { f: Some(on_click) })
     }
 
-    pub fn flex_direction(self, flex_direction: FlexDirection) -> Modifier<T, Chain<M, FlexDirection>> {
+    pub fn flex_direction(
+        self,
+        flex_direction: FlexDirection,
+    ) -> Modifier<T, Chain<M, FlexDirection>> {
         self.chain(flex_direction)
+    }
+
+    pub fn keyboard_handler<F>(self, on_input: F) -> Modifier<T, Chain<M, KeyboardHandler<F>>>
+    where
+        F: FnMut(ElementState, VirtualKeyCode) + 'static,
+    {
+        self.chain(KeyboardHandler { f: Some(on_input) })
     }
 
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {

@@ -10,6 +10,8 @@ use taffy::{
     Taffy,
 };
 
+use crate::Event;
+
 pub type LayoutNode = taffy::prelude::Node;
 
 pub struct Semantics {
@@ -18,7 +20,7 @@ pub struct Semantics {
     high_water_mark: NonZeroU128,
     unused_ids: Vec<NodeId>,
     tree_update: TreeUpdate,
-    pub handlers: HashMap<NodeId, Box<dyn FnMut(Action)>>,
+    pub handlers: HashMap<NodeId, Box<dyn FnMut(Event)>>,
     pub taffy: Taffy,
     pub layout_children: Vec<Vec<LayoutNode>>,
 }
@@ -125,12 +127,9 @@ impl Semantics {
     pub fn insert_layout_with_children(
         &mut self,
         style: Style,
-       children: &[LayoutNode]
+        children: &[LayoutNode],
     ) -> LayoutNode {
-        let layout_id = self
-            .taffy
-            .new_with_children(style, children)
-            .unwrap();
+        let layout_id = self.taffy.new_with_children(style, children).unwrap();
         self.layout_children.last_mut().unwrap().push(layout_id);
 
         layout_id

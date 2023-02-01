@@ -38,7 +38,7 @@ pub fn container(
                 modify: Box::new(modifier.modify),
                 f: Some(Box::new(f)),
                 removed: None,
-                layout_id: None
+                layout_id: None,
             };
             cx.insert(id, widget, Some(children));
         }
@@ -59,10 +59,16 @@ impl Widget for ContainerWidget {
         let layout_children = semantics.layout_children.pop().unwrap();
 
         if let Some(layout_id) = self.layout_id {
+            dbg!(&layout_children);
             semantics
                 .taffy
                 .set_children(layout_id, &layout_children)
                 .unwrap();
+            semantics
+                .layout_children
+                .last_mut()
+                .unwrap()
+                .push(layout_id);
         } else {
             let layout_id =
                 semantics.insert_layout_with_children(self.modifier.style, &layout_children);

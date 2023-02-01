@@ -1,4 +1,4 @@
-use crate::{Composer, Semantics};
+use crate::{Composer, Event, Semantics};
 use accesskit::{Action, Node, NodeId};
 
 pub trait Matcher {
@@ -58,7 +58,7 @@ pub struct TestNode<'a> {
 impl<'a> TestNode<'a> {
     pub fn click(&mut self) {
         for handler in self.tester.semantics.handlers.values_mut() {
-            handler(Action::Default)
+            handler(Event::Action(Action::Default))
         }
     }
 }

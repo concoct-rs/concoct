@@ -1,4 +1,4 @@
-use crate::Semantics;
+use crate::{Event, Semantics};
 use accesskit::{Action, NodeId, Role};
 
 pub mod container;
@@ -7,8 +7,9 @@ mod modifier;
 pub use modifier::Modifier;
 use taffy::{
     prelude::Size,
-    style::{Dimension, Style, FlexDirection},
+    style::{Dimension, FlexDirection, Style},
 };
+use winit::event::{ElementState, VirtualKeyCode};
 
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
@@ -52,13 +53,43 @@ pub struct Clickable<F> {
 
 impl<T, F> Modify<T> for Clickable<F>
 where
-    F: FnMut(Action) + 'static,
+    F: FnMut() + 'static,
 {
     fn modify(&mut self, _value: &mut T) {}
 
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
-        if let Some(f) = self.f.take() {
-            semantics.handlers.insert(node_id, Box::new(f));
+        if let Some(mut f) = self.f.take() {
+            semantics.handlers.insert(
+                node_id,
+                Box::new(move |event| match event {
+                    Event::Action(_) => f(),
+                    _ => {}
+                }),
+            );
+        }
+    }
+}
+
+pub struct KeyboardHandler<F> {
+    f: Option<F>,
+}
+
+impl<T, F> Modify<T> for KeyboardHandler<F>
+where
+    F: FnMut(ElementState, VirtualKeyCode) + 'static,
+{
+    fn modify(&mut self, _value: &mut T) {}
+
+    fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
+        if let Some(mut f) = self.f.take() {
+            semantics.handlers.insert(
+                node_id,
+                Box::new(move |event| {
+                    if let Event::KeyboardInput { state, key_code } = event {
+                        f(state, key_code)
+                    }
+                }),
+            );
         }
     }
 }

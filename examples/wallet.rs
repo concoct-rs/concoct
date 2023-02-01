@@ -1,5 +1,6 @@
 use accesskit::{Node, NodeId, Role};
 use concoct::composable::material::button;
+use concoct::state;
 use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
 use skia_safe::RGB;
@@ -11,17 +12,32 @@ use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
 };
+use winit::event::{ElementState, VirtualKeyCode};
 
 fn app() {
-    container(
-        Modifier::default().flex_direction(FlexDirection::Column),
-        || {
-            flex_text("Hello");
-            button("BTC", || {
-                dbg!("press");
-            })
-        },
-    )
+    container(Modifier::default(), || {
+        let value = state(|| String::from(" "));
+
+        container(
+            Modifier::default()
+                .flex_direction(FlexDirection::Column)
+                .keyboard_handler(move |state, key_code| {
+                    if state == ElementState::Pressed {
+                        match key_code {
+                            VirtualKeyCode::A => value.get().as_mut().push('a'),
+                            _ => {}
+                        }
+                    }
+                }),
+            move || {
+                flex_text(value.get().cloned());
+
+                button("BTC", || {
+                    dbg!("press");
+                })
+            },
+        )
+    });
 }
 
 fn main() {
@@ -76,7 +92,12 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
 
-        if let Some(_layout_id) = self.layout_id {
+        if let Some(layout_id) = self.layout_id {
+            semantics
+                .layout_children
+                .last_mut()
+                .unwrap()
+                .push(layout_id);
         } else {
             let font_size = self.font_size.clone();
             let typeface = self.typeface.clone();
@@ -99,6 +120,8 @@ impl Widget for TextWidget {
                     loop {
                         let font = Font::new(&typeface, font_size_value as f32);
                         let (_, bounds) = font.measure_str(&text, None);
+
+                        dbg!(bounds.width(), max_width);
 
                         if bounds.width() <= max_width && bounds.height() <= max_height {
                             break;

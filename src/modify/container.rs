@@ -5,17 +5,15 @@ use taffy::style::Style;
 pub struct ContainerModifier {
     pub merge_descendants: bool,
     pub role: Role,
-    pub style: Style
+    pub style: Style,
 }
-
-
 
 impl Default for ContainerModifier {
     fn default() -> Self {
         Self {
             merge_descendants: false,
             role: Role::default(),
-            style: Style::default()
+            style: Style::default(),
         }
     }
 }

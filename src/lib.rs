@@ -1,6 +1,7 @@
 use std::any::Any;
 
 pub mod composer;
+use accesskit::Action;
 pub use composer::Composer;
 
 pub mod composable;
@@ -17,6 +18,7 @@ pub mod semantics;
 pub use semantics::Semantics;
 
 pub mod state;
+pub use state::state;
 
 mod tester;
 use skia_safe::Canvas;
@@ -24,6 +26,7 @@ pub use tester::Tester;
 
 mod text;
 pub use text::text;
+use winit::event::{ElementState, VirtualKeyCode};
 
 pub trait Widget: Any {
     fn semantics(&mut self, semantics: &mut Semantics);
@@ -35,4 +38,12 @@ pub trait Widget: Any {
     fn any(&self) -> &dyn Any;
 
     fn any_mut(&mut self) -> &mut dyn Any;
+}
+
+pub enum Event {
+    Action(Action),
+    KeyboardInput {
+        state: ElementState,
+        key_code: VirtualKeyCode,
+    },
 }

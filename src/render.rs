@@ -226,16 +226,32 @@ pub fn run_with_event_loop_builder(
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {
-                            state: _,
-                            virtual_keycode: _,
+                            state,
+                            virtual_keycode,
                             ..
                         },
                     ..
-                } => {}
+                } => {
+                    if let Some(key_code) = virtual_keycode {
+                        for handler in semantics.handlers.values_mut() {
+                            handler(crate::Event::KeyboardInput { state, key_code })
+                        }
+                    }
+
+                    Composer::recompose(&mut semantics);
+
+                    env.as_mut()
+                        .unwrap()
+                        .windowed_context
+                        .window
+                        .request_redraw();
+                }
                 _ => (),
             },
             Event::RedrawRequested(_) => {
                 if let Some(env) = &mut env {
+                    semantics.layout_children = vec![Vec::new()];
+
                     Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
 
                     let window_size = env.windowed_context.window.inner_size();
