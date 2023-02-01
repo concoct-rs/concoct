@@ -14,6 +14,9 @@ pub use semantics::Semantics;
 
 pub mod state;
 
+mod tester;
+pub use tester::Tester;
+
 mod text;
 pub use text::text;
 

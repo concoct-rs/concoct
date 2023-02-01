@@ -1,5 +1,5 @@
 use accesskit::{Action, Role};
-use concoct::{container, state::state, text, Composer, Modifier, Semantics};
+use concoct::{container, state::state, text, Composer, Modifier, Semantics, Tester};
 
 #[test]
 fn it_works() {
@@ -32,8 +32,8 @@ fn it_works() {
 }
 
 #[test]
-fn state_works() {
-    fn app() {
+fn it_updates_state_and_recomposes() {
+    let mut tester = Tester::new(|| {
         container(Modifier::default(), || {
             let count = state(|| 0);
 
@@ -41,15 +41,12 @@ fn state_works() {
 
             *count.get().as_mut() += 1;
         })
+    });
+
+    for count in 0..5 {
+        assert!(tester
+            .nodes()
+            .find(|node| node.value.as_deref() == Some(&count.to_string()))
+            .is_some());
     }
-
-    app();
-
-    Composer::recompose();
-
-    Composer::with(|composer| {
-        let mut semantics = Semantics::default();
-        composer.borrow_mut().semantics(&mut semantics);
-        dbg!(&semantics);
-    })
 }
