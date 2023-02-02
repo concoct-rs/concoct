@@ -265,7 +265,7 @@ pub fn run_with_event_loop_builder(
                                 ),
                                 ..Default::default()
                             },
-                            semantics.layout_children.first().unwrap(),
+                            semantics.layout_children.last().unwrap(),
                         )
                         .unwrap();
                     taffy::compute_layout(&mut semantics.taffy, root, Size::MAX_CONTENT).unwrap();

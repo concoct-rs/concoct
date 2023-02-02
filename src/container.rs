@@ -51,13 +51,13 @@ pub struct ContainerWidget {
     pub modify: Box<dyn Modify<ContainerModifier>>,
     pub f: Option<Box<dyn FnMut()>>,
     removed: Option<Vec<WidgetNode>>,
-    layout_id: Option<LayoutNode>,
+    pub layout_id: Option<LayoutNode>,
 }
 
 impl Widget for ContainerWidget {
     fn semantics(&mut self, semantics: &mut Semantics) {
+        dbg!(self.layout_id, &semantics.layout_children);
         let layout_children = semantics.layout_children.pop().unwrap();
-
         if let Some(layout_id) = self.layout_id {
             semantics
                 .taffy

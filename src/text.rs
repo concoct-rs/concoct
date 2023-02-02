@@ -80,7 +80,12 @@ impl Widget for TextWidget {
             self.node_id = Some(id);
         }
 
-        if let Some(_layout_id) = self.layout_id {
+        if let Some(layout_id) = self.layout_id {
+            semantics
+                .layout_children
+                .last_mut()
+                .unwrap()
+                .push(layout_id);
         } else {
             let paragraph_style = ParagraphStyle::new();
             let mut font_collection = FontCollection::new();

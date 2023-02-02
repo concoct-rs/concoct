@@ -153,7 +153,6 @@ impl Composer {
             .map(|id| Item::Child(id.clone()))
             .collect();
 
-        let mut idx = 0;
         while let Some(item) = items.pop() {
             match item {
                 Item::Group(id) => {
@@ -167,26 +166,16 @@ impl Composer {
 
                             let end_id = id.clone();
                             for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
-                                if idx < items.len() {
-                                    items.insert(idx, child);
-                                } else {
-                                    items.push(child);
-                                }
+                                items.push(child);
                             }
 
-                            if idx < items.len() {
-                                items.insert(idx, Item::Group(end_id))
-                            } else {
-                                items.push(Item::Group(end_id))
-                            }
+                            items.push(Item::Group(end_id))
                         } else {
                             visitor.visit_child(&mut node.widget);
                         }
                     }
                 }
             }
-
-            idx += 1;
         }
     }
 
@@ -201,6 +190,8 @@ impl Composer {
     }
 
     pub fn recompose(semantics: &mut Semantics) {
+        semantics.layout_children = vec![Vec::new()];
+
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();
             if let Some(parent_id) = cx.changed.iter().min_by_key(|id| id.path.len()).cloned() {
@@ -222,6 +213,14 @@ impl Composer {
 
                 let container: &mut ContainerWidget = node.as_mut();
                 container.f = Some(f);
+
+                let layout_id = container.layout_id.unwrap();
+
+                let layout_children = semantics.layout_children.pop().unwrap();
+                semantics
+                    .taffy
+                    .set_children(layout_id, &layout_children)
+                    .unwrap();
             }
         });
     }
