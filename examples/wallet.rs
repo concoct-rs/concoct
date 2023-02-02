@@ -16,20 +16,29 @@ use winit::event::{ElementState, VirtualKeyCode};
 
 fn app() {
     container(Modifier::default(), || {
-        let value = state(|| String::from(" "));
+        let value = state(|| String::from(""));
 
         container(
             Modifier::default()
                 .flex_direction(FlexDirection::Column)
                 .keyboard_handler(move |state, key_code| {
+                    let push_char = |c| {
+                        if value.get().as_ref().parse::<f32>().unwrap_or_default() < 1000. {
+                            if let Some(pos) =
+                                value.get().cloned().chars().rev().position(|c| c == '.')
+                            {
+                                if pos <= 8 {
+                                    value.get().as_mut().push(c)
+                                }
+                            } else {
+                                value.get().as_mut().push(c)
+                            }
+                        }
+                    };
                     if state == ElementState::Pressed {
                         match key_code {
-                            VirtualKeyCode::Key0 | VirtualKeyCode::Numpad0 => {
-                                value.get().as_mut().push('0')
-                            }
-                            VirtualKeyCode::Key1 | VirtualKeyCode::Numpad1 => {
-                                value.get().as_mut().push('1')
-                            }
+                            VirtualKeyCode::Key0 | VirtualKeyCode::Numpad0 => push_char('0'),
+                            VirtualKeyCode::Key1 | VirtualKeyCode::Numpad1 => push_char('1'),
                             VirtualKeyCode::Back => {
                                 value.get().as_mut().pop();
                             }
@@ -43,7 +52,7 @@ fn app() {
                     }
                 }),
             move || {
-                flex_text(format!("B{}", value.get().as_ref()));
+                flex_text(format!("₿{}", value.get().as_ref()));
 
                 button("$20", || {
                     dbg!("press");
@@ -64,7 +73,7 @@ pub fn flex_text(string: impl Into<String>) {
         let mut cx = composer.borrow_mut();
         let id = cx.id(location);
 
-        let typeface = Typeface::new("serif", FontStyle::bold()).unwrap();
+        let typeface = Typeface::new("Noto Sans", FontStyle::bold()).unwrap();
 
         if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
             widget.text = string.into();
