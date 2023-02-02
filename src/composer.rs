@@ -164,12 +164,11 @@ impl Composer {
                         if let Some(children) = &node.children {
                             visitor.visit_group();
 
-                            let end_id = id.clone();
+                            items.push(Item::Group(id.clone()));
+
                             for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
                                 items.push(child);
                             }
-
-                            items.push(Item::Group(end_id))
                         } else {
                             visitor.visit_child(&mut node.widget);
                         }
