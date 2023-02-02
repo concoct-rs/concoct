@@ -1,5 +1,8 @@
-use super::{container::MergeDescendants, Chain, Clickable, KeyboardHandler};
+use super::{
+    container::MergeDescendants, BackgroundColor, Chain, Clickable, KeyboardHandler, Padding,
+};
 use accesskit::Role;
+use skia_safe::Color4f;
 use std::marker::PhantomData;
 use taffy::{
     prelude::Size,
@@ -24,6 +27,15 @@ impl<T, M> Modifier<T, M> {
             modify,
             _marker: PhantomData,
         }
+    }
+
+    pub fn background_color(
+        self,
+        color: impl Into<Color4f>,
+    ) -> Modifier<T, Chain<M, BackgroundColor>> {
+        self.chain(BackgroundColor {
+            color: color.into(),
+        })
     }
 
     pub fn chain<B>(self, modify: B) -> Modifier<T, Chain<M, B>> {
@@ -56,6 +68,10 @@ impl<T, M> Modifier<T, M> {
 
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {
         self.chain(MergeDescendants)
+    }
+
+    pub fn padding(self, padding: Padding) -> Modifier<T, Chain<M, Padding>> {
+        self.chain(padding)
     }
 
     pub fn role(self, role: Role) -> Modifier<T, Chain<M, Role>> {

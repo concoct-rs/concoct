@@ -82,6 +82,10 @@ impl Widget for TextWidget {
 
         if let Some(layout_id) = self.layout_id {
             semantics
+                .taffy
+                .set_style(layout_id, self.modifier.style)
+                .unwrap();
+            semantics
                 .layout_children
                 .last_mut()
                 .unwrap()
@@ -127,6 +131,9 @@ impl Widget for TextWidget {
 
     fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {
         let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
+
+        self.modify.paint(layout, canvas);
+
         self.paragraph
             .as_ref()
             .unwrap()

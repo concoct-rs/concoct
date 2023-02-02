@@ -5,8 +5,9 @@ pub mod container;
 
 mod modifier;
 pub use modifier::Modifier;
+use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
-    prelude::Size,
+    prelude::{Layout, Rect, Size},
     style::{Dimension, FlexDirection, Style},
 };
 use winit::event::{ElementState, VirtualKeyCode};
@@ -15,6 +16,8 @@ pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
 
     fn semantics(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
+
+    fn paint(&mut self, _layout: &Layout, _canvas: &mut Canvas) {}
 }
 
 impl<T> Modify<T> for () {
@@ -35,6 +38,11 @@ impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<A, B> {
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
         self.a.semantics(node_id, semantics);
         self.b.semantics(node_id, semantics);
+    }
+
+    fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
+        self.a.paint(layout, canvas);
+        self.b.paint(layout, canvas);
     }
 }
 
@@ -103,5 +111,52 @@ impl<T: AsMut<Style>> Modify<T> for FlexDirection {
 impl<T: AsMut<Style>> Modify<T> for Size<Dimension> {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().size = *self;
+    }
+}
+
+#[derive(Default)]
+pub struct Padding {
+    rect: Rect<Dimension>,
+}
+
+impl Padding {
+    pub fn left(mut self, value: Dimension) -> Self {
+        self.rect.left = value;
+        self
+    }
+
+    pub fn right(mut self, value: Dimension) -> Self {
+        self.rect.right = value;
+        self
+    }
+
+    pub fn horizontal(self, value: Dimension) -> Self {
+        self.left(value).right(value)
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for Padding {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().padding = self.rect;
+    }
+}
+
+pub struct BackgroundColor {
+    color: Color4f,
+}
+
+impl<T> Modify<T> for BackgroundColor {
+    fn modify(&mut self, _value: &mut T) {}
+
+    fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
+        canvas.draw_rect(
+            skia_safe::Rect::new(
+                layout.location.x,
+                layout.location.y,
+                layout.location.x + layout.size.width,
+                layout.location.y + layout.size.height,
+            ),
+            &Paint::new(self.color, None),
+        );
     }
 }

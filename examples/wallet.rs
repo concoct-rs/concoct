@@ -7,7 +7,8 @@ use skia_safe::RGB;
 use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{any, panic::Location, sync::Arc};
-use taffy::style::FlexDirection;
+use taffy::prelude::Rect;
+use taffy::style::{Dimension, FlexDirection};
 use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
@@ -57,6 +58,18 @@ fn app() {
                 button("$20", || {
                     dbg!("press");
                 });
+
+                container(
+                    Modifier::default().flex_direction(FlexDirection::Row),
+                    || {
+                        button("Send", || {
+                            dbg!("press");
+                        });
+                        button("Request", || {
+                            dbg!("press");
+                        });
+                    },
+                )
             },
         )
     });
@@ -157,13 +170,25 @@ impl Widget for TextWidget {
                     Some(taffy::node::MeasureFunc::Boxed(Box::new(on_measure))),
                 )
                 .unwrap();
+
             semantics
                 .layout_children
                 .last_mut()
                 .unwrap()
                 .push(layout_id);
         } else {
-            let layout_id = semantics.insert_layout_with_measure(Style::default(), on_measure);
+            let layout_id = semantics.insert_layout_with_measure(
+                Style {
+                    padding: Rect {
+                        top: Dimension::Points(40.),
+                        left: Dimension::Undefined,
+                        right: Dimension::Undefined,
+                        bottom: Dimension::Points(40.),
+                    },
+                    ..Default::default()
+                },
+                on_measure,
+            );
             self.layout_id = Some(layout_id);
         }
     }
