@@ -215,7 +215,8 @@ impl Composer {
 
                 let layout_id = container.layout_id.unwrap();
 
-                let layout_children = semantics.layout_children.pop().unwrap();
+                let mut layout_children = semantics.layout_children.pop().unwrap();
+                layout_children.reverse();
                 semantics
                     .taffy
                     .set_children(layout_id, &layout_children)

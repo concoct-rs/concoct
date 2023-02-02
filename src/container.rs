@@ -56,8 +56,9 @@ pub struct ContainerWidget {
 
 impl Widget for ContainerWidget {
     fn semantics(&mut self, semantics: &mut Semantics) {
-        dbg!(self.layout_id, &semantics.layout_children);
-        let layout_children = semantics.layout_children.pop().unwrap();
+        let mut layout_children = semantics.layout_children.pop().unwrap();
+        layout_children.reverse();
+
         if let Some(layout_id) = self.layout_id {
             semantics
                 .taffy
