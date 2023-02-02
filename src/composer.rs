@@ -190,7 +190,7 @@ impl Composer {
     }
 
     pub fn recompose(semantics: &mut Semantics) {
-        semantics.layout_children = vec![Vec::new()];
+        semantics.layout_children = vec![Vec::new(), Vec::new()];
 
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();

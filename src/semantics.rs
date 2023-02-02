@@ -1,3 +1,4 @@
+use crate::Event;
 use accesskit::{Node, NodeId, TreeUpdate};
 use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 use taffy::{
@@ -9,8 +10,6 @@ use taffy::{
     tree::LayoutTree,
     Taffy,
 };
-
-use crate::Event;
 
 pub type LayoutNode = taffy::prelude::Node;
 
