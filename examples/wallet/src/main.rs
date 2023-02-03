@@ -6,6 +6,7 @@ use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
 use skia_safe::RGB;
 use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
+use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{any, panic::Location, sync::Arc};
 use taffy::prelude::Rect;
@@ -15,6 +16,93 @@ use taffy::{
     style::Style,
 };
 use winit::event::{ElementState, VirtualKeyCode};
+
+#[derive(Clone, Copy)]
+enum Currency {
+    Bitcoin,
+    USD,
+}
+
+impl fmt::Display for Currency {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let c = match self {
+            Self::Bitcoin => '₿',
+            Self::USD => '$',
+        };
+        f.write_char(c)
+    }
+}
+
+fn app() {
+    container(Modifier::default().flex_grow(1.), || {
+        let currency = state(|| Currency::Bitcoin);
+        let value = state(|| String::from(""));
+
+        container(
+            Modifier::default()
+                .align_items(AlignItems::Center)
+                .flex_direction(FlexDirection::Column)
+                .flex_grow(1.)
+                .keyboard_handler(CurrencyInputKeyboardHandler::new(value)),
+            move || {
+                flex_text(format!(
+                    "{}{}",
+                    currency.get().cloned(),
+                    value.get().as_ref()
+                ));
+
+                button("$20", move || {
+                    let next_currency = match currency.get().cloned() {
+                        Currency::Bitcoin => Currency::USD,
+                        Currency::USD => Currency::Bitcoin,
+                    };
+                    *currency.get().as_mut() = next_currency;
+                });
+
+                container(
+                    Modifier::default().flex_direction(FlexDirection::Row),
+                    || {
+                        button("Send", || {
+                            dbg!("press");
+                        });
+                        button("Request", || {
+                            dbg!("press");
+                        });
+                    },
+                )
+            },
+        )
+    });
+}
+
+fn main() {
+    run(app)
+}
+
+#[track_caller]
+pub fn flex_text(string: impl Into<String>) {
+    let location = Location::caller();
+    Composer::with(|composer| {
+        let mut cx = composer.borrow_mut();
+        let id = cx.id(location);
+
+        let typeface = Typeface::new("Noto Sans", FontStyle::bold()).unwrap();
+
+        if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
+            widget.text = string.into();
+            cx.children.push(id);
+        } else {
+            let widget = TextWidget {
+                text: string.into(),
+                node_id: None,
+                layout_id: None,
+                typeface,
+                font_size: Arc::new(AtomicU32::new(400)),
+            };
+            cx.insert(id, widget, None);
+        }
+    })
+}
 
 pub struct CurrencyInputKeyboardHandler {
     value: State<String>,
@@ -63,68 +151,6 @@ impl KeyboardHandler for CurrencyInputKeyboardHandler {
             }
         }
     }
-}
-
-fn app() {
-    container(Modifier::default().flex_grow(1.), || {
-        let value = state(|| String::from(""));
-
-        container(
-            Modifier::default()
-                .align_items(AlignItems::Center)
-                .flex_direction(FlexDirection::Column)
-                .flex_grow(1.)
-                .keyboard_handler(CurrencyInputKeyboardHandler::new(value)),
-            move || {
-                flex_text(format!("₿{}", value.get().as_ref()));
-
-                button("$20", || {
-                    dbg!("press");
-                });
-
-                container(
-                    Modifier::default().flex_direction(FlexDirection::Row),
-                    || {
-                        button("Send", || {
-                            dbg!("press");
-                        });
-                        button("Request", || {
-                            dbg!("press");
-                        });
-                    },
-                )
-            },
-        )
-    });
-}
-
-fn main() {
-    run(app)
-}
-
-#[track_caller]
-pub fn flex_text(string: impl Into<String>) {
-    let location = Location::caller();
-    Composer::with(|composer| {
-        let mut cx = composer.borrow_mut();
-        let id = cx.id(location);
-
-        let typeface = Typeface::new("Noto Sans", FontStyle::bold()).unwrap();
-
-        if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
-            widget.text = string.into();
-            cx.children.push(id);
-        } else {
-            let widget = TextWidget {
-                text: string.into(),
-                node_id: None,
-                layout_id: None,
-                typeface,
-                font_size: Arc::new(AtomicU32::new(400)),
-            };
-            cx.insert(id, widget, None);
-        }
-    })
 }
 
 pub struct TextWidget {

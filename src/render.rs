@@ -218,10 +218,22 @@ pub fn run_with_event_loop_builder(
                 }
                 WindowEvent::MouseInput {
                     device_id: _,
-                    state: _,
+                    state,
                     button: _,
                     ..
-                } => {}
+                } => {
+                    for handler in semantics.handlers.values_mut() {
+                        handler(crate::Event::MouseInput { state, cursor: cursor.unwrap() })
+                    }
+
+                    Composer::recompose(&mut semantics);
+
+                    env.as_mut()
+                        .unwrap()
+                        .windowed_context
+                        .window
+                        .request_redraw();
+                }
                 WindowEvent::Touch(_touch) => {}
                 WindowEvent::KeyboardInput {
                     input:

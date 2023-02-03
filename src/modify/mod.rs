@@ -10,6 +10,7 @@ use taffy::{
     prelude::{Layout, Rect, Size},
     style::{AlignItems, Dimension, FlexDirection, Style},
 };
+use winit::event::ElementState;
 
 pub mod keyboard_input;
 
@@ -72,6 +73,12 @@ where
                 node_id,
                 Box::new(move |event| match event {
                     Event::Action(_) => f(),
+                    Event::MouseInput { state, cursor } => match state {
+                        ElementState::Pressed => {}
+                        ElementState::Released => {
+                            f();
+                        }
+                    },
                     _ => {}
                 }),
             );

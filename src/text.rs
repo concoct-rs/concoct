@@ -123,12 +123,16 @@ impl Widget for TextWidget {
             ..Node::default()
         };
 
-        if let Some(node_id) = self.node_id {
+        let node_id = if let Some(node_id) = self.node_id {
             semantics.update(node_id, node);
+            node_id
         } else {
-            let id = semantics.insert(node);
-            self.node_id = Some(id);
-        }
+            let node_id = semantics.insert(node);
+            self.node_id = Some(node_id);
+            node_id
+        };
+
+        self.modify.semantics(node_id, semantics);
     }
 
     fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {

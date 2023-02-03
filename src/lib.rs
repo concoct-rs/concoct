@@ -26,7 +26,7 @@ pub use tester::Tester;
 
 mod text;
 pub use text::text;
-use winit::event::{ElementState, VirtualKeyCode};
+use winit::{event::{ElementState, VirtualKeyCode}, dpi::PhysicalPosition};
 
 pub trait Widget: Any {
     fn layout(&mut self, semantics: &mut Semantics);
@@ -48,4 +48,8 @@ pub enum Event {
         state: ElementState,
         key_code: VirtualKeyCode,
     },
+    MouseInput {
+        state: ElementState,
+        cursor: PhysicalPosition<f64>
+    }
 }
