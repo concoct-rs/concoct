@@ -60,7 +60,6 @@ fn app() {
             let rate = state(|| Decimal::ZERO);
             remember(&[], || {
                 stream(make_stream(), move |value| {
-                    dbg!(value);
                     *rate.get().as_mut() = value;
                 })
             });
@@ -78,7 +77,7 @@ fn app() {
                                 *display.get().as_mut() = Display::Send;
                             });
                             button("Request", || {
-                                dbg!("press");
+                                
                             });
                         },
                     )

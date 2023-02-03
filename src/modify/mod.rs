@@ -20,6 +20,8 @@ pub trait Modify<T> {
     fn semantics(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 
     fn paint(&mut self, _layout: &Layout, _canvas: &mut Canvas) {}
+
+    fn remove(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 }
 
 impl<T> Modify<T> for () {
@@ -45,6 +47,11 @@ impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<A, B> {
     fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
         self.a.paint(layout, canvas);
         self.b.paint(layout, canvas);
+    }
+
+    fn remove(&mut self, node_id: NodeId, semantics: &mut Semantics) {
+        self.a.remove(node_id, semantics);
+        self.b.remove(node_id, semantics);
     }
 }
 
@@ -83,6 +90,10 @@ where
                 }),
             );
         }
+    }
+
+    fn remove(&mut self, node_id: NodeId, semantics: &mut Semantics) {
+        semantics.remove(node_id);
     }
 }
 

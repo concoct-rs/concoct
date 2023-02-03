@@ -215,6 +215,8 @@ impl Composer {
     }
 
     pub fn paint(&mut self, semantics: &mut Semantics, canvas: &mut Canvas) {
+        semantics.points = vec![Point::new(0., 0.)];
+
         let visitor = PaintVisitor::new(semantics, canvas);
         self.visit(visitor);
     }

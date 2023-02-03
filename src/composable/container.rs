@@ -105,6 +105,8 @@ impl Widget for ContainerWidget {
     fn remove(&mut self, semantics: &mut Semantics) {
         if let Some(node_id) = self.node_id {
             semantics.remove(node_id);
+
+            self.modify.remove(node_id, semantics)
         }
     }
 

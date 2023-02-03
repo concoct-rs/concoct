@@ -76,7 +76,7 @@ impl Widget for TextWidget {
         let mut text_style = TextStyle::new();
         text_style.set_font_families(&["serif"]);
         text_style.set_color(RGB::from((0, 0, 0)));
-        text_style.set_font_size(100.);
+        text_style.set_font_size(48.);
         paragraph_builder.push_style(&text_style);
 
         paragraph_builder.add_text(&self.text);
@@ -154,6 +154,8 @@ impl Widget for TextWidget {
     fn remove(&mut self, semantics: &mut Semantics) {
         if let Some(node_id) = self.node_id {
             semantics.remove(node_id);
+
+            self.modify.remove(node_id, semantics)
         }
     }
 
