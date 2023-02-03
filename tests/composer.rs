@@ -105,7 +105,10 @@ fn it_nests_containers() {
 
             container(Modifier::default(), || {
                 text(Modifier::default(), "B");
-            })
+                text(Modifier::default(), "C");
+            });
+
+            text(Modifier::default(), "D");
         })
     });
 

@@ -177,7 +177,7 @@ impl Composer {
 
                             items.push(Item::Group(id.clone()));
 
-                            for child in children.iter().map(|id| Item::Child(id.clone())).clone() {
+                            for child in children.iter().rev().map(|id| Item::Child(id.clone())).clone() {
                                 items.push(child);
                             }
                         } else {
