@@ -1,0 +1,22 @@
+[package]
+name = "wallet"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+accesskit = "0.8.1"
+concoct = { path = "../../" }
+taffy = "0.2.2"
+winit = "0.27.5"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+skia-safe = { version = "0.58.0", features = ["all-linux"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+skia-safe = { version = "0.58.0", features = ["all-macos"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+skia-safe = { version = "0.58.0", features = ["all-windows"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+skia-safe = { version = "0.58.0", features = ["gl"] }
