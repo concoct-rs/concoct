@@ -1,6 +1,7 @@
 use accesskit::{Node, NodeId, Role};
 use concoct::composable::material::button;
-use concoct::state;
+use concoct::modify::keyboard_input::KeyboardHandler;
+use concoct::state::{state, State};
 use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
 use skia_safe::RGB;
@@ -15,6 +16,55 @@ use taffy::{
 };
 use winit::event::{ElementState, VirtualKeyCode};
 
+pub struct CurrencyInputKeyboardHandler {
+    value: State<String>,
+}
+
+impl CurrencyInputKeyboardHandler {
+    fn new(value: State<String>) -> Self {
+        Self { value }
+    }
+
+    fn push_char(&mut self, c: char) {
+        if self.value.get().as_ref().parse::<f32>().unwrap_or_default() < 1000. {
+            if let Some(pos) = self
+                .value
+                .get()
+                .cloned()
+                .chars()
+                .rev()
+                .position(|c| c == '.')
+            {
+                if pos <= 8 {
+                    self.value.get().as_mut().push(c)
+                }
+            } else {
+                self.value.get().as_mut().push(c)
+            }
+        }
+    }
+}
+
+impl KeyboardHandler for CurrencyInputKeyboardHandler {
+    fn handle_keyboard_input(&mut self, state: ElementState, virtual_keycode: VirtualKeyCode) {
+        if state == ElementState::Pressed {
+            match virtual_keycode {
+                VirtualKeyCode::Key0 | VirtualKeyCode::Numpad0 => self.push_char('0'),
+                VirtualKeyCode::Key1 | VirtualKeyCode::Numpad1 => self.push_char('1'),
+                VirtualKeyCode::Back => {
+                    self.value.get().as_mut().pop();
+                }
+                VirtualKeyCode::Period => {
+                    if !self.value.get().as_ref().contains('.') {
+                        self.value.get().as_mut().push('.');
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
 fn app() {
     container(Modifier::default().flex_grow(1.), || {
         let value = state(|| String::from(""));
@@ -24,36 +74,7 @@ fn app() {
                 .align_items(AlignItems::Center)
                 .flex_direction(FlexDirection::Column)
                 .flex_grow(1.)
-                .keyboard_handler(move |state, key_code| {
-                    let push_char = |c| {
-                        if value.get().as_ref().parse::<f32>().unwrap_or_default() < 1000. {
-                            if let Some(pos) =
-                                value.get().cloned().chars().rev().position(|c| c == '.')
-                            {
-                                if pos <= 8 {
-                                    value.get().as_mut().push(c)
-                                }
-                            } else {
-                                value.get().as_mut().push(c)
-                            }
-                        }
-                    };
-                    if state == ElementState::Pressed {
-                        match key_code {
-                            VirtualKeyCode::Key0 | VirtualKeyCode::Numpad0 => push_char('0'),
-                            VirtualKeyCode::Key1 | VirtualKeyCode::Numpad1 => push_char('1'),
-                            VirtualKeyCode::Back => {
-                                value.get().as_mut().pop();
-                            }
-                            VirtualKeyCode::Period => {
-                                if !value.get().as_ref().contains('.') {
-                                    value.get().as_mut().push('.');
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                }),
+                .keyboard_handler(CurrencyInputKeyboardHandler::new(value)),
             move || {
                 flex_text(format!("₿{}", value.get().as_ref()));
 

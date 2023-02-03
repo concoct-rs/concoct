@@ -1,14 +1,15 @@
 use super::{
-    container::MergeDescendants, BackgroundColor, Chain, Clickable, KeyboardHandler, Padding, FlexGrow,
+    container::MergeDescendants,
+    keyboard_input::{KeyboardHandler, KeyboardInput},
+    BackgroundColor, Chain, Clickable, FlexGrow, Padding,
 };
 use accesskit::Role;
 use skia_safe::Color4f;
 use std::marker::PhantomData;
 use taffy::{
     prelude::Size,
-    style::{Dimension, FlexDirection, AlignItems},
+    style::{AlignItems, Dimension, FlexDirection},
 };
-use winit::event::{ElementState, VirtualKeyCode};
 
 pub struct Modifier<T, M> {
     pub modify: M,
@@ -29,11 +30,7 @@ impl<T, M> Modifier<T, M> {
         }
     }
 
-
-    pub fn align_items(
-        self,
-        align_items: AlignItems,
-    ) -> Modifier<T, Chain<M, AlignItems>> {
+    pub fn align_items(self, align_items: AlignItems) -> Modifier<T, Chain<M, AlignItems>> {
         self.chain(align_items)
     }
 
@@ -67,18 +64,15 @@ impl<T, M> Modifier<T, M> {
         self.chain(flex_direction)
     }
 
-    pub fn flex_grow(
-        self,
-        value: f32,
-    ) -> Modifier<T, Chain<M, FlexGrow>> {
+    pub fn flex_grow(self, value: f32) -> Modifier<T, Chain<M, FlexGrow>> {
         self.chain(FlexGrow { value })
     }
 
-    pub fn keyboard_handler<F>(self, on_input: F) -> Modifier<T, Chain<M, KeyboardHandler<F>>>
+    pub fn keyboard_handler<H>(self, handler: H) -> Modifier<T, Chain<M, KeyboardInput<H>>>
     where
-        F: FnMut(ElementState, VirtualKeyCode) + 'static,
+        H: KeyboardHandler + 'static,
     {
-        self.chain(KeyboardHandler { f: Some(on_input) })
+        self.chain(KeyboardInput::new(handler))
     }
 
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {

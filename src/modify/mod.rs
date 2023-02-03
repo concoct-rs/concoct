@@ -8,9 +8,10 @@ pub use modifier::Modifier;
 use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
     prelude::{Layout, Rect, Size},
-    style::{Dimension, FlexDirection, Style, AlignItems},
+    style::{AlignItems, Dimension, FlexDirection, Style},
 };
-use winit::event::{ElementState, VirtualKeyCode};
+
+pub mod keyboard_input;
 
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
@@ -72,30 +73,6 @@ where
                 Box::new(move |event| match event {
                     Event::Action(_) => f(),
                     _ => {}
-                }),
-            );
-        }
-    }
-}
-
-pub struct KeyboardHandler<F> {
-    f: Option<F>,
-}
-
-impl<T, F> Modify<T> for KeyboardHandler<F>
-where
-    F: FnMut(ElementState, VirtualKeyCode) + 'static,
-{
-    fn modify(&mut self, _value: &mut T) {}
-
-    fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
-        if let Some(mut f) = self.f.take() {
-            semantics.handlers.insert(
-                node_id,
-                Box::new(move |event| {
-                    if let Event::KeyboardInput { state, key_code } = event {
-                        f(state, key_code)
-                    }
                 }),
             );
         }
@@ -168,7 +145,7 @@ impl<T> Modify<T> for BackgroundColor {
 }
 
 pub struct FlexGrow {
-    value: f32
+    value: f32,
 }
 
 impl<T: AsMut<Style>> Modify<T> for FlexGrow {

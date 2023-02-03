@@ -1,5 +1,4 @@
-use accesskit::Role;
-use concoct::{container, state::state, text, Composer, Modifier, Tester};
+use concoct::{container, state::state, text, Modifier, Tester};
 
 #[test]
 fn it_updates_state_and_recomposes() {
