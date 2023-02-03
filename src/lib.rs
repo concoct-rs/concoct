@@ -6,9 +6,6 @@ pub use composer::Composer;
 
 pub mod composable;
 
-mod container;
-pub use container::container;
-
 pub mod modify;
 pub use modify::{Modifier, Modify};
 
@@ -17,15 +14,10 @@ pub mod render;
 pub mod semantics;
 pub use semantics::Semantics;
 
-pub mod state;
-pub use state::state;
-
 mod tester;
 use skia_safe::Canvas;
 pub use tester::Tester;
 
-mod text;
-pub use text::text;
 use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, VirtualKeyCode},

@@ -68,13 +68,13 @@ pub struct RememberWidget {
 }
 
 impl Widget for RememberWidget {
-    fn layout(&mut self, semantics: &mut Semantics) {}
+    fn layout(&mut self, _semantics: &mut Semantics) {}
 
-    fn semantics(&mut self, semantics: &mut Semantics) {}
+    fn semantics(&mut self, _semantics: &mut Semantics) {}
 
-    fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {}
+    fn paint(&mut self, _semantics: &Semantics, _canvas: &mut Canvas) {}
 
-    fn remove(&mut self, semantics: &mut Semantics) {}
+    fn remove(&mut self, _semantics: &mut Semantics) {}
 
     fn any(&self) -> &dyn Any {
         self

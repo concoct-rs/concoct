@@ -1,16 +1,12 @@
-use crate::{
-    container::ContainerWidget, render::UserEvent, semantics::LayoutNode, Event, Semantics, Widget,
-};
+use crate::{composable::container::ContainerWidget, semantics::LayoutNode, Semantics, Widget};
 use skia_safe::{Canvas, Point};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
-    any::Any,
     cell::RefCell,
     collections::{HashMap, HashSet},
     fmt, mem,
     panic::Location,
 };
-use winit::event_loop::EventLoopProxy;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IdSegment {
@@ -227,10 +223,10 @@ impl Composer {
     pub fn recompose(semantics: &mut Semantics) {
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();
-            if let Some((key, parent_id)) = cx
+            if let Some((_key, parent_id)) = cx
                 .changed
                 .iter()
-                .min_by_key(|(key, id)| id.path.len())
+                .min_by_key(|(_key, id)| id.path.len())
                 .cloned()
             {
                 let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();

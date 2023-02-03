@@ -1,6 +1,6 @@
 //! Render engine
 
-use crate::{composer::Id, Composer, Semantics};
+use crate::{Composer, Semantics};
 use accesskit::{NodeId, Role};
 use accesskit_winit::{ActionRequestEvent, Adapter};
 use gl::types::*;

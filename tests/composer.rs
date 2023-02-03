@@ -1,4 +1,7 @@
-use concoct::{container, state::state, text, Modifier, Tester};
+use concoct::{
+    composable::{container, state, text},
+    Modifier, Tester,
+};
 
 #[test]
 fn it_updates_state_and_recomposes() {

@@ -1,4 +1,5 @@
-use crate::{modify::Padding, text, Modifier};
+use super::text;
+use crate::{modify::Padding, Modifier};
 use skia_safe::RGB;
 use taffy::{prelude::Size, style::Dimension};
 

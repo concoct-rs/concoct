@@ -1,11 +1,12 @@
-use std::{
-    marker::{PhantomData, Unpin},
-    panic::Location, any::Any,
-};
+use crate::{render::UserEvent, Composer, Semantics, Widget};
 use futures::{Future, Stream, StreamExt};
 use slotmap::DefaultKey;
+use std::{
+    any::Any,
+    marker::{PhantomData, Unpin},
+    panic::Location,
+};
 use tokio::task::JoinHandle;
-use crate::{render::UserEvent, Composer, Widget, Semantics};
 
 #[track_caller]
 pub fn stream<
@@ -76,9 +77,9 @@ where
         }
     }
 
-    fn semantics(&mut self, semantics: &mut Semantics) {}
+    fn semantics(&mut self, _semantics: &mut Semantics) {}
 
-    fn paint(&mut self, semantics: &Semantics, canvas: &mut skia_safe::Canvas) {}
+    fn paint(&mut self, _semantics: &Semantics, _canvas: &mut skia_safe::Canvas) {}
 
     fn remove(&mut self, semantics: &mut Semantics) {
         let (task_id, handle) = self.task.as_ref().unwrap();
