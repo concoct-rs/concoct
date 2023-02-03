@@ -1,13 +1,11 @@
 use std::{
     marker::{PhantomData, Unpin},
-    panic::Location,
+    panic::Location, any::Any,
 };
-
 use futures::{Future, Stream, StreamExt};
 use slotmap::DefaultKey;
 use tokio::task::JoinHandle;
-
-use crate::{render::UserEvent, Composer, Widget};
+use crate::{render::UserEvent, Composer, Widget, Semantics};
 
 #[track_caller]
 pub fn stream<
@@ -53,7 +51,7 @@ where
     Fut: Future<Output = S> + Send + 'static,
     S: Stream<Item = T> + Send + 'static + Unpin,
 {
-    fn layout(&mut self, semantics: &mut crate::Semantics) {
+    fn layout(&mut self, semantics: &mut Semantics) {
         if let Some(mut on_item) = self.on_item.take() {
             let task_id = semantics.tasks.insert(Box::new(move |item| {
                 let item = item.downcast().unwrap();
@@ -78,22 +76,22 @@ where
         }
     }
 
-    fn semantics(&mut self, semantics: &mut crate::Semantics) {}
+    fn semantics(&mut self, semantics: &mut Semantics) {}
 
-    fn paint(&mut self, semantics: &crate::Semantics, canvas: &mut skia_safe::Canvas) {}
+    fn paint(&mut self, semantics: &Semantics, canvas: &mut skia_safe::Canvas) {}
 
-    fn remove(&mut self, semantics: &mut crate::Semantics) {
+    fn remove(&mut self, semantics: &mut Semantics) {
         let (task_id, handle) = self.task.as_ref().unwrap();
 
         semantics.tasks.remove(*task_id);
         handle.abort();
     }
 
-    fn any(&self) -> &dyn std::any::Any {
+    fn any(&self) -> &dyn Any {
         self
     }
 
-    fn any_mut(&mut self) -> &mut dyn std::any::Any {
+    fn any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }

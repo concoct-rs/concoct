@@ -1,11 +1,11 @@
 use accesskit::{Node, NodeId, Role};
 use concoct::composable::material::button;
-use concoct::composable::{remember, stream};
+use concoct::composable::{stream, remember};
 use concoct::modify::keyboard_input::KeyboardHandler;
 use concoct::state::{state, State};
 use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
-use futures::{stream, Stream, StreamExt};
+use futures::{Stream, StreamExt};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use skia_safe::RGB;
@@ -98,7 +98,7 @@ fn app() {
             let value = state(|| String::from(""));
             let rate = state(|| Decimal::ZERO);
 
-            state(|| {
+            remember(&[], || {
                 stream(make_stream(), move |value| {
                     dbg!(value);
                     *rate.get().as_mut() = value;
