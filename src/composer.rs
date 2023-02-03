@@ -1,4 +1,4 @@
-use crate::{composable::container::ContainerWidget, semantics::LayoutNode, Semantics, Widget};
+use crate::{composable::container::ContainerWidget, Semantics, Widget};
 use skia_safe::{Canvas, Point};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -45,7 +45,7 @@ where
 pub trait Visitor {
     fn visit_child(&mut self, widget: &mut Box<dyn Widget>);
 
-    fn visit_group(&mut self, layout_id: Option<LayoutNode>);
+    fn visit_group(&mut self, node: &mut WidgetNode);
 
     fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>);
 }
@@ -170,8 +170,7 @@ impl Composer {
             match item {
                 Item::GroupStart(id) => {
                     let node = self.widgets.get_mut(&id).unwrap();
-                    let widget: &ContainerWidget = node.as_ref();
-                    visitor.visit_group(widget.layout_id);
+                    visitor.visit_group(node);
                 }
                 Item::Group(id) => {
                     let node = self.widgets.get_mut(&id).unwrap();
@@ -319,7 +318,7 @@ impl Visitor for LayoutVisitor<'_> {
         widget.layout(self.semantics);
     }
 
-    fn visit_group(&mut self, _layout_id: Option<LayoutNode>) {
+    fn visit_group(&mut self, _node: &mut WidgetNode) {
         self.semantics.layout_children.push(Vec::new());
     }
 
@@ -344,8 +343,9 @@ impl Visitor for SemanticsVisitor<'_> {
         widget.semantics(self.semantics);
     }
 
-    fn visit_group(&mut self, layout_id: Option<LayoutNode>) {
-        if let Some(layout_id) = layout_id {
+    fn visit_group(&mut self, node: &mut WidgetNode) {
+        let widget: &ContainerWidget = node.as_ref();
+        if let Some(layout_id) = widget.layout_id {
             let layout = self.semantics.taffy.layout(layout_id).unwrap();
             self.semantics
                 .points
@@ -378,9 +378,13 @@ impl Visitor for PaintVisitor<'_> {
         widget.paint(self.semantics, self.canvas);
     }
 
-    fn visit_group(&mut self, layout_id: Option<LayoutNode>) {
-        if let Some(layout_id) = layout_id {
+    fn visit_group(&mut self, node: &mut WidgetNode) {
+        let widget: &mut ContainerWidget = node.as_mut();
+        if let Some(layout_id) = widget.layout_id {
             let layout = self.semantics.taffy.layout(layout_id).unwrap();
+
+            widget.modify.paint(&layout, self.canvas);
+
             self.semantics
                 .points
                 .push(Point::new(layout.location.x, layout.location.y));

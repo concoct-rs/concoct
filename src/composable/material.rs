@@ -1,12 +1,14 @@
-use super::text;
+use super::{container, text};
 use crate::{modify::Padding, Modifier};
 use skia_safe::RGB;
 use taffy::{prelude::Size, style::Dimension};
 
 #[track_caller]
 pub fn button(label: impl Into<String>, mut on_press: impl FnMut() + 'static) {
-    text(
+    let label = label.into();
+    container(
         Modifier::default()
+            .merge_descendants()
             .background_color(RGB::from((255, 0, 0)))
             .clickable(move || on_press())
             .padding(Padding::default().horizontal(Dimension::Points(40.)))
@@ -14,6 +16,6 @@ pub fn button(label: impl Into<String>, mut on_press: impl FnMut() + 'static) {
                 width: Dimension::Undefined,
                 height: Dimension::Points(80.),
             }),
-        label,
-    );
+        move || text(Modifier::default(), label.clone()),
+    )
 }
