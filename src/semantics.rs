@@ -1,11 +1,10 @@
 use crate::Event;
 use accesskit::{Node, NodeId, TreeUpdate};
+use skia_safe::Point;
 use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 use taffy::{
-    error::TaffyResult,
-    layout::Cache,
     node::{Measurable, MeasureFunc},
-    prelude::{AvailableSpace, Layout, Size},
+    prelude::Layout,
     style::Style,
     tree::LayoutTree,
     Taffy,
@@ -22,6 +21,7 @@ pub struct Semantics {
     pub handlers: HashMap<NodeId, Box<dyn FnMut(Event)>>,
     pub taffy: Taffy,
     pub layout_children: Vec<Vec<LayoutNode>>,
+    pub points: Vec<Point>,
 }
 
 impl Default for Semantics {
@@ -35,6 +35,7 @@ impl Default for Semantics {
             handlers: HashMap::new(),
             taffy: Taffy::new(),
             layout_children: vec![Vec::new()],
+            points: Vec::new(),
         }
     }
 }
@@ -71,7 +72,6 @@ impl Semantics {
 
     pub fn start_group(&mut self) {
         self.children.push(Vec::new());
-        self.layout_children.push(Vec::new());
     }
 
     pub fn end_group(&mut self) -> NodeId {
@@ -148,55 +148,18 @@ impl Semantics {
         layout_id
     }
 
+    pub fn layout(&self, layout_id: LayoutNode) -> Layout {
+        let parent_point = self.points.last().unwrap();
+
+        let mut layout = self.taffy.layout(layout_id).unwrap().clone();
+        layout.location.x += parent_point.x;
+        layout.location.y += parent_point.y;
+
+        layout
+    }
+
     pub fn tree_update(&mut self) -> TreeUpdate {
         mem::take(&mut self.tree_update)
-    }
-}
-
-impl LayoutTree for Semantics {
-    fn children(&self, node: LayoutNode) -> &[LayoutNode] {
-        LayoutTree::children(&self.taffy, node)
-    }
-
-    fn child(&self, node: LayoutNode, index: usize) -> LayoutNode {
-        LayoutTree::child(&self.taffy, node, index)
-    }
-
-    fn parent(&self, node: LayoutNode) -> Option<LayoutNode> {
-        LayoutTree::parent(&self.taffy, node)
-    }
-
-    fn style(&self, node: LayoutNode) -> &Style {
-        LayoutTree::style(&self.taffy, node)
-    }
-
-    fn layout(&self, node: LayoutNode) -> &Layout {
-        LayoutTree::layout(&self.taffy, node)
-    }
-
-    fn layout_mut(&mut self, node: LayoutNode) -> &mut Layout {
-        LayoutTree::layout_mut(&mut self.taffy, node)
-    }
-
-    fn mark_dirty(&mut self, node: LayoutNode) -> TaffyResult<()> {
-        LayoutTree::mark_dirty(&mut self.taffy, node)
-    }
-
-    fn measure_node(
-        &self,
-        node: LayoutNode,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-    ) -> Size<f32> {
-        LayoutTree::measure_node(&self.taffy, node, known_dimensions, available_space)
-    }
-
-    fn needs_measure(&self, node: LayoutNode) -> bool {
-        LayoutTree::needs_measure(&self.taffy, node)
-    }
-
-    fn cache_mut(&mut self, node: LayoutNode, index: usize) -> &mut Option<Cache> {
-        LayoutTree::cache_mut(&mut self.taffy, node, index)
     }
 }
 

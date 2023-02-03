@@ -1,5 +1,5 @@
-use crate::{container::ContainerWidget, Semantics, Widget};
-use skia_safe::Canvas;
+use crate::{container::ContainerWidget, semantics::LayoutNode, Semantics, Widget};
+use skia_safe::{Canvas, Point};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
     cell::RefCell,
@@ -24,6 +24,15 @@ pub struct WidgetNode {
     pub children: Option<Vec<Id>>,
 }
 
+impl<T> AsRef<T> for WidgetNode
+where
+    T: 'static,
+{
+    fn as_ref(&self) -> &T {
+        self.widget.any().downcast_ref().unwrap()
+    }
+}
+
 impl<T> AsMut<T> for WidgetNode
 where
     T: 'static,
@@ -32,10 +41,11 @@ where
         self.widget.any_mut().downcast_mut().unwrap()
     }
 }
+
 pub trait Visitor {
     fn visit_child(&mut self, widget: &mut Box<dyn Widget>);
 
-    fn visit_group(&mut self);
+    fn visit_group(&mut self, layout_id: Option<LayoutNode>);
 }
 
 #[derive(Default)]
@@ -162,7 +172,8 @@ impl Composer {
                 Item::Child(id) => {
                     if let Some(node) = self.widgets.get_mut(&id) {
                         if let Some(children) = &node.children {
-                            visitor.visit_group();
+                            let widget: &ContainerWidget = node.as_ref();
+                            visitor.visit_group(widget.layout_id);
 
                             items.push(Item::Group(id.clone()));
 
@@ -176,6 +187,11 @@ impl Composer {
                 }
             }
         }
+    }
+
+    pub fn layout(&mut self, semantics: &mut Semantics) {
+        let visitor = LayoutVisitor::new(semantics);
+        self.visit(visitor);
     }
 
     pub fn semantics(&mut self, semantics: &mut Semantics) {
@@ -214,7 +230,6 @@ impl Composer {
                 container.f = Some(f);
 
                 let layout_id = container.layout_id.unwrap();
-
                 let mut layout_children = semantics.layout_children.pop().unwrap();
                 layout_children.reverse();
                 semantics
@@ -270,6 +285,26 @@ impl fmt::Debug for Wrap<'_> {
     }
 }
 
+pub struct LayoutVisitor<'a> {
+    semantics: &'a mut Semantics,
+}
+
+impl<'a> LayoutVisitor<'a> {
+    pub fn new(semantics: &'a mut Semantics) -> Self {
+        Self { semantics }
+    }
+}
+
+impl Visitor for LayoutVisitor<'_> {
+    fn visit_child(&mut self, widget: &mut Box<dyn Widget>) {
+        widget.layout(self.semantics);
+    }
+
+    fn visit_group(&mut self, _layout_id: Option<LayoutNode>) {
+        self.semantics.layout_children.push(Vec::new());
+    }
+}
+
 pub struct SemanticsVisitor<'a> {
     semantics: &'a mut Semantics,
 }
@@ -285,7 +320,15 @@ impl Visitor for SemanticsVisitor<'_> {
         widget.semantics(self.semantics);
     }
 
-    fn visit_group(&mut self) {
+    fn visit_group(&mut self, layout_id: Option<LayoutNode>) {
+        if let Some(layout_id) = layout_id {
+            let layout = self.semantics.taffy.layout(layout_id).unwrap();
+            self.semantics
+                .points
+                .push(Point::new(layout.location.x, layout.location.y));
+        }
+
+        self.semantics.layout_children.push(Vec::new());
         self.semantics.start_group()
     }
 }
@@ -306,5 +349,5 @@ impl Visitor for PaintVisitor<'_> {
         widget.paint(self.semantics, self.canvas);
     }
 
-    fn visit_group(&mut self) {}
+    fn visit_group(&mut self, _layout_id: Option<LayoutNode>) {}
 }

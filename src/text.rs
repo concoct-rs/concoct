@@ -66,20 +66,7 @@ pub struct TextWidget {
 }
 
 impl Widget for TextWidget {
-    fn semantics(&mut self, semantics: &mut Semantics) {
-        let node = Node {
-            role: Role::StaticText,
-            value: Some(self.text.clone().into_boxed_str()),
-            ..Node::default()
-        };
-
-        if let Some(node_id) = self.node_id {
-            semantics.update(node_id, node);
-        } else {
-            let id = semantics.insert(node);
-            self.node_id = Some(id);
-        }
-
+    fn layout(&mut self, semantics: &mut Semantics) {
         if let Some(layout_id) = self.layout_id {
             semantics
                 .taffy
@@ -129,11 +116,25 @@ impl Widget for TextWidget {
         }
     }
 
+    fn semantics(&mut self, semantics: &mut Semantics) {
+        let node = Node {
+            role: Role::StaticText,
+            value: Some(self.text.clone().into_boxed_str()),
+            ..Node::default()
+        };
+
+        if let Some(node_id) = self.node_id {
+            semantics.update(node_id, node);
+        } else {
+            let id = semantics.insert(node);
+            self.node_id = Some(id);
+        }
+    }
+
     fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {
-        let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
+        let layout = semantics.layout(self.layout_id.unwrap());
 
-        self.modify.paint(layout, canvas);
-
+        self.modify.paint(&layout, canvas);
         self.paragraph
             .as_ref()
             .unwrap()

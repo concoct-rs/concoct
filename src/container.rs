@@ -55,7 +55,7 @@ pub struct ContainerWidget {
 }
 
 impl Widget for ContainerWidget {
-    fn semantics(&mut self, semantics: &mut Semantics) {
+    fn layout(&mut self, semantics: &mut Semantics) {
         let mut layout_children = semantics.layout_children.pop().unwrap();
         layout_children.reverse();
 
@@ -74,7 +74,9 @@ impl Widget for ContainerWidget {
                 semantics.insert_layout_with_children(self.modifier.style, &layout_children);
             self.layout_id = Some(layout_id);
         }
+    }
 
+    fn semantics(&mut self, semantics: &mut Semantics) {
         if let Some(removed) = &mut self.removed {
             for child in removed {
                 child.widget.remove(semantics);

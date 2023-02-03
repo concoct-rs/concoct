@@ -29,6 +29,8 @@ pub use text::text;
 use winit::event::{ElementState, VirtualKeyCode};
 
 pub trait Widget: Any {
+    fn layout(&mut self, semantics: &mut Semantics);
+
     fn semantics(&mut self, semantics: &mut Semantics);
 
     fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas);

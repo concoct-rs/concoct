@@ -35,6 +35,7 @@ impl Tester {
             self.should_recompose = true;
         }
         self.semantics.children = vec![Vec::new()];
+        Composer::with(|composer| composer.borrow_mut().layout(&mut self.semantics));
         Composer::with(|composer| composer.borrow_mut().semantics(&mut self.semantics));
 
         for (id, node) in &self.semantics.nodes {

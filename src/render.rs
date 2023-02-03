@@ -252,7 +252,7 @@ pub fn run_with_event_loop_builder(
                 if let Some(env) = &mut env {
                     semantics.layout_children = vec![Vec::new()];
 
-                    Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
+                    Composer::with(|composer| composer.borrow_mut().layout(&mut semantics));
 
                     let window_size = env.windowed_context.window.inner_size();
                     let root = semantics
@@ -273,6 +273,7 @@ pub fn run_with_event_loop_builder(
                     let mut canvas = env.surface.canvas();
                     canvas.clear(Color::WHITE);
 
+                    Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
                     Composer::with(|composer| composer.borrow_mut().paint(&semantics, &mut canvas));
 
                     env.gr_context.flush(&FlushInfo::default());

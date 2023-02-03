@@ -113,20 +113,7 @@ pub struct TextWidget {
 }
 
 impl Widget for TextWidget {
-    fn semantics(&mut self, semantics: &mut Semantics) {
-        let node = Node {
-            role: Role::StaticText,
-            value: Some(self.text.clone().into_boxed_str()),
-            ..Node::default()
-        };
-
-        if let Some(node_id) = self.node_id {
-            semantics.update(node_id, node);
-        } else {
-            let id = semantics.insert(node);
-            self.node_id = Some(id);
-        }
-
+    fn layout(&mut self, semantics: &mut Semantics) {
         let font_size = self.font_size.clone();
         let typeface = self.typeface.clone();
         let text = self.text.clone();
@@ -190,6 +177,21 @@ impl Widget for TextWidget {
                 on_measure,
             );
             self.layout_id = Some(layout_id);
+        }
+    }
+
+    fn semantics(&mut self, semantics: &mut Semantics) {
+        let node = Node {
+            role: Role::StaticText,
+            value: Some(self.text.clone().into_boxed_str()),
+            ..Node::default()
+        };
+
+        if let Some(node_id) = self.node_id {
+            semantics.update(node_id, node);
+        } else {
+            let id = semantics.insert(node);
+            self.node_id = Some(id);
         }
     }
 
