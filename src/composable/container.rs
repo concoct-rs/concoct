@@ -1,5 +1,5 @@
 use crate::{
-    composer::{Composer, WidgetNode},
+    composer::{Composer, Id, WidgetNode},
     modify::container::ContainerModifier,
     semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
@@ -29,6 +29,7 @@ pub fn container(
             let widget: &mut ContainerWidget = node.as_mut();
             widget.modifier = container_modifier;
             widget.removed = removed;
+            widget.children = children.clone();
             node.children = Some(children);
 
             cx.children.push(id);
@@ -40,6 +41,7 @@ pub fn container(
                 f: Some(Box::new(f)),
                 removed: None,
                 layout_id: None,
+                children: children.clone(),
             };
             cx.insert(id, widget, Some(children));
         }
@@ -53,6 +55,7 @@ pub struct ContainerWidget {
     pub f: Option<Box<dyn FnMut()>>,
     removed: Option<Vec<WidgetNode>>,
     pub layout_id: Option<LayoutNode>,
+    pub children: Vec<Id>,
 }
 
 impl Widget for ContainerWidget {
@@ -105,6 +108,17 @@ impl Widget for ContainerWidget {
     fn remove(&mut self, semantics: &mut Semantics) {
         if let Some(node_id) = self.node_id {
             semantics.remove(node_id);
+
+            Composer::with(|composer| {
+                for child_id in &mut self.children {
+                    let mut node = {
+                        let mut cx = composer.borrow_mut();
+                        cx.widgets.remove(&child_id).unwrap()
+                    };
+
+                    node.widget.remove(semantics);
+                }
+            });
 
             self.modify.remove(node_id, semantics)
         }

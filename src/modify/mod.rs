@@ -93,7 +93,7 @@ where
     }
 
     fn remove(&mut self, node_id: NodeId, semantics: &mut Semantics) {
-        semantics.remove(node_id);
+        semantics.handlers.remove(&node_id);
     }
 }
 

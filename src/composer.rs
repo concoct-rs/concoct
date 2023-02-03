@@ -237,8 +237,8 @@ impl Composer {
 
                 let (children, removed) = Self::group(&parent_id, &mut f);
                 if let Some(mut removed) = removed {
-                    for widget in &mut removed {
-                        widget.widget.remove(semantics);
+                    for node in &mut removed {
+                        node.widget.remove(semantics);
                     }
                 }
 

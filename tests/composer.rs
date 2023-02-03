@@ -62,6 +62,26 @@ fn it_removes_unused_widgets() {
 }
 
 #[test]
+fn it_removes_nested_unused_widgets() {
+    let mut tester = Tester::new(|| {
+        container(Modifier::default(), || {
+            let is_shown = state(|| true);
+
+            if is_shown.get().cloned() {
+                container(Modifier::default(), || {
+                    text(Modifier::default(), "toggle");
+                })
+            }
+
+            *is_shown.get().as_mut() = false;
+        })
+    });
+
+    assert!(tester.get_text("toggle").is_some());
+    assert!(tester.get_text("toggle").is_none());
+}
+
+#[test]
 fn it_inserts_new_widgets() {
     let mut tester = Tester::new(|| {
         container(Modifier::default(), || {

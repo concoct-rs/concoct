@@ -76,9 +76,7 @@ fn app() {
                             button("Send", move || {
                                 *display.get().as_mut() = Display::Send;
                             });
-                            button("Request", || {
-                                
-                            });
+                            button("Request", || {});
                         },
                     )
                 }
