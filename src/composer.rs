@@ -60,7 +60,7 @@ pub struct Composer {
     pub children: Vec<Id>,
     pub current_group_id: Id,
     pub states: SlotMap<DefaultKey, Id>,
-    pub changed: HashSet<Id>,
+    pub changed: HashSet<(DefaultKey, Id)>,
 }
 
 impl Composer {
@@ -227,7 +227,12 @@ impl Composer {
     pub fn recompose(semantics: &mut Semantics) {
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();
-            if let Some(parent_id) = cx.changed.iter().min_by_key(|id| id.path.len()).cloned() {
+            if let Some((key, parent_id)) = cx
+                .changed
+                .iter()
+                .min_by_key(|(key, id)| id.path.len())
+                .cloned()
+            {
                 let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
                 let mut f = container.f.take().unwrap();
                 cx.current_group_id = parent_id.clone();

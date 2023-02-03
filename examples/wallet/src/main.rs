@@ -1,16 +1,19 @@
 use accesskit::{Node, NodeId, Role};
 use concoct::composable::material::button;
-use concoct::composable::stream;
+use concoct::composable::{remember, stream};
 use concoct::modify::keyboard_input::KeyboardHandler;
 use concoct::state::{state, State};
 use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
-use futures::{stream, Stream};
+use futures::{stream, Stream, StreamExt};
+use rust_decimal::Decimal;
+use serde::Deserialize;
 use skia_safe::RGB;
 use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
 use std::fmt::{self, Write};
 use std::ops::Not;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::Duration;
 use std::{any, panic::Location, sync::Arc};
 use taffy::prelude::Rect;
 use taffy::style::{AlignItems, Dimension, FlexDirection};
@@ -18,12 +21,24 @@ use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
 };
+use tokio::time::interval;
+use tokio_stream::wrappers::IntervalStream;
 use winit::event::{ElementState, VirtualKeyCode};
 
 #[derive(Clone, Copy)]
 enum Currency {
     Bitcoin,
     USD,
+}
+
+impl Currency {
+    fn convert(self, value: &str, rate: Decimal) -> Decimal {
+        let value: Decimal = value.parse().unwrap_or_default();
+        match self {
+            Currency::Bitcoin => (value * rate).round_dp(2),
+            Currency::USD => (value / rate).round_dp(8),
+        }
+    }
 }
 
 impl Not for Currency {
@@ -47,16 +62,29 @@ impl fmt::Display for Currency {
     }
 }
 
-fn make_stream() -> impl Stream<Item = i32> {
-    stream::unfold(0, |state| async move {
-        if state <= 2 {
-            let next_state = state + 1;
-            let yielded = state * 2;
-            Some((yielded, next_state))
-        } else {
-            None
-        }
-    })
+#[derive(Deserialize)]
+struct RateResponseData {
+    #[serde(rename = "rateUsd")]
+    rate: Decimal,
+}
+
+#[derive(Deserialize)]
+struct RateResponse {
+    data: RateResponseData,
+}
+
+async fn make_stream() -> impl Stream<Item = Decimal> {
+    Box::pin(
+        IntervalStream::new(interval(Duration::from_secs(5))).then(|_| async {
+            let res: RateResponse = reqwest::get("https://api.coincap.io/v2/rates/bitcoin")
+                .await
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+            res.data.rate
+        }),
+    )
 }
 
 fn app() {
@@ -68,9 +96,12 @@ fn app() {
         || {
             let currency = state(|| Currency::Bitcoin);
             let value = state(|| String::from(""));
-            let stream = state(|| {
-                stream(Box::pin(make_stream()), |count| {
-                    dbg!(count);
+            let rate = state(|| Decimal::ZERO);
+
+            state(|| {
+                stream(make_stream(), move |value| {
+                    dbg!(value);
+                    *rate.get().as_mut() = value;
                 })
             });
 
@@ -102,9 +133,25 @@ fn app() {
                         },
                     );
 
-                    button(format!("{}20", !currency.get().cloned()), move || {
-                        *currency.get().as_mut() = !currency.get().cloned();
-                    });
+                    button(
+                        format!(
+                            "{}{}",
+                            !currency.get().cloned(),
+                            currency
+                                .get()
+                                .cloned()
+                                .convert(&*value.get().as_ref(), rate.get().cloned())
+                        ),
+                        move || {
+                            let converted = currency
+                                .get()
+                                .cloned()
+                                .convert(&*value.get().as_ref(), rate.get().cloned())
+                                .to_string();
+                            *value.get().as_mut() = converted;
+                            *currency.get().as_mut() = !currency.get().cloned();
+                        },
+                    );
                 },
             );
 

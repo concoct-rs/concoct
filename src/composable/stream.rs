@@ -1,6 +1,9 @@
-use std::{marker::Unpin, panic::Location};
+use std::{
+    marker::{PhantomData, Unpin},
+    panic::Location,
+};
 
-use futures::{Stream, StreamExt};
+use futures::{Future, Stream, StreamExt};
 use slotmap::DefaultKey;
 use tokio::task::JoinHandle;
 
@@ -9,10 +12,11 @@ use crate::{render::UserEvent, Composer, Widget};
 #[track_caller]
 pub fn stream<
     T: Send + 'static,
+    Fut: Future<Output = S> + Send + 'static,
     S: Stream<Item = T> + Send + Unpin + 'static,
     F: FnMut(T) + 'static,
 >(
-    stream: S,
+    future: Fut,
     on_item: F,
 ) {
     let location = Location::caller();
@@ -20,28 +24,33 @@ pub fn stream<
         let mut cx = composer.borrow_mut();
         let id = cx.id(location);
 
-        if let Some(widget) = cx.get_mut::<StreamWidget<T, S>>(&id) {
+        if let Some(widget) = cx.get_mut::<StreamWidget<T, Fut, S>>(&id) {
+            widget.on_item = Some(Box::new(on_item));
+            widget.future = Some(future);
             cx.children.push(id);
         } else {
             let widget = StreamWidget {
                 on_item: Some(Box::new(on_item)),
-                stream: Some(stream),
+                future: Some(future),
                 task: None,
+                _marker: PhantomData,
             };
             cx.insert(id, widget, None);
         }
     });
 }
 
-pub struct StreamWidget<T, S> {
+pub struct StreamWidget<T, Fut, S> {
     on_item: Option<Box<dyn FnMut(T)>>,
-    stream: Option<S>,
+    future: Option<Fut>,
     task: Option<(DefaultKey, JoinHandle<()>)>,
+    _marker: PhantomData<S>,
 }
 
-impl<T, S> Widget for StreamWidget<T, S>
+impl<T, Fut, S> Widget for StreamWidget<T, Fut, S>
 where
     T: Send + 'static,
+    Fut: Future<Output = S> + Send + 'static,
     S: Stream<Item = T> + Send + 'static + Unpin,
 {
     fn layout(&mut self, semantics: &mut crate::Semantics) {
@@ -51,10 +60,10 @@ where
                 on_item(*item);
             }));
 
-
             let proxy = semantics.proxy.as_ref().unwrap().clone();
-            let mut stream = self.stream.take().unwrap();
+            let future = self.future.take().unwrap();
             let handle = tokio::spawn(async move {
+                let mut stream = future.await;
                 while let Some(item) = stream.next().await {
                     proxy
                         .send_event(UserEvent::Task {
@@ -75,7 +84,7 @@ where
 
     fn remove(&mut self, semantics: &mut crate::Semantics) {
         let (task_id, handle) = self.task.as_ref().unwrap();
-      
+
         semantics.tasks.remove(*task_id);
         handle.abort();
     }

@@ -43,7 +43,7 @@ pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
 }
 
 pub struct State<T> {
-    key: DefaultKey,
+    pub key: DefaultKey,
     _marker: PhantomData<T>,
 }
 
@@ -67,6 +67,7 @@ impl<T: 'static> State<T> {
             let widget = cx.get::<StateWidget<T>>(id).unwrap();
 
             StateRef {
+                key: self.key,
                 group_id: widget.group_id.clone(),
                 rc: widget.value.clone(),
             }
@@ -75,6 +76,7 @@ impl<T: 'static> State<T> {
 }
 
 pub struct StateRef<T> {
+    key: DefaultKey,
     group_id: Id,
     rc: Rc<RefCell<T>>,
 }
@@ -88,7 +90,12 @@ impl<T> StateRef<T> {
     /// Return a mutable reference to this state's value.
     /// This will trigger a recompose for this state's parent.
     pub fn as_mut(&self) -> RefMut<'_, T> {
-        Composer::with(|composer| composer.borrow_mut().changed.insert(self.group_id.clone()));
+        Composer::with(|composer| {
+            composer
+                .borrow_mut()
+                .changed
+                .insert((self.key, self.group_id.clone()))
+        });
 
         self.rc.as_ref().borrow_mut()
     }
