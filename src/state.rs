@@ -21,8 +21,10 @@ pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
             key
         } else {
             let key = cx.states.insert(id.clone());
+            drop(cx);
 
             let value = f();
+            let mut cx = composer.borrow_mut();
             let widget = StateWidget {
                 key,
                 value: Rc::new(RefCell::new(value)),

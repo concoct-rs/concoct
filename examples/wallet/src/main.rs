@@ -1,9 +1,11 @@
 use accesskit::{Node, NodeId, Role};
 use concoct::composable::material::button;
+use concoct::composable::stream;
 use concoct::modify::keyboard_input::KeyboardHandler;
 use concoct::state::{state, State};
 use concoct::{composer::Composer, semantics::LayoutNode, Semantics, Widget};
 use concoct::{container, render::run, Modifier};
+use futures::{stream, Stream};
 use skia_safe::RGB;
 use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
 use std::fmt::{self, Write};
@@ -45,6 +47,18 @@ impl fmt::Display for Currency {
     }
 }
 
+fn make_stream() -> impl Stream<Item = i32> {
+    stream::unfold(0, |state| async move {
+        if state <= 2 {
+            let next_state = state + 1;
+            let yielded = state * 2;
+            Some((yielded, next_state))
+        } else {
+            None
+        }
+    })
+}
+
 fn app() {
     container(
         Modifier::default()
@@ -54,6 +68,11 @@ fn app() {
         || {
             let currency = state(|| Currency::Bitcoin);
             let value = state(|| String::from(""));
+            let stream = state(|| {
+                stream(Box::pin(make_stream()), |count| {
+                    dbg!(count);
+                })
+            });
 
             container(
                 Modifier::default()
@@ -104,7 +123,8 @@ fn app() {
     );
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     run(app)
 }
 

@@ -1,7 +1,8 @@
-use crate::Event;
+use crate::{render::UserEvent, Event};
 use accesskit::{Node, NodeId, TreeUpdate};
 use skia_safe::Point;
-use std::{collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
+use slotmap::{DefaultKey, SlotMap};
+use std::{any::Any, collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
 use taffy::{
     node::{Measurable, MeasureFunc},
     prelude::Layout,
@@ -9,6 +10,7 @@ use taffy::{
     tree::LayoutTree,
     Taffy,
 };
+use winit::event_loop::EventLoopProxy;
 
 pub type LayoutNode = taffy::prelude::Node;
 
@@ -22,6 +24,8 @@ pub struct Semantics {
     pub taffy: Taffy,
     pub layout_children: Vec<Vec<LayoutNode>>,
     pub points: Vec<Point>,
+    pub tasks: SlotMap<DefaultKey, Box<dyn FnMut(Box<dyn Any>)>>,
+    pub proxy: Option<EventLoopProxy<UserEvent>>,
 }
 
 impl Default for Semantics {
@@ -36,6 +40,8 @@ impl Default for Semantics {
             taffy: Taffy::new(),
             layout_children: vec![Vec::new()],
             points: Vec::new(),
+            tasks: SlotMap::default(),
+            proxy: None,
         }
     }
 }

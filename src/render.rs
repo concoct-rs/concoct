@@ -1,6 +1,6 @@
 //! Render engine
 
-use crate::{Composer, Semantics};
+use crate::{composer::Id, Composer, Semantics};
 use accesskit::{NodeId, Role};
 use accesskit_winit::{ActionRequestEvent, Adapter};
 use gl::types::*;
@@ -17,7 +17,9 @@ use skia_safe::{
     gpu::{gl::FramebufferInfo, BackendRenderTarget, FlushInfo, SurfaceOrigin},
     Color, ColorType,
 };
+use slotmap::DefaultKey;
 use std::{
+    any::Any,
     ffi::CString,
     num::{NonZeroU128, NonZeroU32},
     sync::Arc,
@@ -32,6 +34,10 @@ use winit::{
 #[derive(Debug)]
 pub enum UserEvent {
     ActionRequest(ActionRequestEvent),
+    Task {
+        id: DefaultKey,
+        data: Box<dyn Any + Send>,
+    },
 }
 
 impl From<ActionRequestEvent> for UserEvent {
@@ -150,6 +156,7 @@ pub fn run_with_event_loop_builder(
     const WINDOW_ID: NodeId = NodeId(unsafe { NonZeroU128::new_unchecked(1) });
 
     let mut semantics = Semantics::default();
+    semantics.proxy = Some(event_loop.create_proxy());
 
     event_loop.run(move |event, window_target, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -305,6 +312,7 @@ pub fn run_with_event_loop_builder(
                 UserEvent::ActionRequest(action_request) => {
                     dbg!(action_request);
                 }
+                UserEvent::Task { id, data } => (semantics.tasks.get_mut(id).unwrap())(data),
             },
             _ => (),
         }

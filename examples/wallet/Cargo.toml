@@ -6,7 +6,9 @@ edition = "2021"
 [dependencies]
 accesskit = "0.8.1"
 concoct = { path = "../../" }
+futures = "0.3.26"
 taffy = "0.2.2"
+tokio = "1.25.0"
 winit = "0.27.5"
 
 [target.'cfg(target_os = "linux")'.dependencies]
