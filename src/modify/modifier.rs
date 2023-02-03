@@ -1,12 +1,12 @@
 use super::{
-    container::MergeDescendants, BackgroundColor, Chain, Clickable, KeyboardHandler, Padding,
+    container::MergeDescendants, BackgroundColor, Chain, Clickable, KeyboardHandler, Padding, FlexGrow,
 };
 use accesskit::Role;
 use skia_safe::Color4f;
 use std::marker::PhantomData;
 use taffy::{
     prelude::Size,
-    style::{Dimension, FlexDirection},
+    style::{Dimension, FlexDirection, AlignItems},
 };
 use winit::event::{ElementState, VirtualKeyCode};
 
@@ -27,6 +27,14 @@ impl<T, M> Modifier<T, M> {
             modify,
             _marker: PhantomData,
         }
+    }
+
+
+    pub fn align_items(
+        self,
+        align_items: AlignItems,
+    ) -> Modifier<T, Chain<M, AlignItems>> {
+        self.chain(align_items)
     }
 
     pub fn background_color(
@@ -57,6 +65,13 @@ impl<T, M> Modifier<T, M> {
         flex_direction: FlexDirection,
     ) -> Modifier<T, Chain<M, FlexDirection>> {
         self.chain(flex_direction)
+    }
+
+    pub fn flex_grow(
+        self,
+        value: f32,
+    ) -> Modifier<T, Chain<M, FlexGrow>> {
+        self.chain(FlexGrow { value })
     }
 
     pub fn keyboard_handler<F>(self, on_input: F) -> Modifier<T, Chain<M, KeyboardHandler<F>>>

@@ -8,7 +8,7 @@ pub use modifier::Modifier;
 use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
     prelude::{Layout, Rect, Size},
-    style::{Dimension, FlexDirection, Style},
+    style::{Dimension, FlexDirection, Style, AlignItems},
 };
 use winit::event::{ElementState, VirtualKeyCode};
 
@@ -102,6 +102,12 @@ where
     }
 }
 
+impl<T: AsMut<Style>> Modify<T> for AlignItems {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().align_items = *self;
+    }
+}
+
 impl<T: AsMut<Style>> Modify<T> for FlexDirection {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().flex_direction = *self;
@@ -158,5 +164,15 @@ impl<T> Modify<T> for BackgroundColor {
             ),
             &Paint::new(self.color, None),
         );
+    }
+}
+
+pub struct FlexGrow {
+    value: f32
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexGrow {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_grow = self.value;
     }
 }

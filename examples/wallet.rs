@@ -8,7 +8,7 @@ use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface}
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{any, panic::Location, sync::Arc};
 use taffy::prelude::Rect;
-use taffy::style::{Dimension, FlexDirection};
+use taffy::style::{AlignItems, Dimension, FlexDirection};
 use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
@@ -16,12 +16,14 @@ use taffy::{
 use winit::event::{ElementState, VirtualKeyCode};
 
 fn app() {
-    container(Modifier::default(), || {
+    container(Modifier::default().flex_grow(1.), || {
         let value = state(|| String::from(""));
 
         container(
             Modifier::default()
+                .align_items(AlignItems::Center)
                 .flex_direction(FlexDirection::Column)
+                .flex_grow(1.)
                 .keyboard_handler(move |state, key_code| {
                     let push_char = |c| {
                         if value.get().as_ref().parse::<f32>().unwrap_or_default() < 1000. {
