@@ -198,10 +198,10 @@ impl fmt::Debug for Wrap<'_> {
             if !node.children.is_empty() {
                 debug_struct.field(
                     "children",
-                    &Self {
+                    &[Self {
                         children: &node.children,
                         semantics: self.semantics,
-                    },
+                    }],
                 );
             }
 

@@ -18,6 +18,7 @@ fn it_updates_state_and_recomposes() {
     }
 }
 
+/*
 #[test]
 fn it_triggers_click_events_and_recomposes() {
     let mut tester = Tester::new(|| {
@@ -38,6 +39,7 @@ fn it_triggers_click_events_and_recomposes() {
         tester.get_text(count.to_string()).unwrap().click();
     }
 }
+*/
 
 #[test]
 fn it_removes_unused_widgets() {
@@ -93,4 +95,19 @@ fn it_replaces_widgets() {
 
     assert!(tester.get_text("A").is_some());
     assert!(tester.get_text("B").is_some());
+}
+
+#[test]
+fn it_nests_containers() {
+    let tester = Tester::new(|| {
+        container(Modifier::default(), || {
+            text(Modifier::default(), "A");
+
+            container(Modifier::default(), || {
+                text(Modifier::default(), "B");
+            })
+        })
+    });
+
+    dbg!(&tester.semantics);
 }

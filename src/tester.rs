@@ -22,10 +22,21 @@ pub struct Tester {
 impl Tester {
     pub fn new(f: impl FnOnce()) -> Self {
         f();
-        Self {
+
+        let mut me = Self {
             semantics: Semantics::default(),
             should_recompose: false,
-        }
+        };
+
+        Composer::with(|composer| {
+            let mut cx = composer.borrow_mut();
+            cx.layout(&mut me.semantics);
+
+            me.semantics.children = vec![Vec::new()];
+            cx.semantics(&mut me.semantics);
+        });
+
+        me
     }
 
     pub fn get(&mut self, mut matcher: impl Matcher) -> Option<TestNode> {
@@ -34,9 +45,14 @@ impl Tester {
         } else {
             self.should_recompose = true;
         }
-        self.semantics.children = vec![Vec::new()];
-        Composer::with(|composer| composer.borrow_mut().layout(&mut self.semantics));
-        Composer::with(|composer| composer.borrow_mut().semantics(&mut self.semantics));
+
+        Composer::with(|composer| {
+            let mut cx = composer.borrow_mut();
+            cx.layout(&mut self.semantics);
+
+            self.semantics.children = vec![Vec::new()];
+            cx.semantics(&mut self.semantics);
+        });
 
         for (id, node) in &self.semantics.nodes {
             if matcher.is_match(*id, node.as_ref()) {
