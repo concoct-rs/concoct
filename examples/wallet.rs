@@ -73,7 +73,10 @@ fn app() {
             Modifier::default()
                 .align_items(AlignItems::Center)
                 .flex_direction(FlexDirection::Column)
-                .flex_grow(1.)
+                .size(Size {
+                    width: Dimension::Percent(1.),
+                    height: Dimension::Points(400.),
+                })
                 .keyboard_handler(CurrencyInputKeyboardHandler::new(value)),
             move || {
                 flex_text(format!("₿{}", value.get().as_ref()));
@@ -81,18 +84,18 @@ fn app() {
                 button("$20", || {
                     dbg!("press");
                 });
+            },
+        );
 
-                container(
-                    Modifier::default().flex_direction(FlexDirection::Row),
-                    || {
-                        button("Send", || {
-                            dbg!("press");
-                        });
-                        button("Request", || {
-                            dbg!("press");
-                        });
-                    },
-                )
+        container(
+            Modifier::default().flex_direction(FlexDirection::Row),
+            || {
+                button("Send", || {
+                    dbg!("press");
+                });
+                button("Request", || {
+                    dbg!("press");
+                });
             },
         )
     });

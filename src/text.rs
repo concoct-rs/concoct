@@ -10,6 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use taffy::{
+    node::MeasureFunc,
     prelude::{AvailableSpace, Size},
     style::Style,
 };
@@ -67,51 +68,54 @@ pub struct TextWidget {
 
 impl Widget for TextWidget {
     fn layout(&mut self, semantics: &mut Semantics) {
+        let paragraph_style = ParagraphStyle::new();
+        let mut font_collection = FontCollection::new();
+        font_collection.set_default_font_manager(FontMgr::new(), None);
+        let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
+
+        let mut text_style = TextStyle::new();
+        text_style.set_font_families(&["serif"]);
+        text_style.set_color(RGB::from((0, 0, 0)));
+        text_style.set_font_size(100.);
+        paragraph_builder.push_style(&text_style);
+
+        paragraph_builder.add_text(&self.text);
+        paragraph_builder.pop();
+
+        let paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
+        self.paragraph = Some(paragraph.clone());
+        let measure = move |_known_dimensions, available_space: Size<AvailableSpace>| {
+            let mut paragraph = paragraph.lock().unwrap();
+            let max_width = match available_space.width {
+                AvailableSpace::Definite(px) => px,
+                AvailableSpace::MaxContent => f32::MAX,
+                AvailableSpace::MinContent => f32::MIN,
+            };
+            paragraph.layout(max_width);
+
+            Size {
+                width: paragraph.longest_line(),
+                height: paragraph.height(),
+            }
+        };
+
         if let Some(layout_id) = self.layout_id {
             semantics
                 .taffy
                 .set_style(layout_id, self.modifier.style)
                 .unwrap();
             semantics
+                .taffy
+                .set_measure(layout_id, Some(MeasureFunc::Boxed(Box::new(measure))))
+                .unwrap();
+
+            semantics
                 .layout_children
                 .last_mut()
                 .unwrap()
                 .push(layout_id);
         } else {
-            let paragraph_style = ParagraphStyle::new();
-            let mut font_collection = FontCollection::new();
-            font_collection.set_default_font_manager(FontMgr::new(), None);
-            let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
-
-            let mut text_style = TextStyle::new();
-            text_style.set_font_families(&["serif"]);
-            text_style.set_color(RGB::from((0, 0, 0)));
-            text_style.set_font_size(100.);
-            paragraph_builder.push_style(&text_style);
-
-            paragraph_builder.add_text(&self.text);
-            paragraph_builder.pop();
-
-            let paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
-            self.paragraph = Some(paragraph.clone());
-
-            let layout_id = semantics.insert_layout_with_measure(
-                self.modifier.style,
-                move |_known_dimensions, available_space| {
-                    let mut paragraph = paragraph.lock().unwrap();
-                    let max_width = match available_space.width {
-                        AvailableSpace::Definite(px) => px,
-                        AvailableSpace::MaxContent => f32::MAX,
-                        AvailableSpace::MinContent => f32::MIN,
-                    };
-                    paragraph.layout(max_width);
-
-                    Size {
-                        width: paragraph.longest_line(),
-                        height: paragraph.height(),
-                    }
-                },
-            );
+            let layout_id = semantics.insert_layout_with_measure(self.modifier.style, measure);
             self.layout_id = Some(layout_id);
         }
     }

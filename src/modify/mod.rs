@@ -73,7 +73,7 @@ where
                 node_id,
                 Box::new(move |event| match event {
                     Event::Action(_) => f(),
-                    Event::MouseInput { state, cursor } => match state {
+                    Event::MouseInput { state, cursor: _ } => match state {
                         ElementState::Pressed => {}
                         ElementState::Released => {
                             f();
@@ -158,5 +158,15 @@ pub struct FlexGrow {
 impl<T: AsMut<Style>> Modify<T> for FlexGrow {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().flex_grow = self.value;
+    }
+}
+
+pub struct Margin {
+    rect: Rect<Dimension>,
+}
+
+impl<T: AsMut<Style>> Modify<T> for Margin {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().margin = self.rect;
     }
 }

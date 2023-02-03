@@ -1,13 +1,13 @@
 use super::{
     container::MergeDescendants,
     keyboard_input::{KeyboardHandler, KeyboardInput},
-    BackgroundColor, Chain, Clickable, FlexGrow, Padding,
+    BackgroundColor, Chain, Clickable, FlexGrow, Margin, Padding,
 };
 use accesskit::Role;
 use skia_safe::Color4f;
 use std::marker::PhantomData;
 use taffy::{
-    prelude::Size,
+    prelude::{Rect, Size},
     style::{AlignItems, Dimension, FlexDirection},
 };
 
@@ -73,6 +73,10 @@ impl<T, M> Modifier<T, M> {
         H: KeyboardHandler + 'static,
     {
         self.chain(KeyboardInput::new(handler))
+    }
+
+    pub fn margin(self, rect: Rect<Dimension>) -> Modifier<T, Chain<M, Margin>> {
+        self.chain(Margin { rect })
     }
 
     pub fn merge_descendants(self) -> Modifier<T, Chain<M, MergeDescendants>> {

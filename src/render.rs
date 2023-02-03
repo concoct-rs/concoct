@@ -223,7 +223,10 @@ pub fn run_with_event_loop_builder(
                     ..
                 } => {
                     for handler in semantics.handlers.values_mut() {
-                        handler(crate::Event::MouseInput { state, cursor: cursor.unwrap() })
+                        handler(crate::Event::MouseInput {
+                            state,
+                            cursor: cursor.unwrap(),
+                        })
                     }
 
                     Composer::recompose(&mut semantics);

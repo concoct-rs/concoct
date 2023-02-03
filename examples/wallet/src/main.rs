@@ -7,6 +7,7 @@ use concoct::{container, render::run, Modifier};
 use skia_safe::RGB;
 use skia_safe::{Color4f, ColorSpace, Font, FontStyle, Paint, TextBlob, Typeface};
 use std::fmt::{self, Write};
+use std::ops::Not;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{any, panic::Location, sync::Arc};
 use taffy::prelude::Rect;
@@ -23,6 +24,17 @@ enum Currency {
     USD,
 }
 
+impl Not for Currency {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Self::Bitcoin => Self::USD,
+            Self::USD => Self::Bitcoin,
+        }
+    }
+}
+
 impl fmt::Display for Currency {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = match self {
@@ -34,45 +46,62 @@ impl fmt::Display for Currency {
 }
 
 fn app() {
-    container(Modifier::default().flex_grow(1.), || {
-        let currency = state(|| Currency::Bitcoin);
-        let value = state(|| String::from(""));
+    container(
+        Modifier::default()
+            .align_items(AlignItems::Center)
+            .flex_direction(FlexDirection::Column)
+            .flex_grow(1.),
+        || {
+            let currency = state(|| Currency::Bitcoin);
+            let value = state(|| String::from(""));
 
-        container(
-            Modifier::default()
-                .align_items(AlignItems::Center)
-                .flex_direction(FlexDirection::Column)
-                .flex_grow(1.)
-                .keyboard_handler(CurrencyInputKeyboardHandler::new(value)),
-            move || {
-                flex_text(format!(
-                    "{}{}",
-                    currency.get().cloned(),
-                    value.get().as_ref()
-                ));
+            container(
+                Modifier::default()
+                    .align_items(AlignItems::Center)
+                    .flex_direction(FlexDirection::Column)
+                    .size(Size {
+                        width: Dimension::Percent(1.),
+                        height: Dimension::Points(400.),
+                    })
+                    .keyboard_handler(CurrencyInputKeyboardHandler::new(value)),
+                move || {
+                    container(
+                        Modifier::default()
+                            .align_items(AlignItems::Center)
+                            .flex_direction(FlexDirection::Column)
+                            .margin(Rect::from_points(20., 20., 20., 20.))
+                            .size(Size {
+                                width: Dimension::Percent(1.),
+                                height: Dimension::Points(200.),
+                            }),
+                        move || {
+                            flex_text(format!(
+                                "{}{}",
+                                currency.get().cloned(),
+                                value.get().as_ref()
+                            ));
+                        },
+                    );
 
-                button("$20", move || {
-                    let next_currency = match currency.get().cloned() {
-                        Currency::Bitcoin => Currency::USD,
-                        Currency::USD => Currency::Bitcoin,
-                    };
-                    *currency.get().as_mut() = next_currency;
-                });
+                    button(format!("{}20", !currency.get().cloned()), move || {
+                        *currency.get().as_mut() = !currency.get().cloned();
+                    });
+                },
+            );
 
-                container(
-                    Modifier::default().flex_direction(FlexDirection::Row),
-                    || {
-                        button("Send", || {
-                            dbg!("press");
-                        });
-                        button("Request", || {
-                            dbg!("press");
-                        });
-                    },
-                )
-            },
-        )
-    });
+            container(
+                Modifier::default().flex_direction(FlexDirection::Row),
+                || {
+                    button("Send", || {
+                        dbg!("press");
+                    });
+                    button("Request", || {
+                        dbg!("press");
+                    });
+                },
+            )
+        },
+    );
 }
 
 fn main() {
