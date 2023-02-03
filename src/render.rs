@@ -274,7 +274,9 @@ pub fn run_with_event_loop_builder(
                     canvas.clear(Color::WHITE);
 
                     Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
-                    Composer::with(|composer| composer.borrow_mut().paint(&semantics, &mut canvas));
+                    Composer::with(|composer| {
+                        composer.borrow_mut().paint(&mut semantics, &mut canvas)
+                    });
 
                     env.gr_context.flush(&FlushInfo::default());
                     env.windowed_context

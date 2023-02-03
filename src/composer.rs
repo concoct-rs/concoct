@@ -46,6 +46,8 @@ pub trait Visitor {
     fn visit_child(&mut self, widget: &mut Box<dyn Widget>);
 
     fn visit_group(&mut self, layout_id: Option<LayoutNode>);
+
+    fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>);
 }
 
 #[derive(Default)]
@@ -154,6 +156,7 @@ impl Composer {
     pub fn visit(&mut self, mut visitor: impl Visitor) {
         enum Item {
             Group(Id),
+            GroupStart(Id),
             Child(Id),
         }
 
@@ -165,6 +168,11 @@ impl Composer {
 
         while let Some(item) = items.pop() {
             match item {
+                Item::GroupStart(id) => {
+                    let node = self.widgets.get_mut(&id).unwrap();
+                    let widget: &ContainerWidget = node.as_ref();
+                    visitor.visit_group(widget.layout_id);
+                }
                 Item::Group(id) => {
                     let node = self.widgets.get_mut(&id).unwrap();
                     visitor.visit_child(&mut node.widget)
@@ -172,14 +180,18 @@ impl Composer {
                 Item::Child(id) => {
                     if let Some(node) = self.widgets.get_mut(&id) {
                         if let Some(children) = &node.children {
-                            let widget: &ContainerWidget = node.as_ref();
-                            visitor.visit_group(widget.layout_id);
-
                             items.push(Item::Group(id.clone()));
 
-                            for child in children.iter().rev().map(|id| Item::Child(id.clone())).clone() {
+                            for child in children
+                                .iter()
+                                .rev()
+                                .map(|id| Item::Child(id.clone()))
+                                .clone()
+                            {
                                 items.push(child);
                             }
+
+                            items.push(Item::GroupStart(id.clone()));
                         } else {
                             visitor.visit_child(&mut node.widget);
                         }
@@ -190,23 +202,25 @@ impl Composer {
     }
 
     pub fn layout(&mut self, semantics: &mut Semantics) {
+        semantics.layout_children = vec![Vec::new(), Vec::new()];
+
         let visitor = LayoutVisitor::new(semantics);
         self.visit(visitor);
     }
 
     pub fn semantics(&mut self, semantics: &mut Semantics) {
+        semantics.points = vec![Point::new(0., 0.)];
+
         let visitor = SemanticsVisitor::new(semantics);
         self.visit(visitor);
     }
 
-    pub fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {
+    pub fn paint(&mut self, semantics: &mut Semantics, canvas: &mut Canvas) {
         let visitor = PaintVisitor::new(semantics, canvas);
         self.visit(visitor);
     }
 
     pub fn recompose(semantics: &mut Semantics) {
-        semantics.layout_children = vec![Vec::new(), Vec::new()];
-
         Self::with(|composer| {
             let mut cx = composer.borrow_mut();
             if let Some(parent_id) = cx.changed.iter().min_by_key(|id| id.path.len()).cloned() {
@@ -242,7 +256,7 @@ impl Composer {
 }
 
 impl fmt::Debug for Composer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Composer")
             .field(
                 "widgets",
@@ -261,7 +275,7 @@ struct Wrap<'a> {
 }
 
 impl fmt::Debug for Wrap<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for id in self.children {
             let widget = &self.composer.widgets[id];
 
@@ -271,10 +285,10 @@ impl fmt::Debug for Wrap<'_> {
             if let Some(ref children) = widget.children {
                 debug_struct.field(
                     "children",
-                    &Wrap {
+                    &[Wrap {
                         children,
                         composer: self.composer,
-                    },
+                    }],
                 );
             }
 
@@ -302,6 +316,11 @@ impl Visitor for LayoutVisitor<'_> {
 
     fn visit_group(&mut self, _layout_id: Option<LayoutNode>) {
         self.semantics.layout_children.push(Vec::new());
+    }
+
+    fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
+        widget.layout(self.semantics);
+        self.semantics.points.pop().unwrap();
     }
 }
 
@@ -331,15 +350,20 @@ impl Visitor for SemanticsVisitor<'_> {
         self.semantics.layout_children.push(Vec::new());
         self.semantics.start_group()
     }
+
+    fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
+        widget.semantics(self.semantics);
+        self.semantics.points.pop().unwrap();
+    }
 }
 
 pub struct PaintVisitor<'a> {
-    semantics: &'a Semantics,
+    semantics: &'a mut Semantics,
     canvas: &'a mut Canvas,
 }
 
 impl<'a> PaintVisitor<'a> {
-    pub fn new(semantics: &'a Semantics, canvas: &'a mut Canvas) -> Self {
+    pub fn new(semantics: &'a mut Semantics, canvas: &'a mut Canvas) -> Self {
         Self { semantics, canvas }
     }
 }
@@ -349,5 +373,17 @@ impl Visitor for PaintVisitor<'_> {
         widget.paint(self.semantics, self.canvas);
     }
 
-    fn visit_group(&mut self, _layout_id: Option<LayoutNode>) {}
+    fn visit_group(&mut self, layout_id: Option<LayoutNode>) {
+        if let Some(layout_id) = layout_id {
+            let layout = self.semantics.taffy.layout(layout_id).unwrap();
+            self.semantics
+                .points
+                .push(Point::new(layout.location.x, layout.location.y));
+        }
+    }
+
+    fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
+        widget.paint(self.semantics, self.canvas);
+        self.semantics.points.pop().unwrap();
+    }
 }
