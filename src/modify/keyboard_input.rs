@@ -42,4 +42,8 @@ where
             );
         }
     }
+
+    fn remove(&mut self, node_id: NodeId, semantics: &mut Semantics) {
+        semantics.handlers.remove(&node_id);
+    }
 }

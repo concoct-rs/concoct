@@ -41,10 +41,10 @@ async fn make_stream() -> impl Stream<Item = Decimal> {
     )
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum Display {
     Balance,
-    Send,
+    Send { address: Option<String> },
 }
 
 #[track_caller]
@@ -75,32 +75,38 @@ fn app() {
                         Modifier::default().flex_direction(FlexDirection::Row),
                         move || {
                             button("Send", move || {
-                                *display.get().as_mut() = Display::Send;
+                                *display.get().as_mut() = Display::Send { address: None };
                             });
                             button("Request", || {});
                         },
                     )
                 }
-                Display::Send => {
-                    let amount = state(|| String::from(""));
+                Display::Send { address } => {
+                    if let Some(address) = address {
+                        let amount = state(|| String::from(""));
 
-                    container(
-                        Modifier::default()
-                            .align_items(AlignItems::Center)
-                            .flex_direction(FlexDirection::Column)
-                            .keyboard_handler(CurrencyInputKeyboardHandler::new(amount)),
-                        move || {
-                            button("Cancel", move || {
-                                *display.get().as_mut() = Display::Balance;
-                            });
+                        container(
+                            Modifier::default()
+                                .align_items(AlignItems::Center)
+                                .flex_direction(FlexDirection::Column)
+                                .keyboard_handler(CurrencyInputKeyboardHandler::new(amount)),
+                            move || {
+                                button("Cancel", move || {
+                                    *display.get().as_mut() = Display::Balance;
+                                });
 
-                            currency_text(currency, amount, rate);
+                                currency_text(currency, amount, rate);
 
-                            button("Send", move || {
-                                *display.get().as_mut() = Display::Send;
-                            });
-                        },
-                    );
+                                button("Send", move || {
+                                    
+                                });
+                            },
+                        );
+                    } else {
+                        button("Continue", move || {
+                            *display.get().as_mut() = Display::Send { address: Some("12345".into())};
+                        });
+                    }
                 }
             }
         },

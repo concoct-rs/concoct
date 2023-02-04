@@ -26,6 +26,7 @@ use std::{
 };
 use taffy::{prelude::Size, style::Style};
 use winit::{
+    dpi::LogicalSize,
     event::{Event, KeyboardInput, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
     window::{Window, WindowBuilder},
@@ -100,7 +101,11 @@ pub fn run_with_event_loop_builder(
     let event_loop = event_loop_builder.build();
 
     let window_builder = if cfg!(wgl_backend) {
-        Some(WindowBuilder::new())
+        Some(
+            WindowBuilder::new()
+                .with_inner_size(LogicalSize::new(400., 600.))
+                .with_resizable(false),
+        )
     } else {
         None
     };
@@ -164,7 +169,9 @@ pub fn run_with_event_loop_builder(
         match event {
             Event::Resumed => {
                 let window = window.take().unwrap_or_else(|| {
-                    let window_builder = WindowBuilder::new().with_transparent(true);
+                    let window_builder = WindowBuilder::new()
+                        .with_inner_size(LogicalSize::new(400., 600.))
+                        .with_resizable(false);
                     glutin_winit::finalize_window(window_target, window_builder, &gl_config)
                         .unwrap()
                 });

@@ -7,7 +7,6 @@ use taffy::{
     node::{Measurable, MeasureFunc},
     prelude::Layout,
     style::Style,
-    tree::LayoutTree,
     Taffy,
 };
 use winit::event_loop::EventLoopProxy;
