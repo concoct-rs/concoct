@@ -1,14 +1,14 @@
 use super::{
     container::MergeDescendants,
     keyboard_input::{KeyboardHandler, KeyboardInput},
-    BackgroundColor, Chain, Clickable, FlexGrow, Margin, Padding,
+    BackgroundColor, Chain, Clickable, FlexBasis, FlexGrow, Gap, Margin, Padding,
 };
 use accesskit::Role;
 use skia_safe::Color4f;
 use std::marker::PhantomData;
 use taffy::{
     prelude::{Rect, Size},
-    style::{AlignItems, Dimension, FlexDirection},
+    style::{AlignItems, Dimension, FlexDirection, JustifyContent},
 };
 
 pub struct Modifier<T, M> {
@@ -57,6 +57,10 @@ impl<T, M> Modifier<T, M> {
         self.chain(Clickable { f: Some(on_click) })
     }
 
+    pub fn flex_basis(self, dimension: Dimension) -> Modifier<T, Chain<M, FlexBasis>> {
+        self.chain(FlexBasis { dimension })
+    }
+
     pub fn flex_direction(
         self,
         flex_direction: FlexDirection,
@@ -66,6 +70,17 @@ impl<T, M> Modifier<T, M> {
 
     pub fn flex_grow(self, value: f32) -> Modifier<T, Chain<M, FlexGrow>> {
         self.chain(FlexGrow { value })
+    }
+
+    pub fn gap(self, gap: Gap) -> Modifier<T, Chain<M, Gap>> {
+        self.chain(gap)
+    }
+
+    pub fn justify_content(
+        self,
+        justify_content: JustifyContent,
+    ) -> Modifier<T, Chain<M, JustifyContent>> {
+        self.chain(justify_content)
     }
 
     pub fn keyboard_handler<H>(self, handler: H) -> Modifier<T, Chain<M, KeyboardInput<H>>>

@@ -3,7 +3,7 @@ use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
     prelude::{Layout, Rect, Size},
-    style::{AlignItems, Dimension, FlexDirection, Style},
+    style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},
 };
 use winit::event::ElementState;
 
@@ -110,6 +110,12 @@ impl<T: AsMut<Style>> Modify<T> for AlignItems {
     }
 }
 
+impl<T: AsMut<Style>> Modify<T> for JustifyContent {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().justify_content = *self;
+    }
+}
+
 impl<T: AsMut<Style>> Modify<T> for FlexDirection {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().flex_direction = *self;
@@ -118,7 +124,38 @@ impl<T: AsMut<Style>> Modify<T> for FlexDirection {
 
 impl<T: AsMut<Style>> Modify<T> for Size<Dimension> {
     fn modify(&mut self, value: &mut T) {
-        value.as_mut().size = *self;
+        let size = &mut value.as_mut().size;
+
+        if self.width != Dimension::Undefined {
+            size.width = self.width;
+        }
+
+        if self.height != Dimension::Undefined {
+            size.height = self.height;
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Gap {
+    size: Size<Dimension>,
+}
+
+impl Gap {
+    pub fn width(mut self, value: Dimension) -> Self {
+        self.size.width = value;
+        self
+    }
+
+    pub fn height(mut self, value: Dimension) -> Self {
+        self.size.height = value;
+        self
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for Gap {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().gap = self.size;
     }
 }
 
@@ -176,6 +213,16 @@ pub struct FlexGrow {
 impl<T: AsMut<Style>> Modify<T> for FlexGrow {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().flex_grow = self.value;
+    }
+}
+
+pub struct FlexBasis {
+    dimension: Dimension,
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexBasis {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_basis = self.dimension;
     }
 }
 
