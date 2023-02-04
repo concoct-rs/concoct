@@ -178,6 +178,26 @@ impl Padding {
     pub fn horizontal(self, value: Dimension) -> Self {
         self.left(value).right(value)
     }
+
+    pub fn top(mut self, value: Dimension) -> Self {
+        self.rect.top = value;
+        self
+    }
+
+    pub fn bottom(mut self, value: Dimension) -> Self {
+        self.rect.bottom = value;
+        self
+    }
+
+    pub fn vertical(self, value: Dimension) -> Self {
+        self.top(value).bottom(value)
+    }
+}
+
+impl From<Dimension> for Padding {
+    fn from(value: Dimension) -> Self {
+        Self::default().horizontal(value).vertical(value)
+    }
 }
 
 impl<T: AsMut<Style>> Modify<T> for Padding {
