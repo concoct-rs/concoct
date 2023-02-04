@@ -86,8 +86,20 @@ struct Env {
 }
 
 #[track_caller]
+#[cfg(not(target_os = "android"))]
 pub fn run(view_builder: fn()) {
     let event_loop_builder = EventLoopBuilder::with_user_event();
+    run_with_event_loop_builder(view_builder, event_loop_builder)
+}
+
+#[track_caller]
+#[cfg(target_os = "android")]
+pub fn run(view_builder: fn(), android_app: android_activity::AndroidApp) {
+    use winit::platform::android::EventLoopBuilderExtAndroid;
+
+    let mut event_loop_builder = EventLoopBuilder::with_user_event();
+    event_loop_builder.with_android_app(android_app);
+
     run_with_event_loop_builder(view_builder, event_loop_builder)
 }
 
