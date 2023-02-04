@@ -4,7 +4,7 @@ use crate::{
     semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
 };
-use accesskit::{Node, NodeId};
+use accesskit::{kurbo::Rect, Node, NodeId};
 use skia_safe::Canvas;
 use std::{any, panic::Location};
 
@@ -86,15 +86,23 @@ impl Widget for ContainerWidget {
             }
         }
 
+        let layout = semantics.layout(self.layout_id.unwrap());
+        let bounds = Rect::new(
+            layout.location.x as _,
+            layout.location.y as _,
+            (layout.location.x + layout.size.width) as _,
+            (layout.location.y + layout.size.height) as _,
+        );
+        let node = Node {
+            role: self.modifier.role,
+            bounds: Some(bounds),
+            ..Node::default()
+        };
+
         let id = if let Some(node_id) = self.node_id {
-            semantics.end_group_update(node_id);
+            semantics.end_group_update(node_id, node);
             node_id
         } else {
-            let node = Node {
-                role: self.modifier.role,
-                ..Node::default()
-            };
-
             let id = semantics.end_group_with_node(node, self.modifier.merge_descendants);
             self.node_id = Some(id);
             id

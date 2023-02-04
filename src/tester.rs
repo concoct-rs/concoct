@@ -74,8 +74,9 @@ pub struct TestNode<'a> {
 
 impl<'a> TestNode<'a> {
     pub fn click(&mut self) {
-        for handler in self.tester.semantics.handlers.values_mut() {
-            handler(Event::Action(Action::Default))
+        for (node_id, handler) in self.tester.semantics.handlers.iter_mut() {
+            let node = self.tester.semantics.nodes.get(&node_id).unwrap();
+            handler(node, Event::Action(Action::Default))
         }
     }
 }

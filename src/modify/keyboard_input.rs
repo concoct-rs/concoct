@@ -34,7 +34,7 @@ where
         if let Some(mut handler) = self.handler.take() {
             semantics.handlers.insert(
                 node_id,
-                Box::new(move |event| {
+                Box::new(move |_, event| {
                     if let Event::KeyboardInput { state, key_code } = event {
                         handler.handle_keyboard_input(state, key_code)
                     }

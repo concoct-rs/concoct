@@ -20,7 +20,7 @@ pub struct Semantics {
     high_water_mark: NonZeroU128,
     unused_ids: Vec<NodeId>,
     tree_update: TreeUpdate,
-    pub handlers: HashMap<NodeId, Box<dyn FnMut(Event)>>,
+    pub handlers: HashMap<NodeId, Box<dyn FnMut(&Node, Event)>>,
     pub taffy: Taffy,
     pub layout_children: Vec<Vec<LayoutNode>>,
     pub points: Vec<Point>,
@@ -109,12 +109,8 @@ impl Semantics {
         self.insert(node)
     }
 
-    pub fn end_group_update(&mut self, id: NodeId) {
-        let children = self.children.pop().unwrap();
-        let node = Node {
-            children,
-            ..Node::default()
-        };
+    pub fn end_group_update(&mut self, id: NodeId, mut node: Node) {
+        node.children = self.children.pop().unwrap();
 
         self.update(id, node);
     }

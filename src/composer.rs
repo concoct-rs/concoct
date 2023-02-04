@@ -174,7 +174,7 @@ impl Composer {
                 }
                 Item::Group(id) => {
                     let node = self.widgets.get_mut(&id).unwrap();
-                    visitor.visit_child(&mut node.widget)
+                    visitor.visit_group_end(&mut node.widget)
                 }
                 Item::Child(id) => {
                     if let Some(node) = self.widgets.get_mut(&id) {
@@ -326,7 +326,6 @@ impl Visitor for LayoutVisitor<'_> {
 
     fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
         widget.layout(self.semantics);
-        self.semantics.points.pop().unwrap();
     }
 }
 
@@ -348,7 +347,7 @@ impl Visitor for SemanticsVisitor<'_> {
     fn visit_group(&mut self, node: &mut WidgetNode) {
         let widget: &ContainerWidget = node.as_ref();
         if let Some(layout_id) = widget.layout_id {
-            let layout = self.semantics.taffy.layout(layout_id).unwrap();
+            let layout = self.semantics.layout(layout_id);
             self.semantics
                 .points
                 .push(Point::new(layout.location.x, layout.location.y));
@@ -359,8 +358,8 @@ impl Visitor for SemanticsVisitor<'_> {
     }
 
     fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
-        widget.semantics(self.semantics);
         self.semantics.points.pop().unwrap();
+        widget.semantics(self.semantics);
     }
 }
 
@@ -383,7 +382,7 @@ impl Visitor for PaintVisitor<'_> {
     fn visit_group(&mut self, node: &mut WidgetNode) {
         let widget: &mut ContainerWidget = node.as_mut();
         if let Some(layout_id) = widget.layout_id {
-            let layout = self.semantics.taffy.layout(layout_id).unwrap();
+            let layout = self.semantics.layout(layout_id);
 
             widget.modify.paint(&layout, self.canvas);
 
@@ -394,7 +393,7 @@ impl Visitor for PaintVisitor<'_> {
     }
 
     fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
-        widget.paint(self.semantics, self.canvas);
         self.semantics.points.pop().unwrap();
+        widget.paint(self.semantics, self.canvas);
     }
 }

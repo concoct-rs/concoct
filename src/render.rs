@@ -229,11 +229,15 @@ pub fn run_with_event_loop_builder(
                     button: _,
                     ..
                 } => {
-                    for handler in semantics.handlers.values_mut() {
-                        handler(crate::Event::MouseInput {
-                            state,
-                            cursor: cursor.unwrap(),
-                        })
+                    for (node_id, handler) in semantics.handlers.iter_mut() {
+                        let node = semantics.nodes.get(&node_id).unwrap();
+                        handler(
+                            node,
+                            crate::Event::MouseInput {
+                                state,
+                                cursor: cursor.unwrap(),
+                            },
+                        )
                     }
 
                     Composer::recompose(&mut semantics);
@@ -255,8 +259,9 @@ pub fn run_with_event_loop_builder(
                     ..
                 } => {
                     if let Some(key_code) = virtual_keycode {
-                        for handler in semantics.handlers.values_mut() {
-                            handler(crate::Event::KeyboardInput { state, key_code })
+                        for (node_id, handler) in semantics.handlers.iter_mut() {
+                            let node = semantics.nodes.get(&node_id).unwrap();
+                            handler(node, crate::Event::KeyboardInput { state, key_code })
                         }
                     }
 

@@ -85,6 +85,9 @@ fn app() {
 
                     container(
                         Modifier::default()
+                            .align_items(AlignItems::Center)
+                            .flex_direction(FlexDirection::Column)
+                            .flex_grow(1.)
                             .keyboard_handler(CurrencyInputKeyboardHandler::new(amount)),
                         move || {
                             currency_text(currency, amount, rate);

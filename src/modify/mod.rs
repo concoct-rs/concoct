@@ -1,10 +1,5 @@
 use crate::{Event, Semantics};
 use accesskit::{NodeId, Role};
-
-pub mod container;
-
-mod modifier;
-pub use modifier::Modifier;
 use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
     prelude::{Layout, Rect, Size},
@@ -12,7 +7,12 @@ use taffy::{
 };
 use winit::event::ElementState;
 
+pub mod container;
+
 pub mod keyboard_input;
+
+mod modifier;
+pub use modifier::Modifier;
 
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
@@ -78,12 +78,19 @@ where
         if let Some(mut f) = self.f.take() {
             semantics.handlers.insert(
                 node_id,
-                Box::new(move |event| match event {
+                Box::new(move |node, event| match event {
                     Event::Action(_) => f(),
-                    Event::MouseInput { state, cursor: _ } => match state {
+                    Event::MouseInput { state, cursor } => match state {
                         ElementState::Pressed => {}
                         ElementState::Released => {
-                            f();
+                            let bounds = node.bounds.unwrap();
+                            if cursor.x > bounds.x0
+                                && cursor.x < bounds.x1
+                                && cursor.y > bounds.y0
+                                && cursor.y < bounds.y1
+                            {
+                                f();
+                            }
                         }
                     },
                     _ => {}
