@@ -136,7 +136,7 @@ impl Widget for TextWidget {
 
         let font = Font::new(&self.typeface, self.font_size.load(Ordering::SeqCst) as f32);
         if let Some(text_blob) = TextBlob::new(&self.text, &font) {
-            let layout = semantics.taffy.layout(self.layout_id.unwrap()).unwrap();
+            let layout = semantics.layout(self.layout_id.unwrap());
             let (_, bounds) = font.measure_str(&self.text, Some(&paint));
 
             canvas.draw_text_blob(

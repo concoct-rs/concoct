@@ -6,6 +6,7 @@ use concoct::{render::run, Modifier};
 use futures::{Stream, StreamExt};
 use rust_decimal::Decimal;
 use serde::Deserialize;
+use skia_safe::RGB;
 use std::time::Duration;
 use taffy::style::{AlignItems, FlexDirection};
 use tokio::time::interval;
@@ -87,10 +88,17 @@ fn app() {
                         Modifier::default()
                             .align_items(AlignItems::Center)
                             .flex_direction(FlexDirection::Column)
-                            .flex_grow(1.)
                             .keyboard_handler(CurrencyInputKeyboardHandler::new(amount)),
                         move || {
+                            button("Cancel", move || {
+                                *display.get().as_mut() = Display::Balance;
+                            });
+
                             currency_text(currency, amount, rate);
+
+                            button("Send", move || {
+                                *display.get().as_mut() = Display::Send;
+                            });
                         },
                     );
                 }

@@ -30,7 +30,7 @@ pub fn currency_text(currency: State<Currency>, value: State<String>, rate: Stat
                 Modifier::default()
                     .align_items(AlignItems::Center)
                     .flex_direction(FlexDirection::Column)
-                    .margin(Rect::from_points(20., 20., 20., 20.))
+                    .margin(Rect::from_points(20., 20., 50., 50.))
                     .size(Size {
                         width: Dimension::Percent(1.),
                         height: Dimension::Points(200.),
