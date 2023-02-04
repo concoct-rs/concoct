@@ -1,10 +1,10 @@
 use super::{
     container::MergeDescendants,
     keyboard_input::{KeyboardHandler, KeyboardInput},
-    BackgroundColor, Chain, Clickable, FlexBasis, FlexGrow, Gap, Margin, Padding,
+    BackgroundColor, Chain, Clickable, FlexBasis, FlexGrow, FlexShrink, Gap, Margin, Padding,
 };
 use accesskit::Role;
-use skia_safe::Color4f;
+use skia_safe::{Color4f, Typeface};
 use std::marker::PhantomData;
 use taffy::{
     prelude::{Rect, Size},
@@ -72,6 +72,10 @@ impl<T, M> Modifier<T, M> {
         self.chain(FlexGrow { value })
     }
 
+    pub fn flex_shrink(self, value: f32) -> Modifier<T, Chain<M, FlexShrink>> {
+        self.chain(FlexShrink { value })
+    }
+
     pub fn gap(self, gap: Gap) -> Modifier<T, Chain<M, Gap>> {
         self.chain(gap)
     }
@@ -108,5 +112,9 @@ impl<T, M> Modifier<T, M> {
 
     pub fn size(self, size: Size<Dimension>) -> Modifier<T, Chain<M, Size<Dimension>>> {
         self.chain(size)
+    }
+
+    pub fn typeface(self, typeface: Typeface) -> Modifier<T, Chain<M, Typeface>> {
+        self.chain(typeface)
     }
 }

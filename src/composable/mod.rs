@@ -12,5 +12,5 @@ pub use state::state;
 mod stream;
 pub use stream::stream;
 
-mod text;
+pub mod text;
 pub use text::text;

@@ -108,10 +108,6 @@ pub fn run_with_event_loop_builder(
     view_builder: fn(),
     mut event_loop_builder: EventLoopBuilder<UserEvent>,
 ) {
-    
-
-
-
     let event_loop = event_loop_builder.build();
 
     let window_builder = if cfg!(wgl_backend) {
@@ -191,7 +187,7 @@ pub fn run_with_event_loop_builder(
                 });
 
                 if cfg!(target_os = "android") {
-                    scale_factor = 3.;
+                    scale_factor = 4.;
                 } else {
                     scale_factor = window.scale_factor();
                 }

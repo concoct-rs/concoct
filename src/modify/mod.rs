@@ -1,6 +1,6 @@
-use crate::{Event, Semantics};
+use crate::{composable::text::TextModifier, Event, Semantics};
 use accesskit::{NodeId, Role};
-use skia_safe::{Canvas, Color4f, Paint};
+use skia_safe::{textlayout::TextStyle, Canvas, Color4f, Paint, Typeface};
 use taffy::{
     prelude::{Layout, Rect, Size},
     style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},
@@ -249,6 +249,16 @@ impl<T: AsMut<Style>> Modify<T> for FlexGrow {
     }
 }
 
+pub struct FlexShrink {
+    value: f32,
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexShrink {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_shrink = self.value;
+    }
+}
+
 pub struct FlexBasis {
     dimension: Dimension,
 }
@@ -266,5 +276,11 @@ pub struct Margin {
 impl<T: AsMut<Style>> Modify<T> for Margin {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().margin = self.rect;
+    }
+}
+
+impl Modify<TextModifier> for Typeface {
+    fn modify(&mut self, value: &mut TextModifier) {
+        value.typeface = self.clone();
     }
 }

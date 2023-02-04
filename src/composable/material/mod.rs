@@ -9,6 +9,9 @@ use taffy::{
     style::{AlignItems, Dimension, JustifyContent},
 };
 
+pub mod icon;
+pub use icon::icon;
+
 #[track_caller]
 pub fn button(
     modifier: Modifier<ContainerModifier, impl Modify<ContainerModifier> + 'static>,
