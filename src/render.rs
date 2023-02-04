@@ -267,7 +267,20 @@ pub fn run_with_event_loop_builder(
                         .window
                         .request_redraw();
                 }
-                WindowEvent::Touch(_touch) => {}
+                WindowEvent::Touch(touch) => {
+                    for (node_id, handler) in semantics.handlers.iter_mut() {
+                        let node = semantics.nodes.get(&node_id).unwrap();
+                        handler(node, crate::Event::Touch(touch))
+                    }
+
+                    Composer::recompose(&mut semantics);
+
+                    env.as_mut()
+                        .unwrap()
+                        .windowed_context
+                        .window
+                        .request_redraw();
+                }
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {

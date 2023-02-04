@@ -20,7 +20,7 @@ pub use tester::Tester;
 
 use winit::{
     dpi::PhysicalPosition,
-    event::{ElementState, VirtualKeyCode},
+    event::{ElementState, Touch, VirtualKeyCode},
 };
 
 pub trait Widget: Any {
@@ -47,4 +47,5 @@ pub enum Event {
         state: ElementState,
         cursor: PhysicalPosition<f64>,
     },
+    Touch(Touch),
 }

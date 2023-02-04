@@ -5,7 +5,7 @@ use taffy::{
     prelude::{Layout, Rect, Size},
     style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},
 };
-use winit::event::ElementState;
+use winit::event::{ElementState, TouchPhase};
 
 pub mod container;
 
@@ -92,6 +92,19 @@ where
                                 f();
                             }
                         }
+                    },
+                    Event::Touch(touch) => match touch.phase {
+                        TouchPhase::Ended => {
+                            let bounds = node.bounds.unwrap();
+                            if touch.location.x > bounds.x0
+                                && touch.location.x < bounds.x1
+                                && touch.location.y > bounds.y0
+                                && touch.location.y < bounds.y1
+                            {
+                                f();
+                            }
+                        }
+                        _ => {}
                     },
                     _ => {}
                 }),
