@@ -16,6 +16,7 @@ pub use semantics::Semantics;
 
 mod tester;
 use skia_safe::Canvas;
+use taffy::style::Dimension;
 pub use tester::Tester;
 
 use winit::{
@@ -48,4 +49,21 @@ pub enum Event {
         cursor: PhysicalPosition<f64>,
     },
     Touch(Touch),
+}
+
+pub trait DevicePixels {
+    fn dp(self) -> Dimension;
+}
+
+impl DevicePixels for f32 {
+    fn dp(self) -> Dimension {
+        let px = Composer::with(|composer| self * composer.borrow().scale_factor);
+        Dimension::Points(px)
+    }
+}
+
+impl DevicePixels for i32 {
+    fn dp(self) -> Dimension {
+        (self as f32).dp()
+    }
 }

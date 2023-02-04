@@ -108,7 +108,9 @@ pub fn run_with_event_loop_builder(
     view_builder: fn(),
     mut event_loop_builder: EventLoopBuilder<UserEvent>,
 ) {
-    view_builder();
+    
+
+
 
     let event_loop = event_loop_builder.build();
 
@@ -188,7 +190,14 @@ pub fn run_with_event_loop_builder(
                         .unwrap()
                 });
 
-                scale_factor = window.scale_factor();
+                if cfg!(target_os = "android") {
+                    scale_factor = 3.;
+                } else {
+                    scale_factor = window.scale_factor();
+                }
+                Composer::with(|composer| composer.borrow_mut().scale_factor = scale_factor as _);
+
+                view_builder();
 
                 let tree_update = semantics.tree_update();
                 adapter = Some(Adapter::new(&window, move || tree_update, proxy.clone()));

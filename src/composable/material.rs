@@ -1,7 +1,7 @@
 use super::{container, text};
 use crate::{
     modify::{container::ContainerModifier, Padding},
-    Modifier, Modify,
+    DevicePixels, Modifier, Modify,
 };
 use skia_safe::RGB;
 use taffy::{
@@ -23,10 +23,10 @@ pub fn button(
             .merge_descendants()
             .background_color(RGB::from((232, 221, 253)))
             .clickable(move || on_press())
-            .padding(Padding::default().horizontal(Dimension::Points(40.)))
+            .padding(Padding::default().horizontal(24.dp()))
             .size(Size {
                 width: Dimension::Undefined,
-                height: Dimension::Points(80.),
+                height: 40.dp(),
             })
             .chain(modifier.modify),
         move || text(Modifier::default(), label.clone()),

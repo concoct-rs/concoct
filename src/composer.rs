@@ -57,6 +57,7 @@ pub struct Composer {
     pub current_group_id: Id,
     pub states: SlotMap<DefaultKey, Id>,
     pub changed: HashSet<(DefaultKey, Id)>,
+    pub scale_factor: f32
 }
 
 impl Composer {
