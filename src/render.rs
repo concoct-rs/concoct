@@ -329,7 +329,7 @@ pub fn run_with_event_loop_builder(
                     Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
 
                     let tree_update = semantics.tree_update();
-                    adapter.as_mut().unwrap().update(tree_update);
+                   // adapter.as_mut().unwrap().update(tree_update);
 
                     Composer::with(|composer| {
                         composer.borrow_mut().paint(&mut semantics, &mut canvas)

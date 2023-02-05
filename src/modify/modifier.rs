@@ -125,4 +125,16 @@ impl<T, M: Modify<T>> Modify<T> for Modifier<T, M> {
     fn modify(&mut self, value: &mut T) {
         self.modify.modify(value)
     }
+
+    fn semantics(&mut self, node_id: accesskit::NodeId, semantics: &mut crate::Semantics) {
+        self.modify.semantics(node_id, semantics)
+    }
+
+    fn paint(&mut self, layout: &taffy::prelude::Layout, canvas: &mut skia_safe::Canvas) {
+        self.modify.paint(layout, canvas)
+    }
+
+    fn remove(&mut self, node_id: accesskit::NodeId, semantics: &mut crate::Semantics) {
+        self.modify.remove(node_id, semantics)
+    }
 }
