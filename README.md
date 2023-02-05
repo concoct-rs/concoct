@@ -9,7 +9,7 @@ Cross-platform UI framework in Rust with
 * Flexible state management
 * Desktop and mobile support
 * Accessibility
-* High quality skia rendering
+* Native skia rendering
 
 [Examples](https://github.com/concoct-rs/concoct/tree/main/examples)
 
