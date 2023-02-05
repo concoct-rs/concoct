@@ -2,11 +2,37 @@ use crate::{
     composer::{Composer, Id, WidgetNode},
     modify::container::ContainerModifier,
     semantics::LayoutNode,
-    Modify, Semantics, Widget,
+    Modifier, Modify, Semantics, Widget,
 };
-use accesskit::{kurbo::Rect, Node, NodeId};
+use accesskit::{kurbo::Rect, Node, NodeId, Role};
 use skia_safe::Canvas;
 use std::{any, panic::Location};
+use taffy::style::FlexDirection;
+
+#[track_caller]
+pub fn row(modifier: impl Modify<ContainerModifier> + 'static, composable: impl FnMut() + 'static) {
+    container(
+        Modifier::default()
+            .role(Role::Row)
+            .flex_direction(FlexDirection::Row)
+            .chain(modifier),
+        composable,
+    )
+}
+
+#[track_caller]
+pub fn column(
+    modifier: impl Modify<ContainerModifier> + 'static,
+    composable: impl FnMut() + 'static,
+) {
+    container(
+        Modifier::default()
+            .role(Role::Column)
+            .flex_direction(FlexDirection::Column)
+            .chain(modifier),
+        composable,
+    )
+}
 
 #[track_caller]
 pub fn container(
