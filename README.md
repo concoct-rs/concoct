@@ -37,4 +37,22 @@ fn title_text(title: String) {
 }
 ```
 
+# State
+State is created with the [`state`](https://concoct-rs.github.io/concoct/composable/state/fn.state.html) composable.
+```rust
+let mut tester = Tester::new(|| {
+    container(Modifier::default(), || {
+        let count = state(|| 0);
+
+        text(Modifier::default(), count.get().cloned().to_string());
+
+        *count.get().as_mut() += 1;
+    })
+});
+
+for count in 0..5 {
+    assert!(tester.get_text(count.to_string()).is_some());
+}
+```
+
 
