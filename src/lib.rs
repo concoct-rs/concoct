@@ -52,18 +52,18 @@ pub enum Event {
 }
 
 pub trait DevicePixels {
-    fn dp(self) -> Dimension;
+    fn dp(self) -> f32;
 }
 
 impl DevicePixels for f32 {
-    fn dp(self) -> Dimension {
-        let px = Composer::with(|composer| self * composer.borrow().scale_factor);
-        Dimension::Points(px)
+    fn dp(self) -> f32 {
+       Composer::with(|composer| self * composer.borrow().scale_factor)
+     
     }
 }
 
 impl DevicePixels for i32 {
-    fn dp(self) -> Dimension {
+    fn dp(self) -> f32 {
         (self as f32).dp()
     }
 }

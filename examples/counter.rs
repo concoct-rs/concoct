@@ -4,7 +4,7 @@ use concoct::{
     render::run,
     DevicePixels, Modifier,
 };
-use taffy::style::{AlignItems, JustifyContent};
+use taffy::style::{AlignItems, Dimension, JustifyContent};
 
 fn app() {
     column(
@@ -12,14 +12,14 @@ fn app() {
             .align_items(AlignItems::Center)
             .justify_content(JustifyContent::Center)
             .flex_grow(1.)
-            .gap(Gap::default().height(20.dp())),
+            .gap(Gap::default().height(Dimension::Points(20.dp()))),
         || {
             let count = state(|| 0);
 
-            text(Modifier::default(), count.get().cloned().to_string());
+            text(Modifier::default().font_size(80.dp()), count.get().cloned().to_string());
 
             row(
-                Modifier::default().gap(Gap::default().width(20.dp())),
+                Modifier::default().gap(Gap::default().width(Dimension::Points(20.dp()))),
                 move || {
                     button(Modifier::default(), "More", move || {
                         *count.get().as_mut() += 1

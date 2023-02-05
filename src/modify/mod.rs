@@ -284,3 +284,13 @@ impl Modify<TextModifier> for Typeface {
         value.typeface = self.clone();
     }
 }
+
+pub struct FontSize {
+    value: f32
+}
+
+impl Modify<TextModifier> for FontSize {
+    fn modify(&mut self, value: &mut TextModifier) {
+        value.font_size = self.value;
+    }
+}
