@@ -16,15 +16,25 @@ Cross-platform UI framework in Rust with
 ![wallet example](https://github.com/matthunz/viewbuilder/blob/main/screenshots/wallet.png?raw=true)
 ![counter example](https://github.com/matthunz/viewbuilder/blob/main/screenshots/counter.png?raw=true)
 
-# Getting started
+# Hello World
 ```rust
 use concoct::{composable::text, render::run, Modifier};
 
 fn app() {
     text(Modifier::default(), "Hello World!")
 }
-
 fn main() {
     run(app)
 }
 ```
+
+# Creating a composable
+To create your own composable, write a function using Rust's `#[track_caller]` attribute macro.
+```rust
+#[track_caller]
+fn title_text(title: String) {
+    text(Modifier::default().font_size(80.dp()), title);
+}
+```
+
+
