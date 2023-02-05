@@ -1,4 +1,6 @@
-use crate::{composer::Composer, semantics::LayoutNode, Modifier, Modify, Semantics, Widget, DevicePixels};
+use crate::{
+    composer::Composer, semantics::LayoutNode, DevicePixels, Modifier, Modify, Semantics, Widget,
+};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
@@ -18,7 +20,7 @@ use taffy::{
 pub struct TextModifier {
     pub typeface: Typeface,
     pub style: Style,
-    pub font_size: f32
+    pub font_size: f32,
 }
 
 impl AsMut<Style> for TextModifier {
@@ -35,7 +37,7 @@ pub fn text(
     let mut text_modifier = TextModifier {
         typeface: Typeface::new("serif", Default::default()).unwrap(),
         style: Style::default(),
-        font_size: 14.dp()
+        font_size: 14.dp(),
     };
     modifier.modify.modify(&mut text_modifier);
 

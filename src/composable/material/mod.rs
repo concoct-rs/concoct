@@ -1,5 +1,5 @@
 mod button;
 pub use button::button;
 
-mod icon;
+pub mod icon;
 pub use icon::icon;

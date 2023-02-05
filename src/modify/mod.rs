@@ -286,7 +286,7 @@ impl Modify<TextModifier> for Typeface {
 }
 
 pub struct FontSize {
-    value: f32
+    value: f32,
 }
 
 impl Modify<TextModifier> for FontSize {

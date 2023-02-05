@@ -16,7 +16,10 @@ fn app() {
         || {
             let count = state(|| 0);
 
-            text(Modifier::default().font_size(80.dp()), count.get().cloned().to_string());
+            text(
+                Modifier::default().font_size(80.dp()),
+                count.get().cloned().to_string(),
+            );
 
             row(
                 Modifier::default().gap(Gap::default().width(Dimension::Points(20.dp()))),

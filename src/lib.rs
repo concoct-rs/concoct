@@ -57,8 +57,7 @@ pub trait DevicePixels {
 
 impl DevicePixels for f32 {
     fn dp(self) -> f32 {
-       Composer::with(|composer| self * composer.borrow().scale_factor)
-     
+        Composer::with(|composer| self * composer.borrow().scale_factor)
     }
 }
 
