@@ -9,10 +9,8 @@ pub use material_icons::Icon;
 
 thread_local! {
     pub static TYPEFACE: Typeface = {
-        const BYTES: &[u8] =  include_bytes!("../../../assets/MaterialIcons-Regular.ttf");
-
         // Safety: BYTES has a static lifetime
-        let data= unsafe { Data::new_bytes(BYTES) };
+        let data= unsafe { Data::new_bytes(material_icons::FONT) };
         Typeface::from_data(data, 0).unwrap()
     };
 }

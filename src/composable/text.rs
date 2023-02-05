@@ -70,20 +70,19 @@ pub struct TextWidget {
 
 impl Widget for TextWidget {
     fn layout(&mut self, semantics: &mut Semantics) {
-        let paragraph_style = ParagraphStyle::new();
-
-        let mut font_mgr = FontMgr::new();
-        let typeface =
-            font_mgr.new_from_data(&self.modifier.typeface.to_font_data().unwrap().0, None);
-
+        let font_mgr = FontMgr::new();
         let mut font_collection = FontCollection::new();
         font_collection.set_default_font_manager(font_mgr, None);
+
+        let paragraph_style = ParagraphStyle::new();
         let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
 
         let mut text_style = TextStyle::new();
         text_style.set_color(RGB::from((0, 0, 0)));
         text_style.set_font_size(48.);
-        text_style.set_typeface(typeface);
+        text_style.set_typeface(self.modifier.typeface.clone());
+        text_style.set_font_families(&["Marker Felt", "Material Icons", "serif", "sans-serif"]);
+        text_style.set_typeface(self.modifier.typeface.clone());
         paragraph_builder.push_style(&text_style);
 
         paragraph_builder.add_text(&self.text);
