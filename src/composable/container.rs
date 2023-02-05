@@ -2,7 +2,7 @@ use crate::{
     composer::{Composer, Id, WidgetNode},
     modify::container::ContainerModifier,
     semantics::LayoutNode,
-    Modifier, Modify, Semantics, Widget,
+    Modify, Semantics, Widget,
 };
 use accesskit::{kurbo::Rect, Node, NodeId};
 use skia_safe::Canvas;
@@ -10,11 +10,11 @@ use std::{any, panic::Location};
 
 #[track_caller]
 pub fn container(
-    mut modifier: Modifier<ContainerModifier, impl Modify<ContainerModifier> + 'static>,
-    mut f: impl FnMut() + 'static,
+    mut modifier: impl Modify<ContainerModifier> + 'static,
+    mut composable: impl FnMut() + 'static,
 ) {
     let mut container_modifier = ContainerModifier::default();
-    modifier.modify.modify(&mut container_modifier);
+    modifier.modify(&mut container_modifier);
 
     let location = Location::caller();
     Composer::with(|composer| {
@@ -22,7 +22,7 @@ pub fn container(
         let id = cx.id(location);
         drop(cx);
 
-        let (children, removed) = Composer::group(&id, &mut f);
+        let (children, removed) = Composer::group(&id, &mut composable);
 
         let mut cx = composer.borrow_mut();
         if let Some(node) = cx.widgets.get_mut(&id) {
@@ -37,8 +37,8 @@ pub fn container(
             let widget = ContainerWidget {
                 modifier: container_modifier,
                 node_id: None,
-                modify: Box::new(modifier.modify),
-                f: Some(Box::new(f)),
+                modify: Box::new(modifier),
+                f: Some(Box::new(composable)),
                 removed: None,
                 layout_id: None,
                 children: children.clone(),

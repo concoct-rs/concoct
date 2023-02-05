@@ -1,3 +1,5 @@
+use crate::Modify;
+
 use super::{
     container::MergeDescendants,
     keyboard_input::{KeyboardHandler, KeyboardInput},
@@ -116,5 +118,11 @@ impl<T, M> Modifier<T, M> {
 
     pub fn typeface(self, typeface: Typeface) -> Modifier<T, Chain<M, Typeface>> {
         self.chain(typeface)
+    }
+}
+
+impl<T, M: Modify<T>> Modify<T> for Modifier<T, M> {
+    fn modify(&mut self, value: &mut T) {
+        self.modify.modify(value)
     }
 }
