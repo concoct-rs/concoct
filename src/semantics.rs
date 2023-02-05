@@ -1,5 +1,5 @@
 use crate::{render::UserEvent, Event};
-use accesskit::{Node, NodeId, TreeUpdate};
+use accesskit::{Node, NodeId, Role, TreeUpdate};
 use skia_safe::Point;
 use slotmap::{DefaultKey, SlotMap};
 use std::{any::Any, collections::HashMap, fmt, mem, num::NonZeroU128, sync::Arc};
@@ -32,7 +32,7 @@ impl Default for Semantics {
         Self {
             nodes: HashMap::new(),
             children: vec![Vec::new()],
-            high_water_mark: NonZeroU128::new(1).unwrap(),
+            high_water_mark: NonZeroU128::new(2).unwrap(),
             unused_ids: Vec::new(),
             tree_update: TreeUpdate::default(),
             handlers: HashMap::new(),
@@ -160,7 +160,19 @@ impl Semantics {
     }
 
     pub fn tree_update(&mut self) -> TreeUpdate {
-        mem::take(&mut self.tree_update)
+        let mut tree_update = mem::take(&mut self.tree_update);
+
+        let root = Arc::new(Node {
+            role: Role::Window,
+            children: self.children.pop().unwrap(),
+            name: Some("WINDOW_TITLE".into()),
+            ..Default::default()
+        });
+        tree_update
+            .nodes
+            .push((NodeId(NonZeroU128::new(1).unwrap()), root));
+
+        tree_update
     }
 }
 

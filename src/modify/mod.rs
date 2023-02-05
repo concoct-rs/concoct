@@ -1,6 +1,6 @@
 use crate::{composable::text::TextModifier, Event, Semantics};
 use accesskit::{NodeId, Role};
-use skia_safe::{textlayout::TextStyle, Canvas, Color4f, Paint, Typeface};
+use skia_safe::{Canvas, Color4f, Paint, Typeface};
 use taffy::{
     prelude::{Layout, Rect, Size},
     style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},

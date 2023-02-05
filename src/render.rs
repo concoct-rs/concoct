@@ -1,7 +1,7 @@
 //! Render engine
 
 use crate::{Composer, Semantics};
-use accesskit::{NodeId, Role};
+use accesskit::{NodeId, Tree};
 use accesskit_winit::{ActionRequestEvent, Adapter};
 use gl::types::*;
 use glutin::{
@@ -22,7 +22,6 @@ use std::{
     any::Any,
     ffi::CString,
     num::{NonZeroU128, NonZeroU32},
-    sync::Arc,
 };
 use taffy::{prelude::Size, style::Style};
 use winit::{
@@ -154,21 +153,9 @@ pub fn run_with_event_loop_builder(
     });
 
     let mut env = None;
-    let mut scale_factor = 1.;
-
-    let mut cursor = None;
-
-    let _root = Arc::new(accesskit::Node {
-        role: Role::Window,
-        children: vec![],
-        name: Some("WINDOW_TITLE".into()),
-        ..Default::default()
-    });
-    let proxy = event_loop.create_proxy();
-
     let mut adapter = None;
-
-    const WINDOW_ID: NodeId = NodeId(unsafe { NonZeroU128::new_unchecked(1) });
+    let mut cursor = None;
+    let proxy = event_loop.create_proxy();
 
     let mut semantics = Semantics::default();
     semantics.proxy = Some(event_loop.create_proxy());
@@ -186,16 +173,17 @@ pub fn run_with_event_loop_builder(
                         .unwrap()
                 });
 
-                if cfg!(target_os = "android") {
-                    scale_factor = 4.;
+                let scale_factor = if cfg!(target_os = "android") {
+                    4.
                 } else {
-                    scale_factor = window.scale_factor();
-                }
+                    window.scale_factor()
+                };
                 Composer::with(|composer| composer.borrow_mut().scale_factor = scale_factor as _);
 
                 view_builder();
 
-                let tree_update = semantics.tree_update();
+                let mut tree_update = semantics.tree_update();
+                tree_update.tree = Some(Tree::new(NodeId(NonZeroU128::new(1).unwrap())));
                 adapter = Some(Adapter::new(&window, move || tree_update, proxy.clone()));
 
                 let gl_window = GlWindow::new(window, &gl_config);
@@ -337,7 +325,12 @@ pub fn run_with_event_loop_builder(
                     let mut canvas = env.surface.canvas();
                     canvas.clear(Color::WHITE);
 
+                    semantics.children = vec![Vec::new()];
                     Composer::with(|composer| composer.borrow_mut().semantics(&mut semantics));
+
+                    let tree_update = semantics.tree_update();
+                    adapter.as_mut().unwrap().update(tree_update);
+
                     Composer::with(|composer| {
                         composer.borrow_mut().paint(&mut semantics, &mut canvas)
                     });

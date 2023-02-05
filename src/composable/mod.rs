@@ -1,5 +1,5 @@
 pub mod container;
-pub use container::{container, row, column};
+pub use container::{column, container, row};
 
 pub mod material;
 

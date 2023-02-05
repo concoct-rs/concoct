@@ -19,7 +19,7 @@ thread_local! {
 pub fn icon(
     modifier: Modifier<TextModifier, impl Modify<TextModifier> + 'static>,
     icon: Icon,
-    content_description: impl Into<String>,
+    _content_description: impl Into<String>,
 ) {
     let typeface = TYPEFACE.try_with(|typeface| typeface.clone()).unwrap();
 
