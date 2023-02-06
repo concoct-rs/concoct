@@ -74,6 +74,10 @@ pub trait ButtonModifier: Modify<ButtonConfig> + Sized {
     }
 }
 
+impl<M: Modify<ButtonConfig>> ButtonModifier for M {
+
+}
+
 pub struct IsEnabled(bool);
 
 impl Modify<ButtonConfig> for IsEnabled {
