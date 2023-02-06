@@ -1,6 +1,7 @@
 use crate::composable::container::{container, ContainerModifier};
-use crate::modify::ModifyExt;
+use crate::modify::{HandlerModifier, ModifyExt};
 use crate::{Modifier, Modify};
+use accesskit::Role;
 use skia_safe::Color4f;
 use taffy::style::{AlignItems, JustifyContent};
 
@@ -49,7 +50,7 @@ pub fn button(
             .justify_content(JustifyContent::Center)
             .merge_descendants()
             .background_color(color)
-            .clickable(on_press)
+            .clickable(Role::Button, on_press)
             .padding(config.padding)
             .size(config.size),
         content,

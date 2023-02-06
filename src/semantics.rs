@@ -13,13 +13,26 @@ use winit::event_loop::EventLoopProxy;
 
 pub type LayoutNode = taffy::prelude::Node;
 
+pub trait Handler {
+    fn handle(&mut self, node: &Node, event: Event);
+}
+
+impl<F> Handler for F
+where
+    F: FnMut(&Node, Event),
+{
+    fn handle(&mut self, node: &Node, event: Event) {
+        self(node, event)
+    }
+}
+
 pub struct Semantics {
     pub nodes: HashMap<NodeId, Arc<Node>>,
     pub children: Vec<Vec<NodeId>>,
     high_water_mark: NonZeroU128,
     unused_ids: Vec<NodeId>,
     tree_update: TreeUpdate,
-    pub handlers: HashMap<NodeId, Box<dyn FnMut(&Node, Event)>>,
+    pub handlers: HashMap<NodeId, Box<dyn Handler + 'static>>,
     pub taffy: Taffy,
     pub layout_children: Vec<Vec<LayoutNode>>,
     pub points: Vec<Point>,

@@ -1,6 +1,6 @@
 //! # Concoct
 //! Cross-platform UI framework
-//! 
+//!
 //! # Material Design
 //! Material design composables are available in the [material](self::composable::material) module.
 
