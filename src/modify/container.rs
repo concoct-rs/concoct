@@ -66,10 +66,6 @@ pub trait ContainerModifier: Modify<ContainerConfig> + Sized {
     fn role(self, role: Role) -> Chain<Self, Role> {
         self.chain(role)
     }
-
-    fn size(self, size: Size<Dimension>) -> Chain<Self, Size<Dimension>> {
-        self.chain(size)
-    }
 }
 
 impl<M: Modify<ContainerConfig>> ContainerModifier for M {}
@@ -93,6 +89,12 @@ impl AsMut<Role> for ContainerConfig {
 impl AsMut<Style> for ContainerConfig {
     fn as_mut(&mut self) -> &mut Style {
         &mut self.style
+    }
+}
+
+impl AsMut<Size<Dimension>> for ContainerConfig {
+    fn as_mut(&mut self) -> &mut Size<Dimension> {
+        &mut self.style.size
     }
 }
 
@@ -122,19 +124,6 @@ impl<T: AsMut<Style>> Modify<T> for FlexDirection {
     }
 }
 
-impl<T: AsMut<Style>> Modify<T> for Size<Dimension> {
-    fn modify(&mut self, value: &mut T) {
-        let size = &mut value.as_mut().size;
-
-        if self.width != Dimension::Undefined {
-            size.width = self.width;
-        }
-
-        if self.height != Dimension::Undefined {
-            size.height = self.height;
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct Gap {

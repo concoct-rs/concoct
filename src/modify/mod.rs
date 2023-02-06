@@ -2,7 +2,7 @@ use crate::{Event, Semantics};
 use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
-    prelude::{Layout, Rect},
+    prelude::{Layout, Rect, Size},
     style::{Dimension, Style},
 };
 use winit::event::{ElementState, TouchPhase};
@@ -81,6 +81,14 @@ pub trait ModifyExt<T>: Modify<T> {
         F: FnMut() + 'static,
     {
         self.chain(Clickable { f: Some(on_click) })
+    }
+
+    fn size(self, size: Size<Dimension>) -> Chain<Self, Size<Dimension>>
+    where
+        Self: Sized,
+        T: AsMut<Size<Dimension>>,
+    {
+        self.chain(size)
     }
 }
 
@@ -205,5 +213,19 @@ pub struct Margin {
 impl<T: AsMut<Style>> Modify<T> for Margin {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().margin = self.rect;
+    }
+}
+
+impl<T: AsMut<Size<Dimension>>> Modify<T> for Size<Dimension> {
+    fn modify(&mut self, value: &mut T) {
+        let size = value.as_mut();
+
+        if self.width != Dimension::Undefined {
+            size.width = self.width;
+        }
+
+        if self.height != Dimension::Undefined {
+            size.height = self.height;
+        }
     }
 }
