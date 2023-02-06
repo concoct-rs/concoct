@@ -1,4 +1,4 @@
-use crate::{composer::Composer, semantics::LayoutNode, DevicePixels, Modify, Semantics, Widget};
+use crate::{semantics::LayoutNode, DevicePixels, Modify, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
@@ -6,7 +6,6 @@ use skia_safe::{
 };
 use std::{
     any,
-    panic::Location,
     sync::{Arc, Mutex},
 };
 use taffy::{
@@ -14,6 +13,8 @@ use taffy::{
     prelude::{AvailableSpace, Size},
     style::Style,
 };
+
+use super::widget;
 
 pub struct TextConfig {
     pub typeface: Typeface,
@@ -36,26 +37,21 @@ pub fn text(mut modifier: impl Modify<TextConfig> + 'static, string: impl Into<S
     };
     modifier.modify(&mut text_modifier);
 
-    let location = Location::caller();
-    Composer::with(|composer| {
-        let mut cx = composer.borrow_mut();
-        let id = cx.id(location);
-
-        if let Some(widget) = cx.get_mut::<TextWidget>(&id) {
-            widget.text = string.into();
-            cx.children.push(id);
-        } else {
-            let widget = TextWidget {
-                text: string.into(),
-                node_id: None,
-                layout_id: None,
-                paragraph: None,
-                modify: Box::new(modifier),
-                modifier: text_modifier,
-            };
-            cx.insert(id, widget, None);
-        }
-    })
+    widget(
+        string.into(),
+        |text| TextWidget {
+            text: text,
+            node_id: None,
+            layout_id: None,
+            paragraph: None,
+            modify: Box::new(modifier),
+            modifier: text_modifier,
+        },
+        |text, node| {
+            let widget: &mut TextWidget = node.as_mut();
+            widget.text = text;
+        },
+    )
 }
 
 pub struct TextWidget {

@@ -14,3 +14,6 @@ pub use stream::stream;
 
 pub mod text;
 pub use text::text;
+
+mod widget;
+pub use widget::widget;

@@ -1,12 +1,13 @@
-use crate::{render::UserEvent, Composer, Semantics, Widget};
+use crate::{render::UserEvent, Semantics, Widget};
 use futures::{Future, Stream, StreamExt};
 use slotmap::DefaultKey;
 use std::{
     any::Any,
     marker::{PhantomData, Unpin},
-    panic::Location,
 };
 use tokio::task::JoinHandle;
+
+use super::widget;
 
 #[track_caller]
 pub fn stream<
@@ -18,25 +19,20 @@ pub fn stream<
     future: Fut,
     on_item: F,
 ) {
-    let location = Location::caller();
-    Composer::with(|composer| {
-        let mut cx = composer.borrow_mut();
-        let id = cx.id(location);
-
-        if let Some(widget) = cx.get_mut::<StreamWidget<T, Fut, S>>(&id) {
+    widget(
+        (future, on_item),
+        |(future, on_item)| StreamWidget {
+            on_item: Some(Box::new(on_item)),
+            future: Some(future),
+            task: None,
+            _marker: PhantomData,
+        },
+        |(future, on_item), node| {
+            let widget: &mut StreamWidget<T, Fut, S> = node.as_mut();
             widget.on_item = Some(Box::new(on_item));
             widget.future = Some(future);
-            cx.children.push(id);
-        } else {
-            let widget = StreamWidget {
-                on_item: Some(Box::new(on_item)),
-                future: Some(future),
-                task: None,
-                _marker: PhantomData,
-            };
-            cx.insert(id, widget, None);
-        }
-    });
+        },
+    )
 }
 
 pub struct StreamWidget<T, Fut, S> {
