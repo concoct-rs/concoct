@@ -44,6 +44,8 @@ where
             if is_intersection(pos, bounds) {
                 (self.on_click)();
                 self.interaction_source.emit(ClickInteration::Release);
+            } else {
+                self.interaction_source.emit(ClickInteration::Cancel);
             }
 
             self.is_pressed = false;

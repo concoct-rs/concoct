@@ -134,7 +134,6 @@ impl Composer {
             cx.current_group_id = parent_group_id;
             let children = mem::replace(&mut cx.children, parent_children);
 
-            dbg!(&id);
             let removed_ids = if let Some(node) = cx.widgets.get(&id) {
                 let removed: Vec<_> = node
                     .children

@@ -4,6 +4,7 @@ fn app() {
     text(Modifier, "Hello World!")
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     run(app)
 }

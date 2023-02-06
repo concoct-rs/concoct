@@ -51,6 +51,7 @@ fn app() {
     )
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     run(app)
 }

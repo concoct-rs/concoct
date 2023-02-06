@@ -1,5 +1,5 @@
 use crate::composable::container::{container, ContainerModifier};
-use crate::composable::{interaction_source, remember, state};
+use crate::composable::{interaction_source, remember};
 use crate::modify::{HandlerModifier, ModifyExt};
 use crate::{Modifier, Modify};
 use accesskit::Role;
@@ -45,14 +45,16 @@ pub fn button(
         config.colors.disabled
     };
 
-    let interaction_source = ();
-    /*
-    remember([], || {
-        interaction_source.on_item(|interaction| {
-            dbg!(interaction);
-        });
-    });
-    */
+    // TODO this closure fixes an issue with ID's
+    let interaction_source = (|| interaction_source())();
+
+    (|| {
+        remember([], || {
+            interaction_source.on_item(|interaction| {
+                dbg!(interaction);
+            });
+        })
+    })();
 
     container(
         Modifier
