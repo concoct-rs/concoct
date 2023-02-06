@@ -29,6 +29,12 @@ impl Default for ButtonConfig {
     }
 }
 
+impl AsMut<Size<Dimension>> for ButtonConfig {
+    fn as_mut(&mut self) -> &mut Size<Dimension> {
+        &mut self.size
+    }
+}
+
 /// Material You filled button
 #[track_caller]
 pub fn button(
@@ -61,6 +67,10 @@ pub fn button(
 pub trait ButtonModifier: Modify<ButtonConfig> + Sized {
     fn is_enabled(self, is_enabled: bool) -> Chain<Self, IsEnabled> {
         self.chain(IsEnabled(is_enabled))
+    }
+
+    fn colors(self, button_colors: ButtonColors) -> Chain<Self, ButtonColors> {
+        self.chain(button_colors)
     }
 }
 
