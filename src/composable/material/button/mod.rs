@@ -30,7 +30,7 @@ pub use modifier::{ButtonColors, ButtonConfig, ButtonModifier};
 /// ```
 #[track_caller]
 pub fn button(
-    mut modifier: impl Modify<ButtonConfig> + 'static,
+    mut modifier: impl Modify<ButtonConfig>,
     content: impl FnMut() + 'static,
     on_press: impl FnMut() + 'static,
 ) {
@@ -79,7 +79,7 @@ pub fn button(
 /// ```
 #[track_caller]
 pub fn text_button(
-    modifier: impl Modify<ButtonConfig> + 'static,
+    modifier: impl Modify<ButtonConfig>,
     content: impl FnMut() + 'static,
     on_press: impl FnMut() + 'static,
 ) {
