@@ -1,8 +1,8 @@
 pub use material_icons::Icon;
 
 use crate::{
-    composable::text::{text, TextConfig},
-    modify::{ModifyExt, TextModifier},
+    composable::text::{text, TextConfig, TextModifier},
+    modify::ModifyExt,
     Modifier, Modify,
 };
 use material_icons::icon_to_char;

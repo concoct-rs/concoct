@@ -16,6 +16,9 @@ use taffy::{
 
 use super::widget;
 
+pub mod modifier;
+pub use modifier::TextModifier;
+
 pub struct TextConfig {
     pub typeface: Typeface,
     pub style: Style,

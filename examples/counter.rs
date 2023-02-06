@@ -3,9 +3,10 @@ use concoct::{
         column,
         container::{modifier::Gap, ContainerModifier},
         material::button,
-        row, state, text,
+        row, state,
+        text::{text, TextModifier},
     },
-    modify::{ModifyExt, TextModifier},
+    modify::ModifyExt,
     render::run,
     DevicePixels, Modifier,
 };

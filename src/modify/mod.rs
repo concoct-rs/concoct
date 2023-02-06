@@ -10,12 +10,6 @@ use taffy::{
 pub mod handler;
 pub use handler::HandlerModifier;
 
-pub mod text;
-pub use text::TextModifier;
-
-mod modifier;
-pub use modifier::Modifier;
-
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
 
@@ -26,7 +20,9 @@ pub trait Modify<T> {
     fn remove(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 }
 
-impl<T> Modify<T> for () {
+pub struct Modifier;
+
+impl<T> Modify<T> for Modifier {
     fn modify(&mut self, _value: &mut T) {}
 }
 

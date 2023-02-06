@@ -1,5 +1,8 @@
-use super::{Chain, ModifyExt};
-use crate::{composable::text::TextConfig, Modify};
+use crate::{
+    composable::text::TextConfig,
+    modify::{Chain, ModifyExt},
+    Modify,
+};
 use skia_safe::Typeface;
 
 pub trait TextModifier: Modify<TextConfig> + Sized {
