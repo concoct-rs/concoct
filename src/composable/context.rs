@@ -1,10 +1,9 @@
+use super::container;
 use crate::{Composer, Modifier};
 use std::{
     any::{Any, TypeId},
     rc::Rc,
 };
-
-use super::container;
 
 pub fn context<T: 'static>() -> Option<Rc<T>> {
     Composer::with(|composer| {

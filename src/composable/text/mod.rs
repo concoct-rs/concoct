@@ -2,7 +2,7 @@ use crate::{semantics::LayoutNode, DevicePixels, Modify, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
-    Canvas, FontMgr, Typeface, RGB,
+    Canvas, Color4f, FontMgr, Typeface, RGB,
 };
 use std::{
     any,
@@ -20,6 +20,7 @@ pub mod modifier;
 pub use modifier::TextModifier;
 
 pub struct TextConfig {
+    pub color: Color4f,
     pub typeface: Typeface,
     pub style: Style,
     pub font_size: f32,
@@ -34,6 +35,7 @@ impl AsMut<Style> for TextConfig {
 #[track_caller]
 pub fn text(mut modifier: impl Modify<TextConfig> + 'static, string: impl Into<String>) {
     let mut text_modifier = TextConfig {
+        color: Color4f::new(0., 0., 0., 1.),
         typeface: Typeface::new("serif", Default::default()).unwrap(),
         style: Style::default(),
         font_size: 14.dp(),
