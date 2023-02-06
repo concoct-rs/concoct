@@ -21,7 +21,7 @@ Cross-platform UI framework in Rust with
 use concoct::{composable::text, render::run, Modifier};
 
 fn app() {
-    text(Modifier::default(), "Hello World!")
+    text(Modifier, "Hello World!")
 }
 
 fn main() {
@@ -34,7 +34,7 @@ To create your own composable, write a function using Rust's `#[track_caller]` a
 ```rust
 #[track_caller]
 fn title_text(title: String) {
-    text(Modifier::default().font_size(80.dp()), title);
+    text(Modifier.font_size(80.dp()), title);
 }
 ```
 
@@ -42,10 +42,10 @@ fn title_text(title: String) {
 State is created with the [`state`](https://concoct-rs.github.io/concoct/composable/state/fn.state.html) composable.
 ```rust
 let mut tester = Tester::new(|| {
-    container(Modifier::default(), || {
+    container(Modifier, || {
         let count = state(|| 0);
 
-        text(Modifier::default(), count.get().cloned().to_string());
+        text(Modifier, count.get().cloned().to_string());
 
         *count.get().as_mut() += 1;
     })

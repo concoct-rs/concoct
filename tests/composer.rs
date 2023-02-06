@@ -6,10 +6,10 @@ use concoct::{
 #[test]
 fn it_updates_state_and_recomposes() {
     let mut tester = Tester::new(|| {
-        container(Modifier::default(), || {
+        container(Modifier, || {
             let count = state(|| 0);
 
-            text(Modifier::default(), count.get().cloned().to_string());
+            text(Modifier, count.get().cloned().to_string());
 
             *count.get().as_mut() += 1;
         })
@@ -24,15 +24,15 @@ fn it_updates_state_and_recomposes() {
 #[test]
 fn it_triggers_click_events_and_recomposes() {
     let mut tester = Tester::new(|| {
-        container(Modifier::default(), || {
+        container(Modifier, || {
             let count = state(|| 0);
 
             container(
-                Modifier::default()
+                Modifier
                     .clickable(move || *count.get().as_mut() += 1)
                     .merge_descendants()
                     .role(Role::Button),
-                move || text(Modifier::default(), count.get().cloned().to_string()),
+                move || text(Modifier, count.get().cloned().to_string()),
             )
         })
     });
@@ -46,11 +46,11 @@ fn it_triggers_click_events_and_recomposes() {
 #[test]
 fn it_removes_unused_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier::default(), || {
+        container(Modifier, || {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
-                text(Modifier::default(), "toggle");
+                text(Modifier, "toggle");
             }
 
             *is_shown.get().as_mut() = false;
@@ -64,12 +64,12 @@ fn it_removes_unused_widgets() {
 #[test]
 fn it_removes_nested_unused_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier::default(), || {
+        container(Modifier, || {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
-                container(Modifier::default(), || {
-                    text(Modifier::default(), "toggle");
+                container(Modifier, || {
+                    text(Modifier, "toggle");
                 })
             }
 
@@ -84,11 +84,11 @@ fn it_removes_nested_unused_widgets() {
 #[test]
 fn it_inserts_new_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier::default(), || {
+        container(Modifier, || {
             let is_shown = state(|| false);
 
             if is_shown.get().cloned() {
-                text(Modifier::default(), "A");
+                text(Modifier, "A");
             }
 
             *is_shown.get().as_mut() = true;
@@ -102,13 +102,13 @@ fn it_inserts_new_widgets() {
 #[test]
 fn it_replaces_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier::default(), || {
+        container(Modifier, || {
             let is_a_shown = state(|| true);
 
             if is_a_shown.get().cloned() {
-                text(Modifier::default(), "A");
+                text(Modifier, "A");
             } else {
-                text(Modifier::default(), "B");
+                text(Modifier, "B");
             }
 
             *is_a_shown.get().as_mut() = false;
@@ -122,15 +122,15 @@ fn it_replaces_widgets() {
 #[test]
 fn it_nests_containers() {
     let tester = Tester::new(|| {
-        container(Modifier::default(), || {
-            text(Modifier::default(), "A");
+        container(Modifier, || {
+            text(Modifier, "A");
 
-            container(Modifier::default(), || {
-                text(Modifier::default(), "B");
-                text(Modifier::default(), "C");
+            container(Modifier, || {
+                text(Modifier, "B");
+                text(Modifier, "C");
             });
 
-            text(Modifier::default(), "D");
+            text(Modifier, "D");
         })
     });
 

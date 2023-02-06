@@ -1,6 +1,6 @@
 use crate::{
     composer::{Composer, Id, WidgetNode},
-    modify::container::ContainerModifier,
+    modify::container::{ContainerConfig, ContainerModifier},
     semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
 };
@@ -10,9 +10,9 @@ use std::{any, panic::Location};
 use taffy::style::FlexDirection;
 
 #[track_caller]
-pub fn row(modifier: impl Modify<ContainerModifier> + 'static, composable: impl FnMut() + 'static) {
+pub fn row(modifier: impl Modify<ContainerConfig> + 'static, composable: impl FnMut() + 'static) {
     container(
-        Modifier::default()
+        Modifier
             .role(Role::Row)
             .flex_direction(FlexDirection::Row)
             .chain(modifier),
@@ -22,11 +22,11 @@ pub fn row(modifier: impl Modify<ContainerModifier> + 'static, composable: impl 
 
 #[track_caller]
 pub fn column(
-    modifier: impl Modify<ContainerModifier> + 'static,
+    modifier: impl Modify<ContainerConfig> + 'static,
     composable: impl FnMut() + 'static,
 ) {
     container(
-        Modifier::default()
+        Modifier
             .role(Role::Column)
             .flex_direction(FlexDirection::Column)
             .chain(modifier),
@@ -36,10 +36,10 @@ pub fn column(
 
 #[track_caller]
 pub fn container(
-    mut modifier: impl Modify<ContainerModifier> + 'static,
+    mut modifier: impl Modify<ContainerConfig> + 'static,
     mut composable: impl FnMut() + 'static,
 ) {
-    let mut container_modifier = ContainerModifier::default();
+    let mut container_modifier = ContainerConfig::default();
     modifier.modify(&mut container_modifier);
 
     let location = Location::caller();
@@ -75,9 +75,9 @@ pub fn container(
 }
 
 pub struct ContainerWidget {
-    modifier: ContainerModifier,
+    modifier: ContainerConfig,
     node_id: Option<NodeId>,
-    pub modify: Box<dyn Modify<ContainerModifier>>,
+    pub modify: Box<dyn Modify<ContainerConfig>>,
     pub f: Option<Box<dyn FnMut()>>,
     removed: Option<Vec<WidgetNode>>,
     pub layout_id: Option<LayoutNode>,

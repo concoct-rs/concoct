@@ -1,6 +1,6 @@
-use crate::{composable::text::TextConfig, Event, Semantics};
+use crate::{Event, Semantics};
 use accesskit::{NodeId, Role};
-use skia_safe::{Canvas, Color4f, Paint, Typeface};
+use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
     prelude::{Layout, Rect, Size},
     style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},
@@ -17,6 +17,27 @@ pub use text::TextModifier;
 mod modifier;
 pub use modifier::Modifier;
 
+pub trait ModifyExt<T>: Modify<T> {
+    fn background_color(self, color: impl Into<Color4f>) -> Chain<Self, BackgroundColor>
+    where
+        Self: Sized,
+    {
+        self.chain(BackgroundColor {
+            color: color.into(),
+        })
+    }
+
+    fn clickable<F>(self, on_click: F) -> Chain<Self, Clickable<F>>
+    where
+        Self: Sized,
+        F: FnMut() + 'static,
+    {
+        self.chain(Clickable { f: Some(on_click) })
+    }
+}
+
+impl<T, M: Modify<T>> ModifyExt<T> for M {}
+
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
 
@@ -26,14 +47,11 @@ pub trait Modify<T> {
 
     fn remove(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 
-    fn chain<B>(self, modify: B) -> Chain<Self, B>
+    fn chain<B: Modify<T>>(self, modify: B) -> Chain<Self, B>
     where
         Self: Sized,
     {
-        Chain {
-            a: self,
-            b: modify,
-        }
+        Chain { a: self, b: modify }
     }
 }
 

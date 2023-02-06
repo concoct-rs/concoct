@@ -1,7 +1,7 @@
 use concoct::{composable::text, render::run, Modifier};
 
 fn app() {
-    text(Modifier::default(), "Hello World!")
+    text(Modifier, "Hello World!")
 }
 
 fn main() {

@@ -1,6 +1,4 @@
-use crate::{
-    composer::Composer, semantics::LayoutNode, DevicePixels, Modifier, Modify, Semantics, Widget,
-};
+use crate::{composer::Composer, semantics::LayoutNode, DevicePixels, Modify, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
@@ -30,10 +28,7 @@ impl AsMut<Style> for TextConfig {
 }
 
 #[track_caller]
-pub fn text(
-    mut modifier: impl Modify<TextConfig> + 'static,
-    string: impl Into<String>,
-) {
+pub fn text(mut modifier: impl Modify<TextConfig> + 'static, string: impl Into<String>) {
     let mut text_modifier = TextConfig {
         typeface: Typeface::new("serif", Default::default()).unwrap(),
         style: Style::default(),

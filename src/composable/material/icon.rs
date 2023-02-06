@@ -18,16 +18,14 @@ thread_local! {
 
 #[track_caller]
 pub fn icon(
-    modifier: Modifier<TextConfig, impl Modify<TextConfig> + 'static>,
+    modifier: impl Modify<TextConfig> + 'static,
     icon: Icon,
     _content_description: impl Into<String>,
 ) {
     let typeface = TYPEFACE.try_with(|typeface| typeface.clone()).unwrap();
 
     text(
-        Modifier::default()
-            .typeface(typeface)
-            .chain(modifier.modify),
+        Modifier.typeface(typeface).chain(modifier),
         icon_to_char(icon),
     );
 }
