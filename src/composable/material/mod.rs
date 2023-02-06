@@ -1,18 +1,16 @@
 //! Material design composables
 
-pub mod button;
-use std::rc::Rc;
+use super::{context, provide_context};
+use skia_safe::Color4f;
 
+pub mod button;
 pub use button::{button, text_button};
 
 pub mod icon;
 pub use icon::icon;
 
 pub mod text;
-use skia_safe::Color4f;
 pub use text::text;
-
-use super::{context, provide_context};
 
 pub struct LocalContentColor {
     color: Color4f,

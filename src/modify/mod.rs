@@ -76,6 +76,14 @@ pub trait ModifyExt<T>: Modify<T> {
         }
     }
 
+    fn draw<F>(self, f: F) -> Chain<T, Self, Draw<F>>
+    where
+        Self: Sized,
+        F: FnMut(&Layout, &mut Canvas),
+    {
+        self.chain(Draw { f })
+    }
+
     fn size(self, size: Size<Dimension>) -> Chain<T, Self, Size<Dimension>>
     where
         Self: Sized,
@@ -113,5 +121,20 @@ impl<T> Modify<T> for BackgroundColor {
             ),
             &Paint::new(self.color, None),
         );
+    }
+}
+
+pub struct Draw<F> {
+    f: F,
+}
+
+impl<T, F> Modify<T> for Draw<F>
+where
+    F: FnMut(&Layout, &mut Canvas),
+{
+    fn modify(&mut self, _value: &mut T) {}
+
+    fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
+        (self.f)(layout, canvas)
     }
 }
