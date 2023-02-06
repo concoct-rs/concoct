@@ -7,7 +7,27 @@ use taffy::style::{AlignItems, JustifyContent};
 mod modifier;
 pub use modifier::{ButtonColors, ButtonConfig, ButtonModifier};
 
-/// Material You filled button
+/// Material You filled button composable
+/// * `content`: The composable content to be displayed inside the button
+/// * `on_press`: Function called after the button is pressed
+///
+/// # Screenshots
+/// ![screenshots](https://developer.android.com/images/reference/androidx/compose/material3/filled-button.png)
+///
+/// # Examples
+/// ```
+/// use concoct::Modifier;
+/// use concoct::composable::text;
+/// use concoct::composable::material::button;
+///
+/// button(
+///     Modifier,
+///     || text(Modifier, "Press me!"),
+///     || {
+///         dbg!("Pressed!");
+///     }
+/// );
+/// ```
 #[track_caller]
 pub fn button(
     mut modifier: impl Modify<ButtonConfig> + 'static,
@@ -36,7 +56,27 @@ pub fn button(
     )
 }
 
-/// Material You filled button
+/// Material You text button composable
+/// * `content`: The composable content to be displayed inside the button
+/// * `on_press`: Function called after the button is pressed
+///
+/// # Screenshots
+/// ![screenshots](https://developer.android.com/images/reference/androidx/compose/material3/text-button.png)
+///
+/// # Examples
+/// ```
+/// use concoct::Modifier;
+/// use concoct::composable::text;
+/// use concoct::composable::material::text_button;
+///
+/// text_button(
+///     Modifier,
+///     || text(Modifier, "Press me!"),
+///     || {
+///         dbg!("Pressed!");
+///     }
+/// );
+/// ```
 #[track_caller]
 pub fn text_button(
     modifier: impl Modify<ButtonConfig> + 'static,

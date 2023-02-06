@@ -16,6 +16,7 @@ thread_local! {
     };
 }
 
+/// Material You icon composable
 #[track_caller]
 pub fn icon(
     modifier: impl Modify<TextConfig> + 'static,
