@@ -143,7 +143,7 @@ impl<T: AsMut<Style>> Modify<T> for Gap {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub struct Padding {
     rect: Rect<Dimension>,
 }

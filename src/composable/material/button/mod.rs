@@ -1,4 +1,5 @@
 use crate::composable::container::{container, ContainerModifier};
+use crate::composable::{interaction_source, remember, state};
 use crate::modify::{HandlerModifier, ModifyExt};
 use crate::{Modifier, Modify};
 use accesskit::Role;
@@ -44,13 +45,22 @@ pub fn button(
         config.colors.disabled
     };
 
+    let interaction_source = ();
+    /*
+    remember([], || {
+        interaction_source.on_item(|interaction| {
+            dbg!(interaction);
+        });
+    });
+    */
+
     container(
         Modifier
             .align_items(AlignItems::Center)
             .justify_content(JustifyContent::Center)
             .merge_descendants()
             .background_color(color)
-            .clickable(Role::Button, on_press)
+            .clickable_interaction(Role::Button, on_press, interaction_source)
             .padding(config.padding)
             .size(config.size),
         content,

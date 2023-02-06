@@ -1,12 +1,20 @@
 use super::{Chain, ModifyExt};
-use crate::{semantics::Handler, Modify, Semantics};
+use crate::{
+    composable::{interaction_source::InteractionSource, state::State},
+    semantics::Handler,
+    Modify, Semantics,
+};
 use accesskit::{NodeId, Role};
 
 pub mod clickable;
 use clickable::ClickHandler;
+use tokio::sync::broadcast;
 
 pub mod keyboard_input;
-use self::keyboard_input::{KeyboardHandler, KeyboardInputHandler};
+use self::{
+    clickable::ClickInteration,
+    keyboard_input::{KeyboardHandler, KeyboardInputHandler},
+};
 
 pub trait HandlerModifier<T>: Modify<T> {
     fn handler<H>(self, handler: H) -> Chain<T, Self, ModifierHandler<H>>
@@ -23,13 +31,29 @@ pub trait HandlerModifier<T>: Modify<T> {
         self,
         role: Role,
         on_click: F,
-    ) -> Chain<T, Chain<T, Self, Role>, ModifierHandler<ClickHandler<F>>>
+    ) -> Chain<T, Chain<T, Self, Role>, ModifierHandler<ClickHandler<(), F>>>
     where
         Self: Sized,
         T: AsMut<Role>,
         F: FnMut() + 'static,
     {
-        self.chain(role).handler(ClickHandler { on_click })
+        self.chain(role).handler(ClickHandler::new((), on_click))
+    }
+
+    fn clickable_interaction<F, I>(
+        self,
+        role: Role,
+        on_click: F,
+        interaction_source: I,
+    ) -> Chain<T, Chain<T, Self, Role>, ModifierHandler<ClickHandler<I, F>>>
+    where
+        Self: Sized,
+        T: AsMut<Role>,
+        F: FnMut() + 'static,
+        I: InteractionSource<ClickInteration> + 'static,
+    {
+        self.chain(role)
+            .handler(ClickHandler::new(interaction_source, on_click))
     }
 
     fn keyboard_handler<H>(
