@@ -16,54 +16,60 @@ pub struct ContainerConfig {
 }
 
 pub trait ContainerModifier: Modify<ContainerConfig> + Sized {
-    fn merge_descendants(self) -> Chain<Self, MergeDescendants> {
+    fn merge_descendants(self) -> Chain<ContainerConfig, Self, MergeDescendants> {
         self.chain(MergeDescendants)
     }
 
-    fn align_items(self, align_items: AlignItems) -> Chain<Self, AlignItems> {
+    fn align_items(self, align_items: AlignItems) -> Chain<ContainerConfig, Self, AlignItems> {
         self.chain(align_items)
     }
 
-    fn flex_basis(self, dimension: Dimension) -> Chain<Self, FlexBasis> {
+    fn flex_basis(self, dimension: Dimension) -> Chain<ContainerConfig, Self, FlexBasis> {
         self.chain(FlexBasis { dimension })
     }
 
-    fn flex_direction(self, flex_direction: FlexDirection) -> Chain<Self, FlexDirection> {
+    fn flex_direction(
+        self,
+        flex_direction: FlexDirection,
+    ) -> Chain<ContainerConfig, Self, FlexDirection> {
         self.chain(flex_direction)
     }
 
-    fn flex_grow(self, value: f32) -> Chain<Self, FlexGrow> {
+    fn flex_grow(self, value: f32) -> Chain<ContainerConfig, Self, FlexGrow> {
         self.chain(FlexGrow { value })
     }
 
-    fn flex_shrink(self, value: f32) -> Chain<Self, FlexShrink> {
+    fn flex_shrink(self, value: f32) -> Chain<ContainerConfig, Self, FlexShrink> {
         self.chain(FlexShrink { value })
     }
 
-    fn gap(self, gap: Gap) -> Chain<Self, Gap> {
+    fn gap(self, gap: Gap) -> Chain<ContainerConfig, Self, Gap> {
         self.chain(gap)
     }
 
-    fn justify_content(self, justify_content: JustifyContent) -> Chain<Self, JustifyContent> {
+    fn justify_content(
+        self,
+        justify_content: JustifyContent,
+    ) -> Chain<ContainerConfig, Self, JustifyContent> {
         self.chain(justify_content)
     }
 
-    fn keyboard_handler<H>(self, handler: H) -> Chain<Self, KeyboardInput<H>>
+    fn keyboard_handler<H>(self, handler: H) -> Chain<ContainerConfig, Self, KeyboardInput<H>>
     where
         H: KeyboardHandler + 'static,
     {
         self.chain(KeyboardInput::new(handler))
     }
 
-    fn margin(self, rect: Rect<Dimension>) -> Chain<Self, Margin> {
+    fn margin(self, rect: Rect<Dimension>) -> Chain<ContainerConfig, Self, Margin> {
         self.chain(Margin { rect })
     }
 
-    fn padding(self, padding: Padding) -> Chain<Self, Padding> {
+    fn padding(self, padding: Padding) -> Chain<ContainerConfig, Self, Padding> {
         self.chain(padding)
     }
 
-    fn role(self, role: Role) -> Chain<Self, Role> {
+    fn role(self, role: Role) -> Chain<ContainerConfig, Self, Role> {
         self.chain(role)
     }
 }
@@ -123,7 +129,6 @@ impl<T: AsMut<Style>> Modify<T> for FlexDirection {
         value.as_mut().flex_direction = *self;
     }
 }
-
 
 #[derive(Default)]
 pub struct Gap {

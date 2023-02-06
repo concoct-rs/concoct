@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::{Event, Semantics};
 use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
@@ -17,7 +19,6 @@ pub use text::TextModifier;
 mod modifier;
 pub use modifier::Modifier;
 
-
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
 
@@ -32,12 +33,13 @@ impl<T> Modify<T> for () {
     fn modify(&mut self, _value: &mut T) {}
 }
 
-pub struct Chain<A, B> {
+pub struct Chain<T, A: Modify<T>, B: Modify<T>> {
     a: A,
     b: B,
+    _marker: PhantomData<T>,
 }
 
-impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<A, B> {
+impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<T, A, B> {
     fn modify(&mut self, value: &mut T) {
         self.a.modify(value);
         self.b.modify(value);
@@ -60,7 +62,7 @@ impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<A, B> {
 }
 
 pub trait ModifyExt<T>: Modify<T> {
-    fn background_color(self, color: impl Into<Color4f>) -> Chain<Self, BackgroundColor>
+    fn background_color(self, color: impl Into<Color4f>) -> Chain<T, Self, BackgroundColor>
     where
         Self: Sized,
     {
@@ -69,14 +71,19 @@ pub trait ModifyExt<T>: Modify<T> {
         })
     }
 
-    fn chain<B: Modify<T>>(self, modify: B) -> Chain<Self, B>
+    fn chain<B>(self, modify: B) -> Chain<T, Self, B>
     where
         Self: Sized,
+        B: Modify<T>,
     {
-        Chain { a: self, b: modify }
+        Chain {
+            a: self,
+            b: modify,
+            _marker: PhantomData,
+        }
     }
 
-    fn clickable<F>(self, on_click: F) -> Chain<Self, Clickable<F>>
+    fn clickable<F>(self, on_click: F) -> Chain<T, Self, Clickable<F>>
     where
         Self: Sized,
         F: FnMut() + 'static,
@@ -84,7 +91,7 @@ pub trait ModifyExt<T>: Modify<T> {
         self.chain(Clickable { f: Some(on_click) })
     }
 
-    fn size(self, size: Size<Dimension>) -> Chain<Self, Size<Dimension>>
+    fn size(self, size: Size<Dimension>) -> Chain<T, Self, Size<Dimension>>
     where
         Self: Sized,
         T: AsMut<Size<Dimension>>,

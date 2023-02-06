@@ -65,11 +65,11 @@ pub fn button(
 }
 
 pub trait ButtonModifier: Modify<ButtonConfig> + Sized {
-    fn is_enabled(self, is_enabled: bool) -> Chain<Self, IsEnabled> {
+    fn is_enabled(self, is_enabled: bool) -> Chain<ButtonConfig, Self, IsEnabled> {
         self.chain(IsEnabled(is_enabled))
     }
 
-    fn colors(self, button_colors: ButtonColors) -> Chain<Self, ButtonColors> {
+    fn colors(self, button_colors: ButtonColors) -> Chain<ButtonConfig, Self, ButtonColors> {
         self.chain(button_colors)
     }
 }

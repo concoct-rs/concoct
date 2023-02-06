@@ -2,12 +2,15 @@ use concoct::{
     composable::{column, material::button, row, state, text},
     modify::{
         container::{ContainerModifier, Gap},
-        TextModifier,
+        ModifyExt, TextModifier,
     },
     render::run,
     DevicePixels, Modifier,
 };
-use taffy::style::{AlignItems, Dimension, JustifyContent};
+use taffy::{
+    prelude::Size,
+    style::{AlignItems, Dimension, JustifyContent},
+};
 
 fn app() {
     column(
@@ -15,7 +18,8 @@ fn app() {
             .align_items(AlignItems::Center)
             .justify_content(JustifyContent::Center)
             .flex_grow(1.)
-            .gap(Gap::default().height(Dimension::Points(20.dp()))),
+            .gap(Gap::default().height(Dimension::Points(20.dp())))
+            .size(Size::default()),
         || {
             let count = state(|| 0);
 
