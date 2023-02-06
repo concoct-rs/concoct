@@ -2,10 +2,12 @@ use crate::{composable::container::ContainerWidget, Semantics, Widget};
 use skia_safe::{Canvas, Point};
 use slotmap::{new_key_type, SlotMap};
 use std::{
+    any::{Any, TypeId},
     cell::RefCell,
     collections::{HashMap, HashSet},
     fmt, mem,
     panic::Location,
+    rc::Rc,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -62,6 +64,7 @@ pub struct Composer {
     pub states: SlotMap<StateKey, Id>,
     pub changed: HashSet<(StateKey, Id)>,
     pub scale_factor: f32,
+    pub contexts: HashMap<TypeId, Rc<dyn Any>>,
 }
 
 impl Composer {

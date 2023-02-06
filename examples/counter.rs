@@ -2,9 +2,9 @@ use concoct::{
     composable::{
         column,
         container::{modifier::Gap, ContainerModifier},
-        material::button,
+        material::{button, text},
         row, state,
-        text::{text, TextModifier},
+        text::TextModifier,
     },
     modify::ModifyExt,
     render::run,

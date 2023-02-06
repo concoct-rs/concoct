@@ -1,14 +1,11 @@
 use super::{Chain, ModifyExt};
 use crate::{
-    composable::{interaction_source::InteractionSource},
-    semantics::Handler,
-    Modify, Semantics,
+    composable::interaction_source::InteractionSource, semantics::Handler, Modify, Semantics,
 };
 use accesskit::{NodeId, Role};
 
 pub mod clickable;
 use clickable::ClickHandler;
-
 
 pub mod keyboard_input;
 use self::{

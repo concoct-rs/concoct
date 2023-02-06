@@ -1,7 +1,8 @@
+use super::text::{provide_text_style, TextStyle};
 use crate::composable::container::{container, ContainerModifier};
 use crate::composable::{interaction_source, remember};
 use crate::modify::{HandlerModifier, ModifyExt};
-use crate::{Modifier, Modify};
+use crate::{DevicePixels, Modifier, Modify};
 use accesskit::Role;
 use skia_safe::Color4f;
 use taffy::style::{AlignItems, JustifyContent};
@@ -33,8 +34,8 @@ pub use modifier::{ButtonColors, ButtonConfig, ButtonModifier};
 #[track_caller]
 pub fn button(
     mut modifier: impl Modify<ButtonConfig>,
-    content: impl FnMut() + 'static,
-    on_press: impl FnMut() + 'static,
+    content: impl FnMut() + Clone + 'static,
+    on_press: impl FnMut() + Clone + 'static,
 ) {
     let mut config = ButtonConfig::default();
     modifier.modify(&mut config);
@@ -56,17 +57,22 @@ pub fn button(
         })
     })();
 
-    container(
-        Modifier
-            .align_items(AlignItems::Center)
-            .justify_content(JustifyContent::Center)
-            .merge_descendants()
-            .background_color(color)
-            .clickable_interaction(Role::Button, on_press, interaction_source)
-            .padding(config.padding)
-            .size(config.size),
-        content,
-    )
+    let mut text_style = TextStyle::default();
+    text_style.font_size = 18.dp();
+
+    provide_text_style(text_style, move || {
+        container(
+            Modifier
+                .align_items(AlignItems::Center)
+                .justify_content(JustifyContent::Center)
+                .merge_descendants()
+                .background_color(color)
+                .clickable_interaction(Role::Button, on_press.clone(), interaction_source)
+                .padding(config.padding)
+                .size(config.size),
+            content.clone(),
+        )
+    })
 }
 
 /// Material You text button composable
@@ -93,8 +99,8 @@ pub fn button(
 #[track_caller]
 pub fn text_button(
     modifier: impl Modify<ButtonConfig>,
-    content: impl FnMut() + 'static,
-    on_press: impl FnMut() + 'static,
+    content: impl FnMut() + Clone + 'static,
+    on_press: impl FnMut() + Clone + 'static,
 ) {
     button(
         Modifier
