@@ -3,12 +3,10 @@ use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
 use std::marker::PhantomData;
 use taffy::{
-    prelude::{Layout, Rect, Size},
-    style::{Dimension, Style},
+    prelude::{Layout, Size},
+    style::Dimension,
 };
 use winit::event::{ElementState, TouchPhase};
-
-pub mod container;
 
 pub mod keyboard_input;
 
@@ -17,6 +15,8 @@ pub use text::TextModifier;
 
 mod modifier;
 pub use modifier::Modifier;
+
+use self::keyboard_input::{KeyboardHandler, KeyboardInput};
 
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
@@ -88,6 +88,14 @@ pub trait ModifyExt<T>: Modify<T> {
         F: FnMut() + 'static,
     {
         self.chain(Clickable { f: Some(on_click) })
+    }
+
+    fn keyboard_handler<H>(self, handler: H) -> Chain<T, Self, KeyboardInput<H>>
+    where
+        Self: Sized,
+        H: KeyboardHandler + 'static,
+    {
+        self.chain(KeyboardInput::new(handler))
     }
 
     fn size(self, size: Size<Dimension>) -> Chain<T, Self, Size<Dimension>>
@@ -180,59 +188,5 @@ impl<T> Modify<T> for BackgroundColor {
             ),
             &Paint::new(self.color, None),
         );
-    }
-}
-
-pub struct FlexGrow {
-    value: f32,
-}
-
-impl<T: AsMut<Style>> Modify<T> for FlexGrow {
-    fn modify(&mut self, value: &mut T) {
-        value.as_mut().flex_grow = self.value;
-    }
-}
-
-pub struct FlexShrink {
-    value: f32,
-}
-
-impl<T: AsMut<Style>> Modify<T> for FlexShrink {
-    fn modify(&mut self, value: &mut T) {
-        value.as_mut().flex_shrink = self.value;
-    }
-}
-
-pub struct FlexBasis {
-    dimension: Dimension,
-}
-
-impl<T: AsMut<Style>> Modify<T> for FlexBasis {
-    fn modify(&mut self, value: &mut T) {
-        value.as_mut().flex_basis = self.dimension;
-    }
-}
-
-pub struct Margin {
-    rect: Rect<Dimension>,
-}
-
-impl<T: AsMut<Style>> Modify<T> for Margin {
-    fn modify(&mut self, value: &mut T) {
-        value.as_mut().margin = self.rect;
-    }
-}
-
-impl<T: AsMut<Size<Dimension>>> Modify<T> for Size<Dimension> {
-    fn modify(&mut self, value: &mut T) {
-        let size = value.as_mut();
-
-        if self.width != Dimension::Undefined {
-            size.width = self.width;
-        }
-
-        if self.height != Dimension::Undefined {
-            size.height = self.height;
-        }
     }
 }

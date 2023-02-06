@@ -1,8 +1,5 @@
-use super::{
-    keyboard_input::{KeyboardHandler, KeyboardInput},
-    Chain, FlexBasis, FlexGrow, FlexShrink, Margin, ModifyExt,
-};
-use crate::Modify;
+use super::ModifyExt;
+use crate::{modify::Chain, Modify};
 use accesskit::Role;
 use taffy::{
     prelude::{Rect, Size},
@@ -52,13 +49,6 @@ pub trait ContainerModifier: Modify<ContainerConfig> + Sized {
         justify_content: JustifyContent,
     ) -> Chain<ContainerConfig, Self, JustifyContent> {
         self.chain(justify_content)
-    }
-
-    fn keyboard_handler<H>(self, handler: H) -> Chain<ContainerConfig, Self, KeyboardInput<H>>
-    where
-        H: KeyboardHandler + 'static,
-    {
-        self.chain(KeyboardInput::new(handler))
     }
 
     fn margin(self, rect: Rect<Dimension>) -> Chain<ContainerConfig, Self, Margin> {
@@ -197,5 +187,59 @@ impl From<Dimension> for Padding {
 impl<T: AsMut<Style>> Modify<T> for Padding {
     fn modify(&mut self, value: &mut T) {
         value.as_mut().padding = self.rect;
+    }
+}
+
+pub struct FlexGrow {
+    value: f32,
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexGrow {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_grow = self.value;
+    }
+}
+
+pub struct FlexShrink {
+    value: f32,
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexShrink {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_shrink = self.value;
+    }
+}
+
+pub struct FlexBasis {
+    dimension: Dimension,
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexBasis {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_basis = self.dimension;
+    }
+}
+
+pub struct Margin {
+    rect: Rect<Dimension>,
+}
+
+impl<T: AsMut<Style>> Modify<T> for Margin {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().margin = self.rect;
+    }
+}
+
+impl<T: AsMut<Size<Dimension>>> Modify<T> for Size<Dimension> {
+    fn modify(&mut self, value: &mut T) {
+        let size = value.as_mut();
+
+        if self.width != Dimension::Undefined {
+            size.width = self.width;
+        }
+
+        if self.height != Dimension::Undefined {
+            size.height = self.height;
+        }
     }
 }

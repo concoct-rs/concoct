@@ -1,9 +1,11 @@
 use concoct::{
-    composable::{column, material::button, row, state, text},
-    modify::{
-        container::{ContainerModifier, Gap},
-        ModifyExt, TextModifier,
+    composable::{
+        column,
+        container::{modifier::Gap, ContainerModifier},
+        material::button,
+        row, state, text,
     },
+    modify::{ModifyExt, TextModifier},
     render::run,
     DevicePixels, Modifier,
 };

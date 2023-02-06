@@ -1,9 +1,6 @@
 use crate::{
     composer::{Composer, Id, WidgetNode},
-    modify::{
-        container::{ContainerConfig, ContainerModifier},
-        ModifyExt,
-    },
+    modify::ModifyExt,
     semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
 };
@@ -11,6 +8,10 @@ use accesskit::{kurbo::Rect, Node, NodeId, Role};
 use skia_safe::Canvas;
 use std::{any, panic::Location};
 use taffy::style::FlexDirection;
+
+pub mod modifier;
+use self::modifier::ContainerConfig;
+pub use modifier::ContainerModifier;
 
 #[track_caller]
 pub fn row(modifier: impl Modify<ContainerConfig> + 'static, composable: impl FnMut() + 'static) {
