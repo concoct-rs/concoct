@@ -25,6 +25,16 @@ pub trait Modify<T> {
     fn paint(&mut self, _layout: &Layout, _canvas: &mut Canvas) {}
 
     fn remove(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
+
+    fn chain<B>(self, modify: B) -> Chain<Self, B>
+    where
+        Self: Sized,
+    {
+        Chain {
+            a: self,
+            b: modify,
+        }
+    }
 }
 
 impl<T> Modify<T> for () {
@@ -281,4 +291,3 @@ impl<T: AsMut<Style>> Modify<T> for Margin {
         value.as_mut().margin = self.rect;
     }
 }
-

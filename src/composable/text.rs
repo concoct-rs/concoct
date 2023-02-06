@@ -31,7 +31,7 @@ impl AsMut<Style> for TextConfig {
 
 #[track_caller]
 pub fn text(
-    mut modifier: Modifier<TextConfig, impl Modify<TextConfig> + 'static>,
+    mut modifier: impl Modify<TextConfig> + 'static,
     string: impl Into<String>,
 ) {
     let mut text_modifier = TextConfig {
@@ -39,7 +39,7 @@ pub fn text(
         style: Style::default(),
         font_size: 14.dp(),
     };
-    modifier.modify.modify(&mut text_modifier);
+    modifier.modify(&mut text_modifier);
 
     let location = Location::caller();
     Composer::with(|composer| {
@@ -55,7 +55,7 @@ pub fn text(
                 node_id: None,
                 layout_id: None,
                 paragraph: None,
-                modify: Box::new(modifier.modify),
+                modify: Box::new(modifier),
                 modifier: text_modifier,
             };
             cx.insert(id, widget, None);

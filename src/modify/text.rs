@@ -1,25 +1,23 @@
-use skia_safe::Typeface;
-
-use crate::{composable::text::TextConfig, Modifier, Modify};
-
 use super::Chain;
+use crate::{composable::text::TextConfig, Modify};
+use skia_safe::Typeface;
 
 pub trait TextModifier {
     type Modify;
 
-    fn font_size(self, value: f32) -> Modifier<TextConfig, Chain<Self::Modify, FontSize>>;
+    fn font_size(self, value: f32) -> Chain<Self::Modify, FontSize>;
 
-    fn typeface(self, typeface: Typeface) -> Modifier<TextConfig, Chain<Self::Modify, Typeface>>;
+    fn typeface(self, typeface: Typeface) -> Chain<Self::Modify, Typeface>;
 }
 
-impl<M> TextModifier for Modifier<TextConfig, M> {
+impl<M: Modify<TextConfig>> TextModifier for M {
     type Modify = M;
 
-    fn font_size(self, value: f32) -> Modifier<TextConfig, Chain<Self::Modify, FontSize>> {
+    fn font_size(self, value: f32) -> Chain<Self::Modify, FontSize> {
         self.chain(FontSize { value })
     }
 
-    fn typeface(self, typeface: Typeface) -> Modifier<TextConfig, Chain<Self::Modify, Typeface>> {
+    fn typeface(self, typeface: Typeface) -> Chain<Self::Modify, Typeface> {
         self.chain(typeface)
     }
 }
