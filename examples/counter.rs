@@ -27,9 +27,17 @@ fn app() {
             row(
                 Modifier.gap(Gap::default().width(Dimension::Points(20.dp()))),
                 move || {
-                    button(Modifier, "More", move || *count.get().as_mut() += 1);
+                    button(
+                        Modifier,
+                        || text(Modifier, "More"),
+                        move || *count.get().as_mut() += 1,
+                    );
 
-                    button(Modifier, "Less", move || *count.get().as_mut() -= 1);
+                    button(
+                        Modifier,
+                        || text(Modifier, "Less"),
+                        move || *count.get().as_mut() -= 1,
+                    );
                 },
             )
         },

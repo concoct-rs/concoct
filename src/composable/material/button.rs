@@ -1,6 +1,5 @@
-use crate::composable::{container, text};
+use crate::composable::container;
 use crate::modify::container::{ContainerModifier, Padding};
-use crate::modify::text::TextModifier;
 use crate::modify::ModifyExt;
 use crate::{modify::container::ContainerConfig, DevicePixels, Modifier, Modify};
 use skia_safe::RGB;
@@ -12,10 +11,9 @@ use taffy::{
 #[track_caller]
 pub fn button(
     modifier: impl Modify<ContainerConfig> + 'static,
-    label: impl Into<String>,
+    content: impl FnMut() + 'static,
     mut on_press: impl FnMut() + 'static,
 ) {
-    let label = label.into();
     container(
         Modifier
             .align_items(AlignItems::Center)
@@ -29,6 +27,6 @@ pub fn button(
                 height: Dimension::Points(40.dp()),
             })
             .chain(modifier),
-        move || text(Modifier.font_size(18.dp()), label.clone()),
+        content,
     )
 }

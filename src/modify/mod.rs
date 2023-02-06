@@ -2,8 +2,8 @@ use crate::{Event, Semantics};
 use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
 use taffy::{
-    prelude::{Layout, Rect, Size},
-    style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},
+    prelude::{Layout, Rect},
+    style::{Dimension, Style},
 };
 use winit::event::{ElementState, TouchPhase};
 
