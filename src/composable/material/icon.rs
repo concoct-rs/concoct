@@ -2,7 +2,7 @@ pub use material_icons::Icon;
 
 use crate::{
     composable::text::{text, TextConfig},
-    modify::TextModifier,
+    modify::{ModifyExt, TextModifier},
     Modifier, Modify,
 };
 use material_icons::icon_to_char;

@@ -1,11 +1,8 @@
 use crate::composable::{container, text};
-use crate::modify::container::ContainerModifier;
+use crate::modify::container::{ContainerModifier, Padding};
 use crate::modify::text::TextModifier;
 use crate::modify::ModifyExt;
-use crate::{
-    modify::{container::ContainerConfig, Padding},
-    DevicePixels, Modifier, Modify,
-};
+use crate::{modify::container::ContainerConfig, DevicePixels, Modifier, Modify};
 use skia_safe::RGB;
 use taffy::{
     prelude::Size,

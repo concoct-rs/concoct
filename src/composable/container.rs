@@ -1,6 +1,9 @@
 use crate::{
     composer::{Composer, Id, WidgetNode},
-    modify::container::{ContainerConfig, ContainerModifier},
+    modify::{
+        container::{ContainerConfig, ContainerModifier},
+        ModifyExt,
+    },
     semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
 };

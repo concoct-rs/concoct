@@ -1,6 +1,6 @@
 use super::{
     keyboard_input::{KeyboardHandler, KeyboardInput},
-    Chain, FlexBasis, FlexGrow, FlexShrink, Gap, Margin, Padding,
+    Chain, FlexBasis, FlexGrow, FlexShrink, Margin, ModifyExt,
 };
 use crate::Modify;
 use accesskit::Role;
@@ -101,5 +101,107 @@ pub struct MergeDescendants;
 impl Modify<ContainerConfig> for MergeDescendants {
     fn modify(&mut self, value: &mut ContainerConfig) {
         value.merge_descendants = true;
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for AlignItems {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().align_items = *self;
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for JustifyContent {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().justify_content = *self;
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for FlexDirection {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().flex_direction = *self;
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for Size<Dimension> {
+    fn modify(&mut self, value: &mut T) {
+        let size = &mut value.as_mut().size;
+
+        if self.width != Dimension::Undefined {
+            size.width = self.width;
+        }
+
+        if self.height != Dimension::Undefined {
+            size.height = self.height;
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Gap {
+    size: Size<Dimension>,
+}
+
+impl Gap {
+    pub fn width(mut self, value: Dimension) -> Self {
+        self.size.width = value;
+        self
+    }
+
+    pub fn height(mut self, value: Dimension) -> Self {
+        self.size.height = value;
+        self
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for Gap {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().gap = self.size;
+    }
+}
+
+#[derive(Default)]
+pub struct Padding {
+    rect: Rect<Dimension>,
+}
+
+impl Padding {
+    pub fn left(mut self, value: Dimension) -> Self {
+        self.rect.left = value;
+        self
+    }
+
+    pub fn right(mut self, value: Dimension) -> Self {
+        self.rect.right = value;
+        self
+    }
+
+    pub fn horizontal(self, value: Dimension) -> Self {
+        self.left(value).right(value)
+    }
+
+    pub fn top(mut self, value: Dimension) -> Self {
+        self.rect.top = value;
+        self
+    }
+
+    pub fn bottom(mut self, value: Dimension) -> Self {
+        self.rect.bottom = value;
+        self
+    }
+
+    pub fn vertical(self, value: Dimension) -> Self {
+        self.top(value).bottom(value)
+    }
+}
+
+impl From<Dimension> for Padding {
+    fn from(value: Dimension) -> Self {
+        Self::default().horizontal(value).vertical(value)
+    }
+}
+
+impl<T: AsMut<Style>> Modify<T> for Padding {
+    fn modify(&mut self, value: &mut T) {
+        value.as_mut().padding = self.rect;
     }
 }

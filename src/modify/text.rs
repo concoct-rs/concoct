@@ -1,4 +1,4 @@
-use super::Chain;
+use super::{Chain, ModifyExt};
 use crate::{composable::text::TextConfig, Modify};
 use skia_safe::Typeface;
 
