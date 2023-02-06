@@ -1,6 +1,6 @@
 use crate::{composable::container::ContainerWidget, Semantics, Widget};
 use skia_safe::{Canvas, Point};
-use slotmap::{DefaultKey, SlotMap};
+use slotmap::{new_key_type, SlotMap};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -50,13 +50,17 @@ pub trait Visitor {
     fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>);
 }
 
+new_key_type! {
+    pub struct StateKey;
+}
+
 #[derive(Default)]
 pub struct Composer {
     pub widgets: HashMap<Id, WidgetNode>,
     pub children: Vec<Id>,
     pub current_group_id: Id,
-    pub states: SlotMap<DefaultKey, Id>,
-    pub changed: HashSet<(DefaultKey, Id)>,
+    pub states: SlotMap<StateKey, Id>,
+    pub changed: HashSet<(StateKey, Id)>,
     pub scale_factor: f32,
 }
 

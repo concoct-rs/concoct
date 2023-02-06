@@ -1,6 +1,9 @@
-use crate::{composer::Id, Composer, Semantics, Widget};
+use crate::{
+    composer::{Id, StateKey},
+    Composer, Semantics, Widget,
+};
 use skia_safe::Canvas;
-use slotmap::DefaultKey;
+
 use std::{
     any::Any,
     cell::{RefCell, RefMut},
@@ -8,17 +11,18 @@ use std::{
     panic::Location,
 };
 
-pub fn remember(keys: &[DefaultKey], composable: impl FnOnce()) {
+/// Remember a composable, only updating it when a state from `keys` is changed
+pub fn remember(keys: impl IntoIterator<Item = StateKey>, composable: impl FnOnce()) {
     let location = Location::caller();
     Composer::with(|composer| {
         let mut cx = composer.borrow_mut();
         let id = cx.id(location);
 
         if let Some(widget) = cx.get::<RememberWidget>(&id) {
-            let is_changed = keys.iter().any(|key| {
+            let is_changed = keys.into_iter().any(|key| {
                 cx.changed
                     .iter()
-                    .find(|(changed, _id)| changed == key)
+                    .find(|(changed, _id)| *changed == key)
                     .is_some()
             });
 

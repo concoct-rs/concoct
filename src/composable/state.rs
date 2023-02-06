@@ -1,5 +1,7 @@
-use crate::{composer::Id, Composer, Semantics, Widget};
-use slotmap::DefaultKey;
+use crate::{
+    composer::{Id, StateKey},
+    Composer, Semantics, Widget,
+};
 use std::{
     any::Any,
     cell::{Ref, RefCell, RefMut},
@@ -43,7 +45,7 @@ pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
 }
 
 pub struct State<T> {
-    pub key: DefaultKey,
+    pub key: StateKey,
     _marker: PhantomData<T>,
 }
 
@@ -76,7 +78,7 @@ impl<T: 'static> State<T> {
 }
 
 pub struct StateRef<T> {
-    key: DefaultKey,
+    key: StateKey,
     group_id: Id,
     rc: Rc<RefCell<T>>,
 }
@@ -109,7 +111,7 @@ impl<T> StateRef<T> {
 }
 
 pub struct StateWidget<T> {
-    key: DefaultKey,
+    key: StateKey,
     value: Rc<RefCell<T>>,
     group_id: Id,
 }
