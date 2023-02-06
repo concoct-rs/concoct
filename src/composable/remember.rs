@@ -3,7 +3,6 @@ use crate::{
     Composer, Semantics, Widget,
 };
 use skia_safe::Canvas;
-
 use std::{
     any::Any,
     cell::{RefCell, RefMut},
@@ -12,6 +11,7 @@ use std::{
 };
 
 /// Remember a composable, only updating it when a state from `keys` is changed
+#[track_caller]
 pub fn remember(keys: impl IntoIterator<Item = StateKey>, composable: impl FnOnce()) {
     let location = Location::caller();
     Composer::with(|composer| {
