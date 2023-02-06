@@ -17,6 +17,7 @@ pub use text::TextModifier;
 mod modifier;
 pub use modifier::Modifier;
 
+
 pub trait Modify<T> {
     fn modify(&mut self, value: &mut T);
 
