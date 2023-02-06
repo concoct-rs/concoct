@@ -9,6 +9,9 @@ pub use button::{button, text_button};
 pub mod icon;
 pub use icon::icon;
 
+pub mod radio_button;
+pub use radio_button::radio_button;
+
 pub mod text;
 pub use text::text;
 

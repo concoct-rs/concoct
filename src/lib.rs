@@ -22,8 +22,9 @@ pub mod semantics;
 pub use semantics::Semantics;
 
 mod tester;
-use skia_safe::Canvas;
+use skia_safe::{Canvas, Paint};
 
+use taffy::prelude::Layout;
 pub use tester::Tester;
 
 use winit::{
@@ -71,5 +72,20 @@ impl DevicePixels for f32 {
 impl DevicePixels for i32 {
     fn dp(self) -> f32 {
         (self as f32).dp()
+    }
+}
+
+pub trait CanvasExt {
+    fn circle(&mut self, layout: &Layout, paint: &Paint);
+}
+
+impl CanvasExt for Canvas {
+    fn circle(&mut self, layout: &Layout, paint: &Paint) {
+        let radius = layout.size.width.min(layout.size.height) / 2.;
+        self.draw_circle(
+            (layout.location.x + radius, layout.location.y + radius),
+            radius,
+            paint,
+        );
     }
 }

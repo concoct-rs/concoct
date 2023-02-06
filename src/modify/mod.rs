@@ -20,6 +20,32 @@ pub trait Modify<T> {
     fn remove(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 }
 
+impl<T, M: Modify<T>> Modify<T> for Option<M> {
+    fn modify(&mut self, value: &mut T) {
+        if let Some(modify) = self {
+            modify.modify(value)
+        }
+    }
+
+    fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
+        if let Some(modify) = self {
+            modify.semantics(node_id, semantics)
+        }
+    }
+
+    fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
+        if let Some(modify) = self {
+            modify.paint(layout, canvas)
+        } 
+    }
+
+    fn remove(&mut self, node_id: NodeId, semantics: &mut Semantics) {
+        if let Some(modify) = self {
+            modify.remove(node_id, semantics)
+        }
+    }
+}
+
 pub struct Modifier;
 
 impl<T> Modify<T> for Modifier {
