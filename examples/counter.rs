@@ -1,6 +1,6 @@
 use concoct::{
     composable::{column, material::button, row, state, text},
-    modify::Gap,
+    modify::{Gap, TextModifier},
     render::run,
     DevicePixels, Modifier,
 };

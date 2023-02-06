@@ -3,7 +3,7 @@ use crate::Modify;
 use super::{
     container::MergeDescendants,
     keyboard_input::{KeyboardHandler, KeyboardInput},
-    BackgroundColor, Chain, Clickable, FlexBasis, FlexGrow, FlexShrink, FontSize, Gap, Margin,
+    BackgroundColor, Chain, Clickable, FlexBasis, FlexGrow, FlexShrink, Gap, Margin,
     Padding,
 };
 use accesskit::Role;
@@ -79,9 +79,7 @@ impl<T, M> Modifier<T, M> {
         self.chain(FlexShrink { value })
     }
 
-    pub fn font_size(self, value: f32) -> Modifier<T, Chain<M, FontSize>> {
-        self.chain(FontSize { value })
-    }
+
 
     pub fn gap(self, gap: Gap) -> Modifier<T, Chain<M, Gap>> {
         self.chain(gap)
@@ -121,9 +119,7 @@ impl<T, M> Modifier<T, M> {
         self.chain(size)
     }
 
-    pub fn typeface(self, typeface: Typeface) -> Modifier<T, Chain<M, Typeface>> {
-        self.chain(typeface)
-    }
+  
 }
 
 impl<T, M: Modify<T>> Modify<T> for Modifier<T, M> {

@@ -1,4 +1,4 @@
-use crate::{composable::text::TextModifier, Event, Semantics};
+use crate::{composable::text::TextConfig, Event, Semantics};
 use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint, Typeface};
 use taffy::{
@@ -10,6 +10,9 @@ use winit::event::{ElementState, TouchPhase};
 pub mod container;
 
 pub mod keyboard_input;
+
+pub mod text;
+pub use text::TextModifier;
 
 mod modifier;
 pub use modifier::Modifier;
@@ -279,18 +282,3 @@ impl<T: AsMut<Style>> Modify<T> for Margin {
     }
 }
 
-impl Modify<TextModifier> for Typeface {
-    fn modify(&mut self, value: &mut TextModifier) {
-        value.typeface = self.clone();
-    }
-}
-
-pub struct FontSize {
-    value: f32,
-}
-
-impl Modify<TextModifier> for FontSize {
-    fn modify(&mut self, value: &mut TextModifier) {
-        value.font_size = self.value;
-    }
-}

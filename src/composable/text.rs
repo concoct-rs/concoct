@@ -17,13 +17,13 @@ use taffy::{
     style::Style,
 };
 
-pub struct TextModifier {
+pub struct TextConfig {
     pub typeface: Typeface,
     pub style: Style,
     pub font_size: f32,
 }
 
-impl AsMut<Style> for TextModifier {
+impl AsMut<Style> for TextConfig {
     fn as_mut(&mut self) -> &mut Style {
         &mut self.style
     }
@@ -31,10 +31,10 @@ impl AsMut<Style> for TextModifier {
 
 #[track_caller]
 pub fn text(
-    mut modifier: Modifier<TextModifier, impl Modify<TextModifier> + 'static>,
+    mut modifier: Modifier<TextConfig, impl Modify<TextConfig> + 'static>,
     string: impl Into<String>,
 ) {
-    let mut text_modifier = TextModifier {
+    let mut text_modifier = TextConfig {
         typeface: Typeface::new("serif", Default::default()).unwrap(),
         style: Style::default(),
         font_size: 14.dp(),
@@ -68,8 +68,8 @@ pub struct TextWidget {
     node_id: Option<NodeId>,
     layout_id: Option<LayoutNode>,
     paragraph: Option<Arc<Mutex<Paragraph>>>,
-    modify: Box<dyn Modify<TextModifier>>,
-    modifier: TextModifier,
+    modify: Box<dyn Modify<TextConfig>>,
+    modifier: TextConfig,
 }
 
 impl Widget for TextWidget {

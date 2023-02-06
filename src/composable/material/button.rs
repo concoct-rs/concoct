@@ -1,4 +1,5 @@
 use crate::composable::{container, text};
+use crate::modify::text::TextModifier;
 use crate::{
     modify::{container::ContainerModifier, Padding},
     DevicePixels, Modifier, Modify,

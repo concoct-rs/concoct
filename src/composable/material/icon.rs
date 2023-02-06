@@ -1,11 +1,12 @@
+pub use material_icons::Icon;
+
 use crate::{
-    composable::text::{text, TextModifier},
+    composable::text::{text, TextConfig},
+    modify::TextModifier,
     Modifier, Modify,
 };
-use skia_safe::{Data, Typeface};
-
 use material_icons::icon_to_char;
-pub use material_icons::Icon;
+use skia_safe::{Data, Typeface};
 
 thread_local! {
     pub static TYPEFACE: Typeface = {
@@ -17,7 +18,7 @@ thread_local! {
 
 #[track_caller]
 pub fn icon(
-    modifier: Modifier<TextModifier, impl Modify<TextModifier> + 'static>,
+    modifier: Modifier<TextConfig, impl Modify<TextConfig> + 'static>,
     icon: Icon,
     _content_description: impl Into<String>,
 ) {
