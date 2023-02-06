@@ -1,18 +1,14 @@
-use crate::composable::container;
-use crate::modify::container::{ContainerModifier, Padding};
+use crate::modify::container::Padding;
 use crate::modify::{Chain, ModifyExt};
-use crate::{DevicePixels, Modifier, Modify};
+use crate::{DevicePixels, Modify};
 use skia_safe::{Color4f, RGB};
-use taffy::{
-    prelude::Size,
-    style::{AlignItems, Dimension, JustifyContent},
-};
+use taffy::{prelude::Size, style::Dimension};
 
 pub struct ButtonConfig {
     pub is_enabled: bool,
     pub colors: ButtonColors,
-    padding: Padding,
-    size: Size<Dimension>,
+    pub padding: Padding,
+    pub size: Size<Dimension>,
 }
 
 impl Default for ButtonConfig {
@@ -35,35 +31,6 @@ impl AsMut<Size<Dimension>> for ButtonConfig {
     }
 }
 
-/// Material You filled button
-#[track_caller]
-pub fn button(
-    mut modifier: impl Modify<ButtonConfig> + 'static,
-    content: impl FnMut() + 'static,
-    on_press: impl FnMut() + 'static,
-) {
-    let mut config = ButtonConfig::default();
-    modifier.modify(&mut config);
-
-    let color = if config.is_enabled {
-        config.colors.enabled
-    } else {
-        config.colors.disabled
-    };
-
-    container(
-        Modifier
-            .align_items(AlignItems::Center)
-            .justify_content(JustifyContent::Center)
-            .merge_descendants()
-            .background_color(color)
-            .clickable(on_press)
-            .padding(config.padding)
-            .size(config.size),
-        content,
-    )
-}
-
 pub trait ButtonModifier: Modify<ButtonConfig> + Sized {
     fn is_enabled(self, is_enabled: bool) -> Chain<ButtonConfig, Self, IsEnabled> {
         self.chain(IsEnabled(is_enabled))
@@ -74,9 +41,7 @@ pub trait ButtonModifier: Modify<ButtonConfig> + Sized {
     }
 }
 
-impl<M: Modify<ButtonConfig>> ButtonModifier for M {
-
-}
+impl<M: Modify<ButtonConfig>> ButtonModifier for M {}
 
 pub struct IsEnabled(bool);
 
@@ -88,8 +53,8 @@ impl Modify<ButtonConfig> for IsEnabled {
 
 #[derive(Clone)]
 pub struct ButtonColors {
-    enabled: Color4f,
-    disabled: Color4f,
+    pub enabled: Color4f,
+    pub disabled: Color4f,
 }
 
 impl ButtonColors {

@@ -1,8 +1,7 @@
-use std::marker::PhantomData;
-
 use crate::{Event, Semantics};
 use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
+use std::marker::PhantomData;
 use taffy::{
     prelude::{Layout, Rect, Size},
     style::{Dimension, Style},
