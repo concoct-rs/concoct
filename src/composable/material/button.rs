@@ -9,8 +9,30 @@ use skia_safe::{Color4f, RGB};
 use taffy::prelude::Size;
 use taffy::style::{AlignItems, Dimension, JustifyContent};
 
-mod modifier;
-pub use modifier::{ButtonColors, ButtonConfig, ButtonModifier};
+#[derive(Clone)]
+pub struct ButtonColors {
+    pub enabled: Color4f,
+    pub disabled: Color4f,
+}
+
+impl ButtonColors {
+    pub fn new(enabled: impl Into<Color4f>, disabled: impl Into<Color4f>) -> Self {
+        Self {
+            enabled: enabled.into(),
+            disabled: disabled.into(),
+        }
+    }
+
+    pub fn from_color(color: impl Into<Color4f>) -> Self {
+        Self::from(color.into())
+    }
+}
+
+impl From<Color4f> for ButtonColors {
+    fn from(value: Color4f) -> Self {
+        Self::new(value, value)
+    }
+}
 
 /// Material You filled button composable
 /// * `content`: The composable content to be displayed inside the button
@@ -34,18 +56,18 @@ pub use modifier::{ButtonColors, ButtonConfig, ButtonModifier};
 /// );
 /// ```
 #[must_use = "Buttons must be viewed with `Button::view`"]
-pub struct Button<C, M, F> {
+pub struct Button<C, F, M> {
     pub content: C,
-    pub modifier: M,
     pub on_press: F,
+    pub modifier: M,
     pub is_enabled: bool,
     pub colors: ButtonColors,
     pub padding: Padding,
     pub size: Size<Dimension>,
 }
 
-impl<C, F> Button<C, Modifier, F> {
-    pub fn build(content: C, on_press: F) -> Self {
+impl<C, F> Button<C, F, Modifier> {
+    pub fn build(on_press: F, content: C) -> Self {
         Self {
             content,
             on_press,
@@ -61,20 +83,20 @@ impl<C, F> Button<C, Modifier, F> {
     }
 
     #[track_caller]
-    pub fn new(content: C, on_press: F)
+    pub fn new(on_press: F, content: C)
     where
         C: FnMut() + Clone + 'static,
         F: FnMut() + Clone + 'static,
     {
-        Self::build(content, on_press).view();
+        Self::build(on_press, content).view();
     }
 }
 
-impl<C, M, F> Button<C, M, F>
+impl<C, M, F> Button<C, F, M>
 where
-    C: FnMut() + Clone + 'static,
+    C: FnMut() + 'static,
+    F: FnMut() + 'static,
     M: Modify<ContainerConfig> + 'static,
-    F: FnMut() + Clone + 'static,
 {
     #[track_caller]
     pub fn view(self) {
@@ -98,20 +120,21 @@ where
         let mut text_style = TextStyle::default();
         text_style.font_size = 18.dp();
 
-        let mut modifier = Some(self.modifier);
-
+        let mut cell = Some(self);
         provide_text_style(text_style, move || {
+            let button = cell.take().unwrap();
+
             container(
                 Modifier
                     .align_items(AlignItems::Center)
                     .justify_content(JustifyContent::Center)
                     .merge_descendants()
                     .background_color(color)
-                    .clickable_interaction(Role::Button, self.on_press.clone(), interaction_source)
-                    .padding(self.padding)
-                    .size(self.size)
-                    .chain(modifier.take().unwrap()),
-                self.content.clone(),
+                    .clickable_interaction(Role::Button, button.on_press, interaction_source)
+                    .padding(button.padding)
+                    .size(button.size)
+                    .chain(button.modifier),
+                button.content,
             )
         })
     }

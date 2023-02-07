@@ -38,13 +38,13 @@ fn app() {
                 Modifier.gap(Gap::default().width(Dimension::Points(20.dp()))),
                 move || {
                     Button::new(
-                        || text(Modifier, "Less"),
                         move || *count.get().as_mut() -= 1,
+                        || text(Modifier, "Less"),
                     );
 
                     Button::new(
-                        || text(Modifier, "More"),
                         move || *count.get().as_mut() += 1,
+                        || text(Modifier, "More"),
                     );
                 },
             )
