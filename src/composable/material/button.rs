@@ -44,16 +44,15 @@ impl From<Color4f> for ButtonColors {
 /// # Examples
 /// ```
 /// use concoct::Modifier;
-/// use concoct::composable::text;
-/// use concoct::composable::material::button;
+/// use concoct::composable::Text;
+/// use concoct::composable::material::Button;
 ///
-/// button(
-///     Modifier,
-///     || text(Modifier, "Press me!"),
+/// Button::new(
 ///     || {
 ///         dbg!("Pressed!");
-///     }
-/// );
+///     },
+///     || Text::new( "Press me!"),
+/// )
 /// ```
 #[must_use = "Buttons must be viewed with `Button::view`"]
 pub struct Button<C, F, M> {

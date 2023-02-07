@@ -1,7 +1,7 @@
-use concoct::{composable::text, render::run, Modifier};
+use concoct::{composable::Text, render::run};
 
 fn app() {
-    text(Modifier, "Hello World!")
+    Text::new("Hello World!")
 }
 
 #[tokio::main]

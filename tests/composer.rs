@@ -1,5 +1,5 @@
 use concoct::{
-    composable::{container, state, text},
+    composable::{container, state, Text},
     Modifier, Tester,
 };
 
@@ -9,7 +9,7 @@ fn it_updates_state_and_recomposes() {
         container(Modifier, || {
             let count = state(|| 0);
 
-            text(Modifier, count.get().cloned().to_string());
+            Text::new(count.get().cloned().to_string());
 
             *count.get().as_mut() += 1;
         })
@@ -32,7 +32,7 @@ fn it_triggers_click_events_and_recomposes() {
                     .clickable(move || *count.get().as_mut() += 1)
                     .merge_descendants()
                     .role(Role::Button),
-                move || text(Modifier, count.get().cloned().to_string()),
+                move || Text::new( count.get().cloned().to_string()),
             )
         })
     });
@@ -50,7 +50,7 @@ fn it_removes_unused_widgets() {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
-                text(Modifier, "toggle");
+                Text::new("toggle");
             }
 
             *is_shown.get().as_mut() = false;
@@ -69,7 +69,7 @@ fn it_removes_nested_unused_widgets() {
 
             if is_shown.get().cloned() {
                 container(Modifier, || {
-                    text(Modifier, "toggle");
+                    Text::new("toggle");
                 })
             }
 
@@ -88,7 +88,7 @@ fn it_inserts_new_widgets() {
             let is_shown = state(|| false);
 
             if is_shown.get().cloned() {
-                text(Modifier, "A");
+                Text::new("A");
             }
 
             *is_shown.get().as_mut() = true;
@@ -106,9 +106,9 @@ fn it_replaces_widgets() {
             let is_a_shown = state(|| true);
 
             if is_a_shown.get().cloned() {
-                text(Modifier, "A");
+                Text::new("A");
             } else {
-                text(Modifier, "B");
+                Text::new("B");
             }
 
             *is_a_shown.get().as_mut() = false;
@@ -123,14 +123,14 @@ fn it_replaces_widgets() {
 fn it_nests_containers() {
     let tester = Tester::new(|| {
         container(Modifier, || {
-            text(Modifier, "A");
+            Text::new("A");
 
             container(Modifier, || {
-                text(Modifier, "B");
-                text(Modifier, "C");
+                Text::new("B");
+                Text::new("C");
             });
 
-            text(Modifier, "D");
+            Text::new("D");
         })
     });
 

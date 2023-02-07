@@ -1,14 +1,6 @@
-use crate::{
-    composable::{
-        context,
-        text::{TextConfig, TextModifier},
-    },
-    modify::ModifyExt,
-    DevicePixels, Modifier, Modify,
-};
-use context::provide_context;
-
 use super::local_content_color;
+use crate::{composable::context, DevicePixels, Modify};
+use context::provide_context;
 
 pub struct TextStyle {
     pub font_size: f32,
@@ -32,16 +24,15 @@ pub fn provide_text_style(text_style: TextStyle, composable: impl FnMut() + 'sta
     provide_context(text_style, composable);
 }
 
+pub struct Text {}
+
 #[track_caller]
-pub fn text(modifier: impl Modify<TextConfig> + 'static, string: impl Into<String>) {
+pub fn text(modifier: impl Modify<()> + 'static, string: impl Into<String>) {
     let style = context::<TextStyle>().unwrap_or_default();
     let color = local_content_color();
 
-    crate::composable::text(
-        Modifier
-            .color(color)
-            .font_size(style.font_size)
-            .chain(modifier),
-        string,
-    )
+    crate::composable::Text::build(string)
+        .color(color)
+        .font_size(style.font_size)
+        .modifier(modifier);
 }

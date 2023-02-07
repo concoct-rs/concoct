@@ -2,12 +2,8 @@ use concoct::{
     composable::{
         column,
         container::{modifier::Gap, ContainerModifier},
-        material::{
-            button::{self, Button},
-            text,
-        },
-        row, state,
-        text::TextModifier,
+        material::button::Button,
+        row, state, Text,
     },
     modify::ModifyExt,
     render::run,
@@ -29,23 +25,14 @@ fn app() {
         || {
             let count = state(|| 0);
 
-            text(
-                Modifier.font_size(80.dp()),
-                count.get().cloned().to_string(),
-            );
+            Text::build(count.get().cloned().to_string()).font_size(80.dp());
 
             row(
                 Modifier.gap(Gap::default().width(Dimension::Points(20.dp()))),
                 move || {
-                    Button::new(
-                        move || *count.get().as_mut() -= 1,
-                        || text(Modifier, "Less"),
-                    );
+                    Button::new(move || *count.get().as_mut() -= 1, || Text::new("Less"));
 
-                    Button::new(
-                        move || *count.get().as_mut() += 1,
-                        || text(Modifier, "More"),
-                    );
+                    Button::new(move || *count.get().as_mut() += 1, || Text::new("More"));
                 },
             )
         },

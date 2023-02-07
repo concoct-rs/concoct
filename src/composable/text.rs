@@ -1,4 +1,5 @@
-use crate::{semantics::LayoutNode, DevicePixels, Modify, Semantics, Widget};
+use super::widget;
+use crate::{semantics::LayoutNode, DevicePixels, Modifier, Modify, Semantics, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
@@ -14,61 +15,91 @@ use taffy::{
     style::Style,
 };
 
-use super::widget;
-
-pub mod modifier;
-pub use modifier::TextModifier;
-
-pub struct TextConfig {
+pub struct Text<M> {
+    pub modifier: M,
+    pub string: String,
     pub color: Color4f,
     pub typeface: Typeface,
     pub style: Style,
     pub font_size: f32,
 }
 
-impl AsMut<Style> for TextConfig {
-    fn as_mut(&mut self) -> &mut Style {
-        &mut self.style
+impl Text<Modifier> {
+    pub fn build(string: impl Into<String>) -> Self {
+        Self {
+            modifier: Modifier,
+            string: string.into(),
+            color: Color4f::new(0., 0., 0., 1.),
+            typeface: Typeface::new("serif", Default::default()).unwrap(),
+            style: Style::default(),
+            font_size: 14.dp(),
+        }
+    }
+
+    pub fn new(string: impl Into<String>) {
+        Self::build(string).view()
     }
 }
 
-#[track_caller]
-pub fn text(mut modifier: impl Modify<TextConfig> + 'static, string: impl Into<String>) {
-    let mut text_modifier = TextConfig {
-        color: Color4f::new(0., 0., 0., 1.),
-        typeface: Typeface::new("serif", Default::default()).unwrap(),
-        style: Style::default(),
-        font_size: 14.dp(),
-    };
-    modifier.modify(&mut text_modifier);
+impl<M> Text<M>
+where
+    M: Modify<()> + 'static,
+{
+    pub fn color(mut self, color: impl Into<Color4f>) -> Self {
+        self.color = color.into();
+        self
+    }
 
-    widget(
-        string.into(),
-        |text| TextWidget {
-            text: text,
-            node_id: None,
-            layout_id: None,
-            paragraph: None,
-            modify: Box::new(modifier),
-            modifier: text_modifier,
-        },
-        |text, node| {
-            let widget: &mut TextWidget = node.as_mut();
-            widget.text = text;
-        },
-    )
+    pub fn font_size(mut self, font_size: f32) -> Self {
+        self.font_size = font_size;
+        self
+    }
+
+    pub fn typeface(mut self, typeface: Typeface) -> Self {
+        self.typeface = typeface;
+        self
+    }
+
+    pub fn modifier<M2>(self, modifier: M2) -> Text<M2> {
+        Text {
+            modifier,
+            string: self.string,
+            color: self.color,
+            typeface: self.typeface,
+            style: self.style,
+            font_size: self.font_size,
+        }
+    }
+
+    #[track_caller]
+    pub fn view(self) {
+        widget(
+            self,
+            |text| TextWidget {
+                text: text,
+                node_id: None,
+                layout_id: None,
+                paragraph: None,
+            },
+            |text, node| {
+                let widget: &mut TextWidget<M> = node.as_mut();
+                widget.text = text;
+            },
+        )
+    }
 }
 
-pub struct TextWidget {
-    text: String,
+pub struct TextWidget<M> {
+    text: Text<M>,
     node_id: Option<NodeId>,
     layout_id: Option<LayoutNode>,
     paragraph: Option<Arc<Mutex<Paragraph>>>,
-    modify: Box<dyn Modify<TextConfig>>,
-    modifier: TextConfig,
 }
 
-impl Widget for TextWidget {
+impl<M> Widget for TextWidget<M>
+where
+    M: Modify<()> + 'static,
+{
     fn layout(&mut self, semantics: &mut Semantics) {
         let font_mgr = FontMgr::new();
         let mut font_collection = FontCollection::new();
@@ -79,11 +110,11 @@ impl Widget for TextWidget {
 
         let mut text_style = TextStyle::new();
         text_style.set_color(RGB::from((0, 0, 0)));
-        text_style.set_font_size(self.modifier.font_size);
-        text_style.set_typeface(self.modifier.typeface.clone());
+        text_style.set_font_size(self.text.font_size);
+        text_style.set_typeface(self.text.typeface.clone());
         paragraph_builder.push_style(&text_style);
 
-        paragraph_builder.add_text(&self.text);
+        paragraph_builder.add_text(&self.text.string);
         paragraph_builder.pop();
 
         let paragraph = Arc::new(Mutex::new(paragraph_builder.build()));
@@ -106,7 +137,7 @@ impl Widget for TextWidget {
         if let Some(layout_id) = self.layout_id {
             semantics
                 .taffy
-                .set_style(layout_id, self.modifier.style)
+                .set_style(layout_id, self.text.style)
                 .unwrap();
             semantics
                 .taffy
@@ -119,7 +150,7 @@ impl Widget for TextWidget {
                 .unwrap()
                 .push(layout_id);
         } else {
-            let layout_id = semantics.insert_layout_with_measure(self.modifier.style, measure);
+            let layout_id = semantics.insert_layout_with_measure(self.text.style, measure);
             self.layout_id = Some(layout_id);
         }
     }
@@ -127,7 +158,7 @@ impl Widget for TextWidget {
     fn semantics(&mut self, semantics: &mut Semantics) {
         let node = Node {
             role: Role::StaticText,
-            value: Some(self.text.clone().into_boxed_str()),
+            value: Some(self.text.string.clone().into_boxed_str()),
             ..Node::default()
         };
 
@@ -140,13 +171,13 @@ impl Widget for TextWidget {
             node_id
         };
 
-        self.modify.semantics(node_id, semantics);
+        self.text.modifier.semantics(node_id, semantics);
     }
 
     fn paint(&mut self, semantics: &Semantics, canvas: &mut Canvas) {
         let layout = semantics.layout(self.layout_id.unwrap());
 
-        self.modify.paint(&layout, canvas);
+        self.text.modifier.paint(&layout, canvas);
         self.paragraph
             .as_ref()
             .unwrap()
@@ -159,7 +190,7 @@ impl Widget for TextWidget {
         if let Some(node_id) = self.node_id {
             semantics.remove(node_id);
 
-            self.modify.remove(node_id, semantics)
+            self.text.modifier.remove(node_id, semantics)
         }
     }
 

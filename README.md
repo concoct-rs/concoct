@@ -21,7 +21,7 @@ Cross-platform UI framework in Rust with
 use concoct::{composable::text, render::run, Modifier};
 
 fn app() {
-    text(Modifier, "Hello World!")
+    Text::new( "Hello World!")
 }
 
 fn main() {
@@ -45,7 +45,7 @@ let mut tester = Tester::new(|| {
     container(Modifier, || {
         let count = state(|| 0);
 
-        text(Modifier, count.get().cloned().to_string());
+        Text::new( count.get().cloned().to_string());
 
         *count.get().as_mut() += 1;
     })

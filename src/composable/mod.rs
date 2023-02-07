@@ -18,8 +18,8 @@ pub use state::state;
 mod stream;
 pub use stream::stream;
 
-pub mod text;
-pub use text::text;
+mod text;
+pub use text::Text;
 
 mod widget;
 pub use widget::widget;

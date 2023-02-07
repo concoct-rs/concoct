@@ -1,8 +1,5 @@
 use concoct::{
-    composable::{
-        material::radio_button::{radio_button, RadioButtonModifier},
-        text,
-    },
+    composable::material::radio_button::{radio_button, RadioButtonModifier},
     render::run,
     Modifier,
 };
