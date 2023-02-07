@@ -2,7 +2,10 @@ use concoct::{
     composable::{
         column,
         container::{modifier::Gap, ContainerModifier},
-        material::{button, text},
+        material::{
+            button::{self, Button},
+            text,
+        },
         row, state,
         text::TextModifier,
     },
@@ -34,16 +37,14 @@ fn app() {
             row(
                 Modifier.gap(Gap::default().width(Dimension::Points(20.dp()))),
                 move || {
-                    button(
-                        Modifier,
-                        || text(Modifier, "More"),
-                        move || *count.get().as_mut() += 1,
-                    );
-
-                    button(
-                        Modifier,
+                    Button::new(
                         || text(Modifier, "Less"),
                         move || *count.get().as_mut() -= 1,
+                    );
+
+                    Button::new(
+                        || text(Modifier, "More"),
+                        move || *count.get().as_mut() += 1,
                     );
                 },
             )

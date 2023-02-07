@@ -36,7 +36,7 @@ impl<T, M: Modify<T>> Modify<T> for Option<M> {
     fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
         if let Some(modify) = self {
             modify.paint(layout, canvas)
-        } 
+        }
     }
 
     fn remove(&mut self, node_id: NodeId, semantics: &mut Semantics) {

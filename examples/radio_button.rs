@@ -1,4 +1,11 @@
-use concoct::{composable::{text, material::radio_button::{radio_button, RadioButtonModifier}}, render::run, Modifier};
+use concoct::{
+    composable::{
+        material::radio_button::{radio_button, RadioButtonModifier},
+        text,
+    },
+    render::run,
+    Modifier,
+};
 
 fn app() {
     radio_button(Modifier.on_click(|| {

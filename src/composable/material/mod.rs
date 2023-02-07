@@ -4,7 +4,7 @@ use super::{context, provide_context};
 use skia_safe::Color4f;
 
 pub mod button;
-pub use button::{button, text_button};
+pub use button::Button;
 
 pub mod icon;
 pub use icon::icon;
