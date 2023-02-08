@@ -2,10 +2,7 @@ use crate::Semantics;
 use accesskit::{NodeId, Role};
 use skia_safe::{Canvas, Color4f, Paint};
 use std::marker::PhantomData;
-use taffy::{
-    prelude::{Layout, Size},
-    style::Dimension,
-};
+use taffy::prelude::Layout;
 
 pub mod handler;
 pub use handler::HandlerModifier;
@@ -108,14 +105,6 @@ pub trait ModifyExt<T>: Modify<T> {
         F: FnMut(&Layout, &mut Canvas),
     {
         self.chain(Draw { f })
-    }
-
-    fn size(self, size: Size<Dimension>) -> Chain<T, Self, Size<Dimension>>
-    where
-        Self: Sized,
-        T: AsMut<Size<Dimension>>,
-    {
-        self.chain(size)
     }
 }
 

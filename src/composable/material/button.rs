@@ -1,7 +1,6 @@
 use super::text::{provide_text_style, TextStyle};
-use crate::composable::container::modifier::{ContainerConfig, Padding};
-use crate::composable::container::{container, ContainerModifier};
-use crate::composable::{interaction_source, remember};
+use crate::composable::container::Padding;
+use crate::composable::{interaction_source, remember, Container};
 use crate::modify::{HandlerModifier, ModifyExt};
 use crate::{DevicePixels, Modifier, Modify};
 use accesskit::Role;
@@ -95,7 +94,7 @@ impl<C, M, F> Button<C, F, M>
 where
     C: FnMut() + 'static,
     F: FnMut() + 'static,
-    M: Modify<ContainerConfig> + 'static,
+    M: Modify<()> + 'static,
 {
     #[track_caller]
     pub fn view(self) {
@@ -123,18 +122,19 @@ where
         provide_text_style(text_style, move || {
             let button = cell.take().unwrap();
 
-            container(
-                Modifier
-                    .align_items(AlignItems::Center)
-                    .justify_content(JustifyContent::Center)
-                    .merge_descendants()
-                    .background_color(color)
-                    .clickable_interaction(Role::Button, button.on_press, interaction_source)
-                    .padding(button.padding)
-                    .size(button.size)
-                    .chain(button.modifier),
-                button.content,
-            )
+            Container::build(button.content, Role::Button)
+                .align_items(AlignItems::Center)
+                .justify_content(JustifyContent::Center)
+                .padding(button.padding)
+                .size(button.size)
+                .merge_descendants()
+                .modifier(
+                    Modifier
+                        .background_color(color)
+                        .clickable_interaction(Role::Button, button.on_press, interaction_source)
+                        .chain(button.modifier),
+                )
+                .view()
         })
     }
 }

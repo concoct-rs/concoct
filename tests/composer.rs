@@ -1,12 +1,12 @@
 use concoct::{
-    composable::{container, state, Text},
-    Modifier, Tester,
+    composable::{state, Container, Text},
+    Tester,
 };
 
 #[test]
 fn it_updates_state_and_recomposes() {
     let mut tester = Tester::new(|| {
-        container(Modifier, || {
+        Container::column(|| {
             let count = state(|| 0);
 
             Text::new(count.get().cloned().to_string());
@@ -46,7 +46,7 @@ fn it_triggers_click_events_and_recomposes() {
 #[test]
 fn it_removes_unused_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier, || {
+        Container::column(|| {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
@@ -64,11 +64,11 @@ fn it_removes_unused_widgets() {
 #[test]
 fn it_removes_nested_unused_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier, || {
+        Container::column(|| {
             let is_shown = state(|| true);
 
             if is_shown.get().cloned() {
-                container(Modifier, || {
+                Container::column(|| {
                     Text::new("toggle");
                 })
             }
@@ -84,7 +84,7 @@ fn it_removes_nested_unused_widgets() {
 #[test]
 fn it_inserts_new_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier, || {
+        Container::column(|| {
             let is_shown = state(|| false);
 
             if is_shown.get().cloned() {
@@ -102,7 +102,7 @@ fn it_inserts_new_widgets() {
 #[test]
 fn it_replaces_widgets() {
     let mut tester = Tester::new(|| {
-        container(Modifier, || {
+        Container::column(|| {
             let is_a_shown = state(|| true);
 
             if is_a_shown.get().cloned() {
@@ -122,10 +122,10 @@ fn it_replaces_widgets() {
 #[test]
 fn it_nests_containers() {
     let tester = Tester::new(|| {
-        container(Modifier, || {
+        Container::column(|| {
             Text::new("A");
 
-            container(Modifier, || {
+            Container::column(|| {
                 Text::new("B");
                 Text::new("C");
             });

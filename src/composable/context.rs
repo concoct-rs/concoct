@@ -1,5 +1,5 @@
-use super::container;
-use crate::{Composer, Modifier};
+use super::container::Container;
+use crate::Composer;
 use std::{
     any::{Any, TypeId},
     rc::Rc,
@@ -24,7 +24,7 @@ pub fn provide_context<T: 'static>(value: T, composable: impl FnMut() + 'static)
             .insert(value.type_id(), Rc::new(value))
     });
 
-    container(Modifier, composable);
+    Container::row(composable);
 
     Composer::with(|composer| {
         composer.borrow_mut().contexts.remove(&TypeId::of::<T>());

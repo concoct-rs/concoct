@@ -1,5 +1,5 @@
 pub mod container;
-pub use container::{column, container, row};
+pub use container::Container;
 
 mod context;
 pub use context::{context, provide_context};

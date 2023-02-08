@@ -34,5 +34,6 @@ pub fn text(modifier: impl Modify<()> + 'static, string: impl Into<String>) {
     crate::composable::Text::build(string)
         .color(color)
         .font_size(style.font_size)
-        .modifier(modifier);
+        .modifier(modifier)
+        .view()
 }

@@ -239,11 +239,11 @@ impl Composer {
                 .cloned()
             {
                 let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
-                let mut f = container.f.take().unwrap();
+                let mut content = container.content.take().unwrap();
                 cx.current_group_id = parent_id.clone();
                 drop(cx);
 
-                let (children, removed) = Self::group(&parent_id, &mut f);
+                let (children, removed) = Self::group(&parent_id, &mut content);
                 if let Some(mut removed) = removed {
                     for node in &mut removed {
                         node.widget.remove(semantics);
@@ -255,7 +255,7 @@ impl Composer {
                 node.children = Some(children);
 
                 let container: &mut ContainerWidget = node.as_mut();
-                container.f = Some(f);
+                container.content = Some(content);
 
                 let layout_id = container.layout_id.unwrap();
                 let mut layout_children = semantics.layout_children.pop().unwrap();
@@ -392,7 +392,7 @@ impl Visitor for PaintVisitor<'_> {
         if let Some(layout_id) = widget.layout_id {
             let layout = self.semantics.layout(layout_id);
 
-            widget.modify.paint(&layout, self.canvas);
+            widget.modifier.paint(&layout, self.canvas);
 
             self.semantics
                 .points

@@ -1,13 +1,7 @@
 use concoct::{
-    composable::{
-        column,
-        container::{modifier::Gap, ContainerModifier},
-        material::button::Button,
-        row, state, Text,
-    },
-    modify::ModifyExt,
+    composable::{container::Gap, material::button::Button, state, Container, Text},
     render::run,
-    DevicePixels, Modifier,
+    DevicePixels,
 };
 use taffy::{
     prelude::Size,
@@ -15,28 +9,27 @@ use taffy::{
 };
 
 fn app() {
-    column(
-        Modifier
-            .align_items(AlignItems::Center)
-            .justify_content(JustifyContent::Center)
-            .flex_grow(1.)
-            .gap(Gap::default().height(Dimension::Points(20.dp())))
-            .size(Size::default()),
-        || {
-            let count = state(|| 0);
+    Container::build_column(|| {
+        let count = state(|| 0);
 
-            Text::build(count.get().cloned().to_string()).font_size(80.dp());
+        Text::build(count.get().cloned().to_string())
+            .font_size(80.dp())
+            .view();
 
-            row(
-                Modifier.gap(Gap::default().width(Dimension::Points(20.dp()))),
-                move || {
-                    Button::new(move || *count.get().as_mut() -= 1, || Text::new("Less"));
+        Container::build_row(move || {
+            Button::new(move || *count.get().as_mut() -= 1, || Text::new("Less"));
 
-                    Button::new(move || *count.get().as_mut() += 1, || Text::new("More"));
-                },
-            )
-        },
-    )
+            Button::new(move || *count.get().as_mut() += 1, || Text::new("More"));
+        })
+        .gap(Gap::default().width(Dimension::Points(20.dp())))
+        .view()
+    })
+    .align_items(AlignItems::Center)
+    .justify_content(JustifyContent::Center)
+    .flex_grow(1.)
+    .gap(Gap::default().height(Dimension::Points(20.dp())))
+    .size(Size::default())
+    .view()
 }
 
 #[tokio::main]

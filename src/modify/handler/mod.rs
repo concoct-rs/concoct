@@ -26,31 +26,28 @@ pub trait HandlerModifier<T>: Modify<T> {
 
     fn clickable<F>(
         self,
-        role: Role,
+        _role: Role,
         on_click: F,
-    ) -> Chain<T, Chain<T, Self, Role>, ModifierHandler<ClickHandler<(), F>>>
+    ) -> Chain<T, Self, ModifierHandler<ClickHandler<(), F>>>
     where
         Self: Sized,
-        T: AsMut<Role>,
         F: FnMut() + 'static,
     {
-        self.chain(role).handler(ClickHandler::new((), on_click))
+        self.handler(ClickHandler::new((), on_click))
     }
 
     fn clickable_interaction<F, I>(
         self,
-        role: Role,
+        _role: Role,
         on_click: F,
         interaction_source: I,
-    ) -> Chain<T, Chain<T, Self, Role>, ModifierHandler<ClickHandler<I, F>>>
+    ) -> Chain<T, Self, ModifierHandler<ClickHandler<I, F>>>
     where
         Self: Sized,
-        T: AsMut<Role>,
         F: FnMut() + 'static,
         I: InteractionSource<ClickInteration> + 'static,
     {
-        self.chain(role)
-            .handler(ClickHandler::new(interaction_source, on_click))
+        self.handler(ClickHandler::new(interaction_source, on_click))
     }
 
     fn keyboard_handler<H>(
