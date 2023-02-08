@@ -21,5 +21,8 @@ pub use stream::stream;
 mod text;
 pub use text::Text;
 
+mod text_field;
+pub use text_field::TextField;
+
 mod widget;
 pub use widget::widget;
