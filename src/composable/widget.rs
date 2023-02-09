@@ -1,9 +1,12 @@
 use std::panic::Location;
 
-use crate::{composer::WidgetNode, Composer, Widget};
+use crate::{
+    composer::{Id, WidgetNode},
+    Composer, Widget,
+};
 
 #[track_caller]
-pub fn widget<T, W>(state: T, f: impl FnOnce(T) -> W, g: impl FnOnce(T, &mut WidgetNode))
+pub fn widget<T, W>(state: T, f: impl FnOnce(T) -> W, g: impl FnOnce(T, &mut WidgetNode)) -> Id
 where
     W: Widget,
 {
@@ -14,10 +17,12 @@ where
 
         if let Some(node) = cx.get_node_mut(&id) {
             g(state, node);
-            cx.children.push(id);
+            cx.children.push(id.clone());
         } else {
             let widget = f(state);
-            cx.insert(id, widget, None);
+            cx.insert(id.clone(), widget, None);
         }
+
+        id
     })
 }

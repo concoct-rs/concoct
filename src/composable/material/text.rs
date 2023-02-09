@@ -1,6 +1,7 @@
+use local::provider;
+
 use super::local_content_color;
-use crate::{composable::context, DevicePixels, Modify};
-use context::provide_context;
+use crate::{composable::local, DevicePixels, Modify};
 
 pub struct TextStyle {
     pub font_size: f32,
@@ -14,21 +15,21 @@ impl Default for TextStyle {
 
 #[track_caller]
 pub fn provide_text_style(text_style: TextStyle, composable: impl FnMut() + 'static) {
-    let text_style = if let Some(_last_text_style) = context::<TextStyle>() {
+    let text_style = if let Some(_last_text_style) = local::<TextStyle>() {
         // TODO merge
         text_style
     } else {
         text_style
     };
 
-    provide_context(text_style, composable);
+    provider(text_style, composable);
 }
 
 pub struct Text {}
 
 #[track_caller]
 pub fn text(modifier: impl Modify<()> + 'static, string: impl Into<String>) {
-    let style = context::<TextStyle>().unwrap_or_default();
+    let style = local::<TextStyle>().unwrap_or_default();
     let color = local_content_color();
 
     crate::composable::Text::build(string)

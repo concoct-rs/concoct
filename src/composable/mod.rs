@@ -1,8 +1,8 @@
 pub mod container;
 pub use container::Container;
 
-mod context;
-pub use context::{context, provide_context};
+mod local;
+pub use local::{local, provider};
 
 pub mod interaction_source;
 pub use interaction_source::interaction_source;

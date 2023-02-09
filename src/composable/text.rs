@@ -86,7 +86,7 @@ where
                 let widget: &mut TextWidget<M> = node.as_mut();
                 widget.text = text;
             },
-        )
+        );
     }
 }
 

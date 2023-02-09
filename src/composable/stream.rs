@@ -32,7 +32,7 @@ pub fn stream<
             widget.on_item = Some(Box::new(on_item));
             widget.future = Some(future);
         },
-    )
+    );
 }
 
 pub struct StreamWidget<T, Fut, S> {

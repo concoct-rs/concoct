@@ -39,7 +39,7 @@ impl Tester {
         me
     }
 
-    pub fn get(&mut self, mut matcher: impl Matcher) -> Option<TestNode> {
+    pub fn request_recompose(&mut self) {
         if self.should_recompose {
             Composer::recompose(&mut self.semantics);
         } else {
@@ -53,6 +53,10 @@ impl Tester {
             self.semantics.children = vec![Vec::new()];
             cx.semantics(&mut self.semantics);
         });
+    }
+
+    pub fn get(&mut self, mut matcher: impl Matcher) -> Option<TestNode> {
+        self.request_recompose();
 
         for (id, node) in &self.semantics.nodes {
             if matcher.is_match(*id, node.as_ref()) {
