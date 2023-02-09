@@ -7,6 +7,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt, mem,
     panic::Location,
+    rc::Rc,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -17,7 +18,7 @@ pub struct IdSegment {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Id {
-    path: Vec<IdSegment>,
+    path: Rc<Box<[IdSegment]>>,
 }
 
 pub struct WidgetNode {
@@ -81,9 +82,11 @@ impl Composer {
             key: None,
             location,
         };
-        let mut path = self.current_group_id.path.clone();
+        let mut path = Vec::from(&**self.current_group_id.path);
         path.push(id_segment);
-        Id { path }
+        Id {
+            path: Rc::new(path.into_boxed_slice()),
+        }
     }
 
     #[track_caller]
