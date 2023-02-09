@@ -83,21 +83,31 @@ impl<C, F> Button<C, F, Modifier> {
     #[track_caller]
     pub fn new(on_press: F, content: C)
     where
-        C: FnMut() + Clone + 'static,
-        F: FnMut() + Clone + 'static,
+        C: FnMut() + 'static,
+        F: FnMut() + 'static,
     {
         Self::build(on_press, content).view();
     }
 }
 
-impl<C, M, F> Button<C, F, M>
-where
-    C: FnMut() + 'static,
-    F: FnMut() + 'static,
-    M: Modify<()> + 'static,
-{
+impl<C, M, F> Button<C, F, M> {
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.padding = padding;
+        self
+    }
+
+    pub fn size(mut self, size: Size<Dimension>) -> Self {
+        self.size = size;
+        self
+    }
+
     #[track_caller]
-    pub fn view(self) {
+    pub fn view(self)
+    where
+        C: FnMut() + 'static,
+        F: FnMut() + 'static,
+        M: Modify<()> + 'static,
+    {
         let color = if self.is_enabled {
             self.colors.enabled
         } else {

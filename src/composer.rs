@@ -65,6 +65,7 @@ pub struct Composer {
     pub changed: HashSet<(StateKey, Id)>,
     pub scale_factor: f32,
     pub contexts: HashMap<TypeId, Id>,
+    pub removed: Vec<WidgetNode>,
 }
 
 impl Composer {
@@ -126,7 +127,7 @@ impl Composer {
         );
     }
 
-    pub fn group(id: &Id, f: impl FnOnce()) -> (Vec<Id>, Option<Vec<WidgetNode>>) {
+    pub fn group(id: &Id, f: impl FnOnce()) -> Vec<Id> {
         Composer::with(|composer| {
             let mut cx = composer.borrow_mut();
             let parent_children = mem::take(&mut cx.children);
@@ -139,27 +140,28 @@ impl Composer {
             cx.current_group_id = parent_group_id;
             let children = mem::replace(&mut cx.children, parent_children);
 
-            let removed_ids = if let Some(node) = cx.widgets.get(&id) {
-                let removed: Vec<_> = node
-                    .children
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .filter(|id| !children.contains(id))
-                    .cloned()
-                    .collect();
-
-                Some(removed)
+            let removed = if let Some(node) = cx.widgets.get(&id) {
+                Some(
+                    node.children
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .filter(|id| !children.contains(id))
+                        .cloned()
+                        .collect::<Vec<Id>>()
+                        .into_iter()
+                        .map(|id| cx.widgets.remove(&id).unwrap())
+                        .collect::<Vec<_>>(),
+                )
             } else {
                 None
             };
-            let removed = removed_ids.map(|removed| {
-                removed
-                    .iter()
-                    .map(|id| cx.widgets.remove(id).unwrap())
-                    .collect()
-            });
-            (children, removed)
+
+            if let Some(removed) = removed {
+                cx.removed.extend(removed);
+            }
+
+            children
         })
     }
 
@@ -245,13 +247,7 @@ impl Composer {
                 cx.current_group_id = parent_id.clone();
                 drop(cx);
 
-                let (children, removed) = Self::group(&parent_id, &mut content);
-                if let Some(mut removed) = removed {
-                    for node in &mut removed {
-                        node.widget.remove(semantics);
-                    }
-                }
-
+                let children = Self::group(&parent_id, &mut content);
                 let mut cx = composer.borrow_mut();
                 let node = cx.get_node_mut(&parent_id).unwrap();
                 node.children = Some(children);
@@ -266,6 +262,13 @@ impl Composer {
                     .taffy
                     .set_children(layout_id, &layout_children)
                     .unwrap();
+
+                let mut removed = mem::take(&mut cx.removed);
+                drop(cx);
+
+                for child in &mut removed {
+                    child.widget.remove(semantics);
+                }
             }
         });
     }

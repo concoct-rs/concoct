@@ -216,7 +216,7 @@ impl<C, M> Container<C, M> {
             let id = cx.id(location);
             drop(cx);
 
-            let (children, removed) = Composer::group(&id, &mut self.content);
+            let children = Composer::group(&id, &mut self.content);
 
             let mut cx = composer.borrow_mut();
             if let Some(node) = cx.widgets.get_mut(&id) {
@@ -224,7 +224,7 @@ impl<C, M> Container<C, M> {
                 widget.config = self.config;
                 widget.content = Some(Box::new(self.content));
                 widget.modifier = Box::new(self.modifier);
-                widget.removed = removed;
+
                 widget.children = children.clone();
 
                 node.children = Some(children);
@@ -235,7 +235,7 @@ impl<C, M> Container<C, M> {
                     content: Some(Box::new(self.content)),
                     modifier: Box::new(self.modifier),
                     node_id: None,
-                    removed: None,
+
                     layout_id: None,
                     children: children.clone(),
                 };
@@ -250,7 +250,7 @@ pub struct ContainerWidget {
     pub content: Option<Box<dyn FnMut()>>,
     pub modifier: Box<dyn Modify<()>>,
     node_id: Option<NodeId>,
-    removed: Option<Vec<WidgetNode>>,
+
     pub layout_id: Option<LayoutNode>,
     pub children: Vec<Id>,
 }
@@ -277,12 +277,6 @@ impl Widget for ContainerWidget {
     }
 
     fn semantics(&mut self, semantics: &mut Semantics) {
-        if let Some(removed) = &mut self.removed {
-            for child in removed {
-                child.widget.remove(semantics);
-            }
-        }
-
         let layout = semantics.layout(self.layout_id.unwrap());
         let bounds = Rect::new(
             layout.location.x as _,
@@ -316,10 +310,9 @@ impl Widget for ContainerWidget {
 
             Composer::with(|composer| {
                 for child_id in &mut self.children {
-                    if let Some(mut node) = {
-                        let mut cx = composer.borrow_mut();
-                        cx.widgets.remove(&child_id)
-                    } {
+                    let mut cx = composer.borrow_mut();
+                    if let Some(mut node) = cx.widgets.remove(&child_id) {
+                        drop(cx);
                         node.widget.remove(semantics);
                     }
                 }

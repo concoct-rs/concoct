@@ -19,7 +19,7 @@ pub fn local<T: 'static>() -> Option<Rc<T>> {
 pub fn provider<T: 'static>(value: T, mut composable: impl FnMut() + 'static) {
     let value = Rc::new(value);
 
-    Container::row(move || {
+    Container::build_row(move || {
         let id = widget(
             (),
             |_| ContextWidget {
@@ -31,7 +31,9 @@ pub fn provider<T: 'static>(value: T, mut composable: impl FnMut() + 'static) {
         Composer::with(|composer| composer.borrow_mut().contexts.insert(TypeId::of::<T>(), id));
 
         composable();
-    });
+    })
+    .flex_grow(1.)
+    .view()
 }
 
 pub struct ContextWidget<T> {
