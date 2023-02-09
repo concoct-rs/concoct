@@ -76,7 +76,10 @@ where
 
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
         if let Some(handler) = self.handler.take() {
-            semantics.handlers.insert(node_id, Box::new(handler));
+            // TODO allow updates
+            if !semantics.handlers.contains_key(&node_id) {
+                semantics.handlers.insert(node_id, Box::new(handler));
+            }
         }
     }
 

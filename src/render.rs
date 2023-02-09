@@ -347,7 +347,9 @@ pub fn run_with_event_loop_builder(
                 UserEvent::ActionRequest(action_request) => {
                     dbg!(action_request);
                 }
-                UserEvent::Task { id, data } => (semantics.tasks.get_mut(id).unwrap())(data),
+                UserEvent::Task { id, data } => {
+                    //(semantics.tasks.get_mut(id).unwrap())(data)
+                }
             },
             _ => (),
         }

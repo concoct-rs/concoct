@@ -316,12 +316,12 @@ impl Widget for ContainerWidget {
 
             Composer::with(|composer| {
                 for child_id in &mut self.children {
-                    let mut node = {
+                    if let Some(mut node) = {
                         let mut cx = composer.borrow_mut();
-                        cx.widgets.remove(&child_id).unwrap()
-                    };
-
-                    node.widget.remove(semantics);
+                        cx.widgets.remove(&child_id)
+                    } {
+                        node.widget.remove(semantics);
+                    }
                 }
             });
 
