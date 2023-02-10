@@ -66,6 +66,7 @@ pub struct Composer {
     pub scale_factor: f32,
     pub contexts: HashMap<TypeId, Id>,
     pub removed: Vec<WidgetNode>,
+    pub next_key: Option<u64>,
 }
 
 impl Composer {
@@ -78,13 +79,13 @@ impl Composer {
         COMPOSER.try_with(f).unwrap()
     }
 
-    pub fn id(&self, location: &'static Location<'static>) -> Id {
-        let id_segment = IdSegment {
-            key: None,
-            location,
-        };
+    pub fn id(&mut self, location: &'static Location<'static>) -> Id {
+        let key = self.next_key.take();
+        let id_segment = IdSegment { key, location };
+
         let mut path = Vec::from(&**self.current_group_id.path);
         path.push(id_segment);
+
         Id {
             path: Rc::new(path.into_boxed_slice()),
         }

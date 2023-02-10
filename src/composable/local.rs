@@ -9,7 +9,7 @@ pub fn local<T: 'static>() -> Option<Rc<T>> {
     Composer::with(|composer| {
         let cx = composer.borrow();
         cx.contexts.get(&TypeId::of::<T>()).map(|id| {
-            let widget: &ContextWidget<T> = cx.get(id).unwrap();
+            let widget: &LocalWidget<T> = cx.get(id).unwrap();
             widget.value.clone()
         })
     })
@@ -22,7 +22,7 @@ pub fn provider<T: 'static>(value: T, mut composable: impl FnMut() + 'static) {
     Container::build_row(move || {
         let id = widget(
             (),
-            |_| ContextWidget {
+            |_| LocalWidget {
                 value: value.clone(),
             },
             |_, _| {},
@@ -36,11 +36,11 @@ pub fn provider<T: 'static>(value: T, mut composable: impl FnMut() + 'static) {
     .view()
 }
 
-pub struct ContextWidget<T> {
-    value: Rc<T>,
+pub struct LocalWidget<T> {
+    pub value: Rc<T>,
 }
 
-impl<T: 'static> Widget for ContextWidget<T> {
+impl<T: 'static> Widget for LocalWidget<T> {
     fn layout(&mut self, _semantics: &mut crate::Semantics) {}
 
     fn semantics(&mut self, _semantics: &mut crate::Semantics) {}

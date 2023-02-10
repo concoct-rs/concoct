@@ -212,9 +212,7 @@ impl<C, M> Container<C, M> {
     {
         let location = Location::caller();
         Composer::with(|composer| {
-            let cx = composer.borrow();
-            let id = cx.id(location);
-            drop(cx);
+            let id = composer.borrow_mut().id(location);
 
             let children = Composer::group(&id, &mut self.content);
 

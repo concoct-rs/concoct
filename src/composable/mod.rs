@@ -1,7 +1,10 @@
 pub mod container;
 pub use container::Container;
 
-mod local;
+mod key;
+pub use key::key;
+
+pub mod local;
 pub use local::{local, provider};
 
 pub mod interaction_source;
