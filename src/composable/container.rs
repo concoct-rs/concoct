@@ -1,5 +1,5 @@
 use crate::{
-    composer::{Composer, Id, WidgetNode},
+    composer::{Composer, Id},
     semantics::LayoutNode,
     Modifier, Modify, Semantics, Widget,
 };

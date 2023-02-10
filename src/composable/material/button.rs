@@ -91,6 +91,11 @@ impl<C, F> Button<C, F, Modifier> {
 }
 
 impl<C, M, F> Button<C, F, M> {
+    pub fn colors(mut self, colors: ButtonColors) -> Self {
+        self.colors = colors;
+        self
+    }
+
     pub fn padding(mut self, padding: Padding) -> Self {
         self.padding = padding;
         self
