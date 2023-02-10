@@ -1,6 +1,8 @@
 use concoct::{
     composable::{key, Container, Text},
+    modify::HandlerModifier,
     render::run,
+    Modifier,
 };
 
 fn app() {
@@ -9,6 +11,9 @@ fn app() {
             key(i, || Container::row(|| Text::new("Hello World!")));
         }
     })
+    .modifier(Modifier.scrollable(|delta| {
+        dbg!(delta);
+    }))
     .view();
 }
 

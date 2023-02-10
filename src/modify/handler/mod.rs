@@ -11,7 +11,10 @@ pub mod keyboard_input;
 use self::{
     clickable::ClickInteration,
     keyboard_input::{KeyboardHandler, KeyboardInputHandler},
+    scrollable::Scrollable,
 };
+
+pub mod scrollable;
 
 pub trait HandlerModifier<T>: Modify<T> {
     fn handler<H>(self, handler: H) -> Chain<T, Self, ModifierHandler<H>>
@@ -59,6 +62,14 @@ pub trait HandlerModifier<T>: Modify<T> {
         H: KeyboardHandler + 'static,
     {
         self.handler(KeyboardInputHandler::new(handler))
+    }
+
+    fn scrollable<F>(self, on_delta: F) -> Chain<T, Self, ModifierHandler<Scrollable<(), F>>>
+    where
+        Self: Sized,
+        F: FnMut(f64) + 'static,
+    {
+        self.handler(Scrollable::new((), on_delta))
     }
 }
 

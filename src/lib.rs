@@ -56,6 +56,9 @@ pub enum Event {
         state: ElementState,
         cursor: PhysicalPosition<f64>,
     },
+    MouseWheel {
+        delta: f64,
+    },
     Touch(Touch),
 }
 

@@ -26,7 +26,7 @@ use std::{
 use taffy::{prelude::Size, style::Style};
 use winit::{
     dpi::LogicalSize,
-    event::{Event, KeyboardInput, WindowEvent},
+    event::{Event, KeyboardInput, MouseScrollDelta, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
     window::{Window, WindowBuilder},
 };
@@ -287,6 +287,28 @@ pub fn run_with_event_loop_builder(
                         for (node_id, handler) in semantics.handlers.iter_mut() {
                             let node = semantics.nodes.get(&node_id).unwrap();
                             handler.handle(node, crate::Event::KeyboardInput { state, key_code })
+                        }
+                    }
+
+                    Composer::recompose(&mut semantics);
+
+                    env.as_mut()
+                        .unwrap()
+                        .windowed_context
+                        .window
+                        .request_redraw();
+                }
+                WindowEvent::MouseWheel {
+                    device_id: _,
+                    delta,
+                    phase: _,
+                    modifiers: _,
+                } => {
+                    if let MouseScrollDelta::PixelDelta(pos) = delta {
+                        for (node_id, handler) in semantics.handlers.iter_mut() {
+                            let node = semantics.nodes.get(&node_id).unwrap();
+
+                            handler.handle(node, crate::Event::MouseWheel { delta: pos.y })
                         }
                     }
 
