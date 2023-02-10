@@ -37,6 +37,7 @@ impl Text<Modifier> {
         }
     }
 
+    #[track_caller]
     pub fn new(string: impl Into<String>) {
         Self::build(string).view()
     }

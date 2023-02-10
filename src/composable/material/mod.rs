@@ -9,6 +9,9 @@ pub use button::Button;
 pub mod icon;
 pub use icon::icon;
 
+pub mod navigation_bar;
+pub use navigation_bar::{NavigationBar, NavigationBarItem};
+
 pub mod radio_button;
 pub use radio_button::radio_button;
 
