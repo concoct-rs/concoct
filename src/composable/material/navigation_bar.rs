@@ -4,9 +4,10 @@ use crate::{
         container::{Gap, Padding},
         Container,
     },
-    modify::ModifyExt,
+    modify::{HandlerModifier, ModifyExt},
     DevicePixels, Modifier, Modify,
 };
+use accesskit::Role;
 use skia_safe::{Color4f, RGB};
 use taffy::{
     prelude::{Dimension, Size},
@@ -52,6 +53,7 @@ impl<C, M> NavigationBar<C, M> {
         Container::build_row(move || {
             provide_local_content_color(self.content_color, content_cell.take().unwrap())
         })
+        .flex_shrink(0.)
         .padding(
             Padding::default()
                 .top(Dimension::Points(12.dp()))
@@ -71,38 +73,49 @@ impl<C, M> NavigationBar<C, M> {
 }
 
 #[must_use]
-pub struct NavigationBarItem<I, L, M> {
+pub struct NavigationBarItem<I, L, M, F> {
     icon: I,
     label: L,
     modifier: M,
+    on_click: F,
+    is_selected: bool,
 }
 
-impl<I, L> NavigationBarItem<I, L, Modifier> {
-    pub fn build(icon: I, label: L) -> Self {
+impl<I, L, F> NavigationBarItem<I, L, Modifier, F> {
+    pub fn build(icon: I, label: L, on_click: F) -> Self {
         Self {
             icon,
             label,
             modifier: Modifier,
+            on_click,
+            is_selected: false,
         }
     }
 
     #[track_caller]
-    pub fn new(icon: I, label: L)
+    pub fn new(icon: I, label: L, on_click: F)
     where
         I: FnMut() + 'static,
         L: FnMut() + 'static,
+        F: FnMut() + 'static,
     {
-        Self::build(icon, label).view()
+        Self::build(icon, label, on_click).view()
     }
 }
 
-impl<I, L, M> NavigationBarItem<I, L, M> {
+impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
+    pub fn is_selected(mut self, is_selected: bool) -> Self {
+        self.is_selected = is_selected;
+        self
+    }
+
     #[track_caller]
     pub fn view(mut self)
     where
         I: FnMut() + 'static,
         L: FnMut() + 'static,
         M: Modify<()> + 'static,
+        F: FnMut() + 'static,
     {
         let mut icon_cell = Some(self.icon);
 
@@ -129,6 +142,7 @@ impl<I, L, M> NavigationBarItem<I, L, M> {
             width: Dimension::Percent(1.),
             height: Dimension::Percent(1.),
         })
+        .modifier(Modifier.clickable(Role::Navigation, self.on_click))
         .view()
     }
 }

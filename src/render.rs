@@ -96,6 +96,8 @@ pub fn run(view_builder: fn()) {
 pub fn run(view_builder: fn(), android_app: android_activity::AndroidApp) {
     use winit::platform::android::EventLoopBuilderExtAndroid;
 
+    std::env::set_current_dir(android_app.internal_data_path().unwrap());
+
     let mut event_loop_builder = EventLoopBuilder::with_user_event();
     event_loop_builder.with_android_app(android_app);
 
