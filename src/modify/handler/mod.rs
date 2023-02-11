@@ -16,8 +16,8 @@ use self::{
 
 pub mod scrollable;
 
-pub trait HandlerModifier<T>: Modify<T> {
-    fn handler<H>(self, handler: H) -> Chain<T, Self, ModifierHandler<H>>
+pub trait HandlerModifier: Modify {
+    fn handler<H>(self, handler: H) -> Chain<Self, ModifierHandler<H>>
     where
         Self: Sized,
         H: Handler + 'static,
@@ -31,7 +31,7 @@ pub trait HandlerModifier<T>: Modify<T> {
         self,
         _role: Role,
         on_click: F,
-    ) -> Chain<T, Self, ModifierHandler<ClickHandler<(), F>>>
+    ) -> Chain<Self, ModifierHandler<ClickHandler<(), F>>>
     where
         Self: Sized,
         F: FnMut() + 'static,
@@ -44,7 +44,7 @@ pub trait HandlerModifier<T>: Modify<T> {
         _role: Role,
         on_click: F,
         interaction_source: I,
-    ) -> Chain<T, Self, ModifierHandler<ClickHandler<I, F>>>
+    ) -> Chain<Self, ModifierHandler<ClickHandler<I, F>>>
     where
         Self: Sized,
         F: FnMut() + 'static,
@@ -56,7 +56,7 @@ pub trait HandlerModifier<T>: Modify<T> {
     fn keyboard_handler<H>(
         self,
         handler: H,
-    ) -> Chain<T, Self, ModifierHandler<KeyboardInputHandler<H>>>
+    ) -> Chain<Self, ModifierHandler<KeyboardInputHandler<H>>>
     where
         Self: Sized,
         H: KeyboardHandler + 'static,
@@ -65,7 +65,7 @@ pub trait HandlerModifier<T>: Modify<T> {
     }
 
     /// Detect scroll gestures without offsetting contents
-    fn scrollable<F>(self, on_delta: F) -> Chain<T, Self, ModifierHandler<Scrollable<(), F>>>
+    fn scrollable<F>(self, on_delta: F) -> Chain<Self, ModifierHandler<Scrollable<(), F>>>
     where
         Self: Sized,
         F: FnMut(f64) + 'static,
@@ -78,7 +78,7 @@ pub trait HandlerModifier<T>: Modify<T> {
         self,
         on_delta: F,
         interaction_source: I,
-    ) -> Chain<T, Self, ModifierHandler<Scrollable<I, F>>>
+    ) -> Chain<Self, ModifierHandler<Scrollable<I, F>>>
     where
         Self: Sized,
         F: FnMut(f64) + 'static,
@@ -88,18 +88,16 @@ pub trait HandlerModifier<T>: Modify<T> {
     }
 }
 
-impl<T, M> HandlerModifier<T> for M where M: Modify<T> {}
+impl<M> HandlerModifier for M where M: Modify {}
 
 pub struct ModifierHandler<H> {
     handler: Option<H>,
 }
 
-impl<T, H> Modify<T> for ModifierHandler<H>
+impl<H> Modify for ModifierHandler<H>
 where
     H: Handler + 'static,
 {
-    fn modify(&mut self, _value: &mut T) {}
-
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
         if let Some(handler) = self.handler.take() {
             // TODO allow updates

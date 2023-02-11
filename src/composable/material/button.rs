@@ -111,7 +111,7 @@ impl<C, M, F> Button<C, F, M> {
     where
         C: FnMut() + 'static,
         F: FnMut() + 'static,
-        M: Modify<()> + 'static,
+        M: Modify + 'static,
     {
         let color = if self.is_enabled {
             self.colors.enabled

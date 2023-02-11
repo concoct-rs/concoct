@@ -46,7 +46,7 @@ impl<C, M> NavigationBar<C, M> {
     pub fn view(self)
     where
         C: FnMut() + 'static,
-        M: Modify<()> + 'static,
+        M: Modify + 'static,
     {
         let mut content_cell = Some(self.content);
 
@@ -114,7 +114,7 @@ impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
     where
         I: FnMut() + 'static,
         L: FnMut() + 'static,
-        M: Modify<()> + 'static,
+        M: Modify + 'static,
         F: FnMut() + 'static,
     {
         let mut icon_cell = Some(self.icon);

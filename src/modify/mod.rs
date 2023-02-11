@@ -7,9 +7,7 @@ use taffy::prelude::Layout;
 pub mod handler;
 pub use handler::HandlerModifier;
 
-pub trait Modify<T> {
-    fn modify(&mut self, value: &mut T);
-
+pub trait Modify {
     fn semantics(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 
     fn paint(&mut self, _layout: &Layout, _canvas: &mut Canvas) {}
@@ -17,13 +15,7 @@ pub trait Modify<T> {
     fn remove(&mut self, _node_id: NodeId, _semantics: &mut Semantics) {}
 }
 
-impl<T, M: Modify<T>> Modify<T> for Option<M> {
-    fn modify(&mut self, value: &mut T) {
-        if let Some(modify) = self {
-            modify.modify(value)
-        }
-    }
-
+impl<M: Modify> Modify for Option<M> {
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
         if let Some(modify) = self {
             modify.semantics(node_id, semantics)
@@ -45,22 +37,14 @@ impl<T, M: Modify<T>> Modify<T> for Option<M> {
 
 pub struct Modifier;
 
-impl<T> Modify<T> for Modifier {
-    fn modify(&mut self, _value: &mut T) {}
-}
+impl Modify for Modifier {}
 
-pub struct Chain<T, A: Modify<T>, B: Modify<T>> {
+pub struct Chain<A: Modify, B: Modify> {
     a: A,
     b: B,
-    _marker: PhantomData<T>,
 }
 
-impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<T, A, B> {
-    fn modify(&mut self, value: &mut T) {
-        self.a.modify(value);
-        self.b.modify(value);
-    }
-
+impl<A: Modify, B: Modify> Modify for Chain<A, B> {
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
         self.a.semantics(node_id, semantics);
         self.b.semantics(node_id, semantics);
@@ -77,8 +61,8 @@ impl<T, A: Modify<T>, B: Modify<T>> Modify<T> for Chain<T, A, B> {
     }
 }
 
-pub trait ModifyExt<T>: Modify<T> {
-    fn background_color(self, color: impl Into<Color4f>) -> Chain<T, Self, BackgroundColor>
+pub trait ModifyExt: Modify {
+    fn background_color(self, color: impl Into<Color4f>) -> Chain<Self, BackgroundColor>
     where
         Self: Sized,
     {
@@ -87,19 +71,15 @@ pub trait ModifyExt<T>: Modify<T> {
         })
     }
 
-    fn chain<B>(self, modify: B) -> Chain<T, Self, B>
+    fn chain<B>(self, modify: B) -> Chain<Self, B>
     where
         Self: Sized,
-        B: Modify<T>,
+        B: Modify,
     {
-        Chain {
-            a: self,
-            b: modify,
-            _marker: PhantomData,
-        }
+        Chain { a: self, b: modify }
     }
 
-    fn draw<F>(self, f: F) -> Chain<T, Self, Draw<F>>
+    fn draw<F>(self, f: F) -> Chain<Self, Draw<F>>
     where
         Self: Sized,
         F: FnMut(&Layout, &mut Canvas),
@@ -108,24 +88,13 @@ pub trait ModifyExt<T>: Modify<T> {
     }
 }
 
-impl<T, M: Modify<T>> ModifyExt<T> for M {}
-
-impl<T> Modify<T> for Role
-where
-    T: AsMut<Role>,
-{
-    fn modify(&mut self, value: &mut T) {
-        *value.as_mut() = *self;
-    }
-}
+impl<M: Modify> ModifyExt for M {}
 
 pub struct BackgroundColor {
     color: Color4f,
 }
 
-impl<T> Modify<T> for BackgroundColor {
-    fn modify(&mut self, _value: &mut T) {}
-
+impl Modify for BackgroundColor {
     fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
         canvas.draw_rect(
             skia_safe::Rect::new(
@@ -143,12 +112,10 @@ pub struct Draw<F> {
     f: F,
 }
 
-impl<T, F> Modify<T> for Draw<F>
+impl<F> Modify for Draw<F>
 where
     F: FnMut(&Layout, &mut Canvas),
 {
-    fn modify(&mut self, _value: &mut T) {}
-
     fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
         (self.f)(layout, canvas)
     }

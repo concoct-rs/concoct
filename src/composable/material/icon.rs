@@ -14,11 +14,7 @@ thread_local! {
 
 /// Material You icon composable
 #[track_caller]
-pub fn icon(
-    modifier: impl Modify<()> + 'static,
-    icon: Icon,
-    _content_description: impl Into<String>,
-) {
+pub fn icon(modifier: impl Modify + 'static, icon: Icon, _content_description: impl Into<String>) {
     let typeface = TYPEFACE.try_with(|typeface| typeface.clone()).unwrap();
 
     Text::build(icon_to_char(icon))

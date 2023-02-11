@@ -28,12 +28,6 @@ impl Gap {
     }
 }
 
-impl<T: AsMut<Style>> Modify<T> for Gap {
-    fn modify(&mut self, value: &mut T) {
-        value.as_mut().gap = self.size;
-    }
-}
-
 #[derive(Clone, Copy, Default)]
 pub struct Padding {
     pub rect: taffy::prelude::Rect<Dimension>,
@@ -208,7 +202,7 @@ impl<C, M> Container<C, M> {
     pub fn view(mut self)
     where
         C: FnMut() + 'static,
-        M: Modify<()> + 'static,
+        M: Modify + 'static,
     {
         let location = Location::caller();
         Composer::with(|composer| {
@@ -246,7 +240,7 @@ impl<C, M> Container<C, M> {
 pub struct ContainerWidget {
     config: ContainerConfig,
     pub content: Option<Box<dyn FnMut()>>,
-    pub modifier: Box<dyn Modify<()>>,
+    pub modifier: Box<dyn Modify>,
     node_id: Option<NodeId>,
 
     pub layout_id: Option<LayoutNode>,

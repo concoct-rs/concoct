@@ -45,7 +45,7 @@ impl Text<Modifier> {
 
 impl<M> Text<M>
 where
-    M: Modify<()> + 'static,
+    M: Modify + 'static,
 {
     pub fn color(mut self, color: impl Into<Color4f>) -> Self {
         self.color = color.into();
@@ -100,7 +100,7 @@ pub struct TextWidget<M> {
 
 impl<M> Widget for TextWidget<M>
 where
-    M: Modify<()> + 'static,
+    M: Modify + 'static,
 {
     fn layout(&mut self, semantics: &mut Semantics) {
         let font_mgr = FontMgr::new();

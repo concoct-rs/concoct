@@ -17,34 +17,11 @@ pub struct RadioButtonConfig {
     on_click: Option<Box<dyn FnMut()>>,
 }
 
-pub struct OnClick {
-    f: Option<Box<dyn FnMut()>>,
-}
-
-impl Modify<RadioButtonConfig> for OnClick {
-    fn modify(&mut self, value: &mut RadioButtonConfig) {
-        value.on_click = self.f.take();
-    }
-}
-
-pub trait RadioButtonModifier: Modify<RadioButtonConfig> + Sized {
-    fn on_click(self, on_click: impl FnMut() + 'static) -> Chain<RadioButtonConfig, Self, OnClick> {
-        self.chain(OnClick {
-            f: Some(Box::new(on_click)),
-        })
-    }
-}
-
-impl<M> RadioButtonModifier for M where M: Modify<RadioButtonConfig> {}
-
 #[track_caller]
-pub fn radio_button(mut modifier: impl Modify<RadioButtonConfig>) {
+pub fn radio_button(config: RadioButtonConfig) {
     let outer_radius = 20.dp();
     let inner_radius = 12.dp();
     let stroke_width = 2.dp();
-
-    let mut config = RadioButtonConfig::default();
-    modifier.modify(&mut config);
 
     let clickable = config
         .on_click
