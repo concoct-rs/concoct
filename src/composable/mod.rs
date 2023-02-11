@@ -1,6 +1,9 @@
 pub mod container;
 pub use container::Container;
 
+mod icon;
+pub use icon::Icon;
+
 mod key;
 pub use key::key;
 
