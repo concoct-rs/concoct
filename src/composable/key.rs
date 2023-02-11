@@ -1,6 +1,7 @@
 use super::Container;
 use crate::Composer;
 
+/// Specify a key for a given composable.
 #[track_caller]
 pub fn key(key: u64, composable: impl FnMut() + 'static) {
     Composer::with(|composer| {

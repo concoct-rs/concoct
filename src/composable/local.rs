@@ -5,16 +5,25 @@ use std::{
     rc::Rc,
 };
 
+/// A composition local provided by a [`provider`].
 pub fn local<T: 'static>() -> Option<Rc<T>> {
     Composer::with(|composer| {
         let cx = composer.borrow();
-        cx.contexts.get(&TypeId::of::<T>()).map(|id| {
-            let widget: &LocalWidget<T> = cx.get(id).unwrap();
-            widget.value.clone()
+        cx.contexts.get(&TypeId::of::<T>()).and_then(|id| {
+            let widget: &LocalWidget<T> = cx.get(id)?;
+            Some(widget.value.clone())
         })
     })
 }
 
+/// Provide a composition local to the given composable
+/// ```no_run
+/// use concoct::composable::{local, provider};
+///
+/// provider(false, || {
+///     let local_bool = local::<bool>().unwrap();
+/// })
+/// ```
 #[track_caller]
 pub fn provider<T: 'static>(value: T, mut composable: impl FnMut() + 'static) {
     let value = Rc::new(value);

@@ -16,6 +16,15 @@ impl<I, F> Scrollable<I, F> {
             last_touch: None,
         }
     }
+
+    fn emit_delta(&mut self, delta: f64)
+    where
+        I: InteractionSource<f64>,
+        F: FnMut(f64) + 'static,
+    {
+        (self.on_delta)(delta);
+        self.interaction_source.emit(delta)
+    }
 }
 
 impl<I, F> Handler for Scrollable<I, F>
@@ -33,11 +42,11 @@ where
                     let last = self.last_touch.unwrap();
                     self.last_touch = Some(touch.location.y);
 
-                    (self.on_delta)(touch.location.y - last)
+                    self.emit_delta(touch.location.y - last)
                 }
                 _ => {}
             },
-            Event::MouseWheel { delta } => (self.on_delta)(delta),
+            Event::MouseWheel { delta } => self.emit_delta(delta),
             _ => {}
         }
     }

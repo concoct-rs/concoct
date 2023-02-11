@@ -64,12 +64,27 @@ pub trait HandlerModifier<T>: Modify<T> {
         self.handler(KeyboardInputHandler::new(handler))
     }
 
+    /// Detect scroll gestures without offsetting contents
     fn scrollable<F>(self, on_delta: F) -> Chain<T, Self, ModifierHandler<Scrollable<(), F>>>
     where
         Self: Sized,
         F: FnMut(f64) + 'static,
     {
         self.handler(Scrollable::new((), on_delta))
+    }
+
+    /// Detect scroll gestures with an interaction source, without offsetting contents
+    fn scrollable_interaction<F, I>(
+        self,
+        on_delta: F,
+        interaction_source: I,
+    ) -> Chain<T, Self, ModifierHandler<Scrollable<I, F>>>
+    where
+        Self: Sized,
+        F: FnMut(f64) + 'static,
+        I: InteractionSource<f64> + 'static,
+    {
+        self.handler(Scrollable::new(interaction_source, on_delta))
     }
 }
 
