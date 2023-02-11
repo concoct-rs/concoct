@@ -29,12 +29,44 @@ fn main() {
 }
 ```
 
+# Counter
+```rust
+fn app() {
+    Container::build_column(|| {
+        let count = state(|| 0);
+
+        Text::build(count.get().cloned().to_string())
+            .font_size(80.dp())
+            .view();
+
+        Container::build_row(move || {
+            Button::new(move || *count.get().as_mut() -= 1, || Text::new("Less"));
+
+            Button::new(move || *count.get().as_mut() += 1, || Text::new("More"));
+        })
+        .gap(Gap::default().width(Dimension::Points(20.dp())))
+        .view()
+    })
+    .align_items(AlignItems::Center)
+    .justify_content(JustifyContent::Center)
+    .flex_grow(1.)
+    .gap(Gap::default().height(Dimension::Points(20.dp())))
+    .size(Size::default())
+    .view()
+}
+```
+
 # Creating a composable
 To create your own composable, write a function using Rust's `#[track_caller]` attribute macro.
 ```rust
 #[track_caller]
 fn title_text(title: String) {
-    text(Modifier.font_size(80.dp()), title);
+    Text::build(title)
+        .font_size(72.dp())
+        .modifier(Modifier.clickable(|| {
+            dbg!("Click!");
+        }))
+        .view()
 }
 ```
 
@@ -42,10 +74,10 @@ fn title_text(title: String) {
 State is created with the [`state`](https://concoct-rs.github.io/concoct/composable/state/fn.state.html) composable.
 ```rust
 let mut tester = Tester::new(|| {
-    container(Modifier, || {
+    Container::new(|| {
         let count = state(|| 0);
 
-        Text::new( count.get().cloned().to_string());
+        Text::new(count.get().cloned().to_string());
 
         *count.get().as_mut() += 1;
     })
