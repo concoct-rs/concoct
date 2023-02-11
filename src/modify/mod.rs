@@ -1,7 +1,7 @@
 use crate::Semantics;
-use accesskit::{NodeId, Role};
+use accesskit::NodeId;
 use skia_safe::{Canvas, Color4f, Paint};
-use std::marker::PhantomData;
+
 use taffy::prelude::Layout;
 
 pub mod handler;

@@ -6,14 +6,14 @@ use skia_safe::Color4f;
 pub mod button;
 pub use button::Button;
 
-pub mod icon;
+mod icon;
 pub use icon::icon;
 
-pub mod navigation_bar;
+mod navigation_bar;
 pub use navigation_bar::{NavigationBar, NavigationBarItem};
 
-pub mod radio_button;
-pub use radio_button::radio_button;
+mod radio_button;
+pub use radio_button::RadioButton;
 
 pub mod text;
 pub use text::text;

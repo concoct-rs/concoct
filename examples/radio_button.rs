@@ -1,13 +1,11 @@
-use concoct::{
-    composable::material::radio_button::{radio_button, RadioButtonModifier},
-    render::run,
-    Modifier,
-};
+use concoct::{composable::material::RadioButton, render::run};
 
 fn app() {
-    radio_button(Modifier.on_click(|| {
-        dbg!("click!");
-    }))
+    RadioButton::build()
+        .on_click(|| {
+            dbg!("click!");
+        })
+        .view()
 }
 
 #[tokio::main]
