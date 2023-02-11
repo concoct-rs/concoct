@@ -1,8 +1,15 @@
-use concoct::{composable::{Text, Icon}, render::run};
-use skia_safe::{Paint, RGB, Color4f};
+use concoct::{
+    composable::{Icon, Text},
+    render::run,
+};
+use skia_safe::{Color4f, Paint, RGB};
 
 fn app() {
-    Icon::build(include_str!("../icon.svg"), Paint::new(Color4f::from(RGB::from((0, 255, 0))), None)).view();
+    Icon::build(
+        include_str!("../icon.svg"),
+        Paint::new(Color4f::from(RGB::from((0, 255, 0))), None),
+    )
+    .view();
 }
 
 #[tokio::main]

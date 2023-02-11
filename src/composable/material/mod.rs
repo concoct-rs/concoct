@@ -6,8 +6,6 @@ use skia_safe::Color4f;
 pub mod button;
 pub use button::Button;
 
-pub mod icon;
-
 mod navigation_bar;
 pub use navigation_bar::{NavigationBar, NavigationBarItem};
 

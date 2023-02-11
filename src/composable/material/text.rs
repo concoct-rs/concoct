@@ -28,13 +28,12 @@ pub fn provide_text_style(text_style: TextStyle, composable: impl FnMut() + 'sta
 pub struct Text {}
 
 #[track_caller]
-pub fn text(modifier: impl Modify + 'static, string: impl Into<String>) {
+pub fn text(string: impl Into<String>) {
     let style = local::<TextStyle>().unwrap_or_default();
     let color = local_content_color();
 
     crate::composable::Text::build(string)
         .color(color)
         .font_size(style.font_size)
-        .modifier(modifier)
         .view()
 }

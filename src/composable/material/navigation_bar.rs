@@ -1,4 +1,7 @@
-use super::provide_local_content_color;
+use super::{
+    provide_local_content_color,
+    text::{provide_text_style, TextStyle},
+};
 use crate::{
     composable::{
         container::{Gap, Padding},
@@ -10,7 +13,7 @@ use crate::{
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
 use taffy::{
-    prelude::{Dimension, Size},
+    prelude::{Dimension, Rect, Size},
     style::{AlignItems, JustifyContent},
 };
 
@@ -42,6 +45,15 @@ impl<C> NavigationBar<C, Modifier> {
 }
 
 impl<C, M> NavigationBar<C, M> {
+    pub fn modifier<M2>(self, modifier: M2) -> NavigationBar<C, M2> {
+        NavigationBar {
+            content: self.content,
+            modifier,
+            container_color: self.container_color,
+            content_color: self.content_color,
+        }
+    }
+
     #[track_caller]
     pub fn view(self)
     where
@@ -54,10 +66,12 @@ impl<C, M> NavigationBar<C, M> {
             provide_local_content_color(self.content_color, content_cell.take().unwrap())
         })
         .flex_shrink(0.)
+        .gap(Gap::default().width(Dimension::Points(16.dp())))
         .padding(
             Padding::default()
                 .top(Dimension::Points(12.dp()))
-                .bottom(Dimension::Points(16.dp())),
+                .bottom(Dimension::Points(16.dp()))
+                .horizontal(Dimension::Points(8.dp())),
         )
         .size(Size {
             width: Dimension::Percent(1.),
@@ -110,7 +124,7 @@ impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
     }
 
     #[track_caller]
-    pub fn view(mut self)
+    pub fn view(self)
     where
         I: FnMut() + 'static,
         L: FnMut() + 'static,
@@ -118,6 +132,13 @@ impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
         F: FnMut() + 'static,
     {
         let mut icon_cell = Some(self.icon);
+        let mut label_cell = Some(self.label);
+
+        let icon_background_color = if self.is_selected {
+            RGB::from((232, 221, 253)).into()
+        } else {
+            Color4f::new(0., 0., 0., 0.)
+        };
 
         Container::build_column(move || {
             let mut icon_cell = icon_cell.take();
@@ -126,14 +147,15 @@ impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
                 icon_cell.take().unwrap()();
             })
             .align_items(AlignItems::Center)
-            .justify_content(JustifyContent::SpaceBetween)
+            .justify_content(JustifyContent::Center)
             .size(Size {
                 width: Dimension::Percent(1.),
                 height: Dimension::Points(32.dp()),
             })
+            .modifier(Modifier.background_color(icon_background_color))
             .view();
 
-            (self.label)()
+            provide_text_style(TextStyle { font_size: 12.dp() }, label_cell.take().unwrap());
         })
         .align_items(AlignItems::Center)
         .justify_content(JustifyContent::SpaceBetween)
@@ -142,7 +164,11 @@ impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
             width: Dimension::Percent(1.),
             height: Dimension::Percent(1.),
         })
-        .modifier(Modifier.clickable(Role::Navigation, self.on_click))
+        .modifier(
+            Modifier
+                .clickable(Role::Navigation, self.on_click)
+                .chain(self.modifier),
+        )
         .view()
     }
 }

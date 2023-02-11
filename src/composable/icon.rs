@@ -1,4 +1,4 @@
-use skia_safe::{Paint, Path};
+use skia_safe::{Matrix, Paint, Path};
 use taffy::prelude::Size;
 
 use crate::{modify::ModifyExt, Modifier, Widget};
@@ -21,7 +21,8 @@ impl Icon {
         Container::build_row(|| {})
             .size(Size::from_points(50., 50.))
             .modifier(Modifier.draw(move |layout, canvas| {
-                canvas.draw_path(&self.path, &self.paint);
+                let translation = Matrix::translate((layout.location.x, layout.location.y));
+                canvas.draw_path(&self.path.with_transform(&translation), &self.paint);
             }))
             .view();
     }
