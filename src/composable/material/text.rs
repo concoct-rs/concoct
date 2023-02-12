@@ -1,7 +1,7 @@
 use local::provider;
 
 use super::local_content_color;
-use crate::{composable::local, DevicePixels, Modify};
+use crate::{composable::local, DevicePixels};
 
 pub struct TextStyle {
     pub font_size: f32,

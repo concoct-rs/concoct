@@ -13,7 +13,7 @@ use crate::{
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
 use taffy::{
-    prelude::{Dimension, Rect, Size},
+    prelude::{Dimension, Size},
     style::{AlignItems, JustifyContent},
 };
 

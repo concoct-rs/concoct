@@ -8,6 +8,7 @@ mod icon;
 pub use icon::Icon;
 
 mod image;
+pub use image::Image;
 
 mod key;
 pub use key::key;
