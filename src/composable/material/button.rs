@@ -40,17 +40,16 @@ impl From<Color4f> for ButtonColors {
 /// ![screenshots](https://developer.android.com/images/reference/androidx/compose/material3/filled-button.png)
 ///
 /// # Examples
-/// ```
-/// use concoct::Modifier;
+/// ```no_run
+/// use concoct::View;
 /// use concoct::composable::Text;
 /// use concoct::composable::material::Button;
 ///
-/// Button::new(
-///     || {
+/// Button::new(|| Text::new( "Press me!"))
+///     .on_press(|| {
 ///         dbg!("Pressed!");
-///     },
-///     || Text::new( "Press me!"),
-/// )
+///     }
+///     ).view()
 /// ```
 #[must_use = "Buttons must be viewed with `Button::view`"]
 pub struct Button<C, F, M> {

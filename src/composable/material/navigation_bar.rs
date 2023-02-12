@@ -9,7 +9,7 @@ use crate::{
     Modifier, Modify, View,
 };
 use accesskit::Role;
-use skia_safe::{Color4f, RGB};
+use skia_safe::{Color4f, Point, RGB};
 use taffy::{
     prelude::Dimension,
     style::{AlignItems, JustifyContent},
@@ -152,7 +152,11 @@ where
                     .width(Dimension::Percent(1.))
                     .height(Dimension::Points(32.dp())),
             )
-            .modifier(Modifier.background_color(icon_background_color))
+            .modifier(
+                Modifier
+                    .clip([Point::new(16.dp(), 16.dp()); 4])
+                    .background_color(icon_background_color),
+            )
             .view();
 
             provide_text_style(TextStyle { font_size: 12.dp() }, label_cell.take().unwrap());
