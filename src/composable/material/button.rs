@@ -4,7 +4,7 @@ use crate::dimension::{DevicePixels, Padding, Size};
 use crate::modify::{HandlerModifier, ModifyExt};
 use crate::{Composable, Modifier, Modify, View};
 use accesskit::Role;
-use skia_safe::{Color4f, RGB};
+use skia_safe::{Color4f, Point, RGB};
 use taffy::style::{AlignItems, Dimension, JustifyContent};
 
 #[derive(Clone)]
@@ -146,6 +146,7 @@ where
                 .merge_descendants()
                 .modifier(
                     Modifier
+                        .clip([Point::new(20.dp(), 20.dp()); 4])
                         .background_color(color)
                         .clickable_interaction(Role::Button, button.on_press, interaction_source)
                         .chain(button.modifier),

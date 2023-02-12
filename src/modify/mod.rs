@@ -1,6 +1,6 @@
 use crate::Semantics;
 use accesskit::NodeId;
-use skia_safe::{Canvas, Color4f, Paint};
+use skia_safe::{Canvas, Color4f, Paint, Point, RRect, Rect};
 
 use taffy::prelude::Layout;
 
@@ -79,6 +79,13 @@ pub trait ModifyExt: Modify {
         Chain { a: self, b: modify }
     }
 
+    fn clip(self, radii: [Point; 4]) -> Chain<Self, Clip>
+    where
+        Self: Sized,
+    {
+        self.chain(Clip { radii })
+    }
+
     fn draw<F>(self, f: F) -> Chain<Self, Draw<F>>
     where
         Self: Sized,
@@ -118,5 +125,24 @@ where
 {
     fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
         (self.f)(layout, canvas)
+    }
+}
+
+pub struct Clip {
+    radii: [Point; 4],
+}
+
+impl Modify for Clip {
+    fn paint(&mut self, layout: &Layout, canvas: &mut Canvas) {
+        let rrect = RRect::new_rect_radii(
+            Rect::new(
+                layout.location.x,
+                layout.location.y,
+                layout.location.x + layout.size.width,
+                layout.location.y + layout.size.height,
+            ),
+            &self.radii,
+        );
+        canvas.clip_rrect(rrect, None, true);
     }
 }

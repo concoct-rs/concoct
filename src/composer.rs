@@ -390,7 +390,9 @@ impl<'a> PaintVisitor<'a> {
 
 impl Visitor for PaintVisitor<'_> {
     fn visit_child(&mut self, widget: &mut Box<dyn Widget>) {
+        self.canvas.save();
         widget.paint(self.semantics, self.canvas);
+        self.canvas.restore();
     }
 
     fn visit_group(&mut self, node: &mut WidgetNode) {
@@ -398,7 +400,9 @@ impl Visitor for PaintVisitor<'_> {
         if let Some(layout_id) = widget.layout_id {
             let layout = self.semantics.layout(layout_id);
 
+            self.canvas.save();
             widget.modifier.paint(&layout, self.canvas);
+            self.canvas.restore();
 
             self.semantics
                 .points
@@ -408,6 +412,9 @@ impl Visitor for PaintVisitor<'_> {
 
     fn visit_group_end(&mut self, widget: &mut Box<dyn Widget>) {
         self.semantics.points.pop().unwrap();
+
+        self.canvas.save();
         widget.paint(self.semantics, self.canvas);
+        self.canvas.restore();
     }
 }
