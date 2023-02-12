@@ -1,4 +1,4 @@
-use crate::{composable::interaction_source::InteractionSource, semantics::Handler, Event};
+use crate::{composable::interaction_source::InteractionSource, semantics::Handler, Event, Composable};
 use accesskit::{kurbo::Rect, Node};
 use winit::{
     dpi::PhysicalPosition,
@@ -30,7 +30,7 @@ impl<I, F> ClickHandler<I, F> {
 impl<I, F> ClickHandler<I, F>
 where
     I: InteractionSource<ClickInteration>,
-    F: FnMut() + 'static,
+    F: Composable + 'static,
 {
     pub fn press(&mut self, pos: PhysicalPosition<f64>, bounds: Rect) {
         if is_intersection(pos, bounds) {
@@ -42,7 +42,7 @@ where
     pub fn release(&mut self, pos: PhysicalPosition<f64>, bounds: Rect) {
         if self.is_pressed {
             if is_intersection(pos, bounds) {
-                (self.on_click)();
+                (self.on_click).compose();
                 self.interaction_source.emit(ClickInteration::Release);
             } else {
                 self.interaction_source.emit(ClickInteration::Cancel);
@@ -56,11 +56,11 @@ where
 impl<I, F> Handler for ClickHandler<I, F>
 where
     I: InteractionSource<ClickInteration>,
-    F: FnMut() + 'static,
+    F: Composable + 'static,
 {
     fn handle(&mut self, node: &Node, event: Event) {
         match event {
-            Event::Action(_) => (self.on_click)(),
+            Event::Action(_) => (self.on_click).compose(),
             Event::MouseInput { state, cursor } => {
                 let bounds = node.bounds.unwrap();
                 match state {

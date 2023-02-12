@@ -1,9 +1,7 @@
+use super::Container;
+use crate::{modify::ModifyExt, Modifier};
 use skia_safe::{Matrix, Paint, Path};
 use taffy::prelude::Size;
-
-use crate::{modify::ModifyExt, Modifier, Widget};
-
-use super::Container;
 
 pub struct Icon {
     path: Path,

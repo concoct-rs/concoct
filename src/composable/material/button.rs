@@ -2,7 +2,7 @@ use super::text::{provide_text_style, TextStyle};
 use crate::composable::container::Padding;
 use crate::composable::{interaction_source, remember, Container};
 use crate::modify::{HandlerModifier, ModifyExt};
-use crate::{DevicePixels, Modifier, Modify};
+use crate::{Composable, DevicePixels, Modifier, Modify};
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
 use taffy::prelude::Size;
@@ -64,11 +64,11 @@ pub struct Button<C, F, M> {
     pub size: Size<Dimension>,
 }
 
-impl<C, F> Button<C, F, Modifier> {
-    pub fn build(on_press: F, content: C) -> Self {
+impl<C> Button<C, (), Modifier> {
+    pub fn new(content: C) -> Self {
         Self {
             content,
-            on_press,
+            on_press: (),
             modifier: Modifier,
             is_enabled: true,
             colors: ButtonColors::new(RGB::from((232, 221, 253)), RGB::from((232, 221, 253))),
@@ -79,18 +79,21 @@ impl<C, F> Button<C, F, Modifier> {
             },
         }
     }
-
-    #[track_caller]
-    pub fn new(on_press: F, content: C)
-    where
-        C: FnMut() + 'static,
-        F: FnMut() + 'static,
-    {
-        Self::build(on_press, content).view();
-    }
 }
 
 impl<C, M, F> Button<C, F, M> {
+    pub fn on_press<F2>(self, on_press: F2) -> Button<C, F2, M> {
+        Button {
+            content: self.content,
+            on_press,
+            modifier: self.modifier,
+            is_enabled: self.is_enabled,
+            colors: self.colors,
+            padding: self.padding,
+            size: self.size,
+        }
+    }
+
     pub fn colors(mut self, colors: ButtonColors) -> Self {
         self.colors = colors;
         self
@@ -110,7 +113,7 @@ impl<C, M, F> Button<C, F, M> {
     pub fn view(self)
     where
         C: FnMut() + 'static,
-        F: FnMut() + 'static,
+        F: Composable + 'static,
         M: Modify + 'static,
     {
         let color = if self.is_enabled {

@@ -92,3 +92,19 @@ impl CanvasExt for Canvas {
         );
     }
 }
+
+pub trait Composable {
+    fn compose(&mut self);
+}
+
+impl<F: FnMut()> Composable for F {
+    fn compose(&mut self) {
+        self()
+    }
+}
+
+impl Composable for () {
+    fn compose(&mut self) {
+        
+    }
+}

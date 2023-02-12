@@ -17,9 +17,13 @@ fn app() {
             .view();
 
         Container::build_row(move || {
-            Button::new(move || *count.get().as_mut() -= 1, || Text::new("Less"));
+            Button::new(|| Text::new("Less"))
+                .on_press(move || *count.get().as_mut() -= 1)
+                .view();
 
-            Button::new(move || *count.get().as_mut() += 1, || Text::new("More"));
+            Button::new(|| Text::new("More"))
+                .on_press(move || *count.get().as_mut() += 1)
+                .view();
         })
         .gap(Gap::default().width(Dimension::Points(20.dp())))
         .view()

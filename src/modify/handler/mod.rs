@@ -1,6 +1,6 @@
 use super::{Chain, ModifyExt};
 use crate::{
-    composable::interaction_source::InteractionSource, semantics::Handler, Modify, Semantics,
+    composable::interaction_source::InteractionSource, semantics::Handler, Modify, Semantics, Composable,
 };
 use accesskit::{NodeId, Role};
 
@@ -47,7 +47,7 @@ pub trait HandlerModifier: Modify {
     ) -> Chain<Self, ModifierHandler<ClickHandler<I, F>>>
     where
         Self: Sized,
-        F: FnMut() + 'static,
+        F: Composable + 'static,
         I: InteractionSource<ClickInteration> + 'static,
     {
         self.handler(ClickHandler::new(interaction_source, on_click))

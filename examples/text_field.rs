@@ -5,7 +5,7 @@ use concoct::{
 
 fn app() {
     Container::column(|| {
-        let name = state(|| String::new());
+        let name = state(String::new);
 
         TextField::new(name.get().cloned(), move |value| {
             *name.get().as_mut() = value.to_owned();
