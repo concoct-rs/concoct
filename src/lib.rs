@@ -4,10 +4,16 @@
 //! # Material Design
 //! Material design composables are available in the [material](self::composable::material) module.
 
+use accesskit::Action;
+use skia_safe::{Canvas, Paint};
 use std::any::Any;
+use taffy::prelude::Layout;
+use winit::{
+    dpi::PhysicalPosition,
+    event::{ElementState, Touch, VirtualKeyCode},
+};
 
 pub mod composer;
-use accesskit::Action;
 pub use composer::Composer;
 
 pub mod composable;
@@ -15,7 +21,6 @@ pub mod composable;
 pub mod dimension;
 
 pub mod modify;
-
 pub use modify::{Modifier, Modify};
 
 pub mod render;
@@ -24,15 +29,7 @@ pub mod semantics;
 pub use semantics::Semantics;
 
 mod tester;
-use skia_safe::{Canvas, Paint};
-
-use taffy::prelude::Layout;
 pub use tester::Tester;
-
-use winit::{
-    dpi::PhysicalPosition,
-    event::{ElementState, Touch, VirtualKeyCode},
-};
 
 pub trait Widget: Any {
     fn layout(&mut self, semantics: &mut Semantics);
