@@ -1,73 +1,13 @@
 use crate::{
     composer::{Composer, Id},
+    dimension::{Padding, Size},
     semantics::LayoutNode,
     Modifier, Modify, Semantics, View, Widget,
 };
 use accesskit::{kurbo::Rect, Node, NodeId, Role};
 use skia_safe::Canvas;
 use std::{any, panic::Location};
-use taffy::{
-    prelude::Size,
-    style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style},
-};
-
-#[derive(Default)]
-pub struct Gap {
-    pub size: Size<Dimension>,
-}
-
-impl Gap {
-    pub fn width(mut self, value: Dimension) -> Self {
-        self.size.width = value;
-        self
-    }
-
-    pub fn height(mut self, value: Dimension) -> Self {
-        self.size.height = value;
-        self
-    }
-}
-
-#[derive(Clone, Copy, Default)]
-pub struct Padding {
-    pub rect: taffy::prelude::Rect<Dimension>,
-}
-
-impl Padding {
-    pub fn left(mut self, value: Dimension) -> Self {
-        self.rect.left = value;
-        self
-    }
-
-    pub fn right(mut self, value: Dimension) -> Self {
-        self.rect.right = value;
-        self
-    }
-
-    pub fn horizontal(self, value: Dimension) -> Self {
-        self.left(value).right(value)
-    }
-
-    pub fn top(mut self, value: Dimension) -> Self {
-        self.rect.top = value;
-        self
-    }
-
-    pub fn bottom(mut self, value: Dimension) -> Self {
-        self.rect.bottom = value;
-        self
-    }
-
-    pub fn vertical(self, value: Dimension) -> Self {
-        self.top(value).bottom(value)
-    }
-}
-
-impl From<Dimension> for Padding {
-    fn from(value: Dimension) -> Self {
-        Self::default().horizontal(value).vertical(value)
-    }
-}
+use taffy::style::{AlignItems, Dimension, FlexDirection, JustifyContent, Style};
 
 struct ContainerConfig {
     merge_descendants: bool,
@@ -168,8 +108,8 @@ impl<C, M> Container<C, M> {
         self
     }
 
-    pub fn gap(mut self, gap: Gap) -> Self {
-        self.config.style.gap = gap.size;
+    pub fn gap(mut self, size: Size) -> Self {
+        self.config.style.gap = size.into();
         self
     }
 
@@ -188,8 +128,8 @@ impl<C, M> Container<C, M> {
         self
     }
 
-    pub fn size(mut self, size: Size<Dimension>) -> Self {
-        self.config.style.size = size;
+    pub fn size(mut self, size: Size) -> Self {
+        self.config.style.size = size.into();
         self
     }
 

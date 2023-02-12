@@ -1,5 +1,7 @@
 use super::widget;
-use crate::{semantics::LayoutNode, DevicePixels, Modifier, Modify, Semantics, View, Widget};
+use crate::{
+    dimension::DevicePixels, semantics::LayoutNode, Modifier, Modify, Semantics, View, Widget,
+};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},

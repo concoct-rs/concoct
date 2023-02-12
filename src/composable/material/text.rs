@@ -1,5 +1,5 @@
 use super::local_content_color;
-use crate::{composable::local, DevicePixels, View};
+use crate::{composable::local, dimension::DevicePixels, View};
 use local::provider;
 
 pub struct TextStyle {

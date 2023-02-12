@@ -1,12 +1,10 @@
 use concoct::{
-    composable::{container::Gap, material::button::Button, state, Container, Text},
+    composable::{material::button::Button, state, Container, Text},
+    dimension::{DevicePixels, Size},
     render::run,
-    DevicePixels, View,
+    View,
 };
-use taffy::{
-    prelude::Size,
-    style::{AlignItems, Dimension, JustifyContent},
-};
+use taffy::style::{AlignItems, Dimension, JustifyContent};
 
 fn app() {
     Container::build_column(|| {
@@ -25,14 +23,13 @@ fn app() {
                 .on_press(move || *count.get().as_mut() += 1)
                 .view();
         })
-        .gap(Gap::default().width(Dimension::Points(20.dp())))
+        .gap(Size::default().width(Dimension::Points(20.dp())))
         .view()
     })
     .align_items(AlignItems::Center)
     .justify_content(JustifyContent::Center)
     .flex_grow(1.)
-    .gap(Gap::default().height(Dimension::Points(20.dp())))
-    .size(Size::default())
+    .gap(Size::default().height(Dimension::Points(20.dp())))
     .view()
 }
 

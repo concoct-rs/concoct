@@ -1,11 +1,10 @@
 use super::text::{provide_text_style, TextStyle};
-use crate::composable::container::Padding;
 use crate::composable::{interaction_source, remember, Container};
+use crate::dimension::{DevicePixels, Padding, Size};
 use crate::modify::{HandlerModifier, ModifyExt};
-use crate::{Composable, DevicePixels, Modifier, Modify, View};
+use crate::{Composable, Modifier, Modify, View};
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
-use taffy::prelude::Size;
 use taffy::style::{AlignItems, Dimension, JustifyContent};
 
 #[derive(Clone)]
@@ -61,7 +60,7 @@ pub struct Button<C, F, M> {
     pub is_enabled: bool,
     pub colors: ButtonColors,
     pub padding: Padding,
-    pub size: Size<Dimension>,
+    pub size: Size,
 }
 
 impl<C> Button<C, (), Modifier> {
@@ -73,10 +72,7 @@ impl<C> Button<C, (), Modifier> {
             is_enabled: true,
             colors: ButtonColors::new(RGB::from((232, 221, 253)), RGB::from((232, 221, 253))),
             padding: Padding::default().horizontal(Dimension::Points(24.dp())),
-            size: Size {
-                width: Dimension::Undefined,
-                height: Dimension::Points(40.dp()),
-            },
+            size: Size::default().height(Dimension::Points(40.dp())),
         }
     }
 }
@@ -104,7 +100,7 @@ impl<C, M, F> Button<C, F, M> {
         self
     }
 
-    pub fn size(mut self, size: Size<Dimension>) -> Self {
+    pub fn size(mut self, size: Size) -> Self {
         self.size = size;
         self
     }

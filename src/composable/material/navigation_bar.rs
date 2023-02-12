@@ -3,17 +3,15 @@ use super::{
     text::{provide_text_style, TextStyle},
 };
 use crate::{
-    composable::{
-        container::{Gap, Padding},
-        Container,
-    },
+    composable::Container,
+    dimension::{DevicePixels, Padding, Size},
     modify::{HandlerModifier, ModifyExt},
-    DevicePixels, Modifier, Modify, View,
+    Modifier, Modify, View,
 };
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
 use taffy::{
-    prelude::{Dimension, Size},
+    prelude::Dimension,
     style::{AlignItems, JustifyContent},
 };
 
@@ -68,17 +66,14 @@ where
             provide_local_content_color(self.content_color, content_cell.take().unwrap())
         })
         .flex_shrink(0.)
-        .gap(Gap::default().width(Dimension::Points(16.dp())))
+        .gap(Size::default().width(Dimension::Points(16.dp())))
         .padding(
             Padding::default()
                 .top(Dimension::Points(12.dp()))
                 .bottom(Dimension::Points(16.dp()))
                 .horizontal(Dimension::Points(8.dp())),
         )
-        .size(Size {
-            width: Dimension::Percent(1.),
-            height: Dimension::Undefined,
-        })
+        .size(Size::default().width(Dimension::Percent(1.)))
         .modifier(
             Modifier
                 .background_color(self.container_color)
@@ -152,10 +147,11 @@ where
             })
             .align_items(AlignItems::Center)
             .justify_content(JustifyContent::Center)
-            .size(Size {
-                width: Dimension::Percent(1.),
-                height: Dimension::Points(32.dp()),
-            })
+            .size(
+                Size::default()
+                    .width(Dimension::Percent(1.))
+                    .height(Dimension::Points(32.dp())),
+            )
             .modifier(Modifier.background_color(icon_background_color))
             .view();
 
@@ -163,11 +159,8 @@ where
         })
         .align_items(AlignItems::Center)
         .justify_content(JustifyContent::SpaceBetween)
-        .gap(Gap::default().height(Dimension::Points(4.dp())))
-        .size(Size {
-            width: Dimension::Percent(1.),
-            height: Dimension::Percent(1.),
-        })
+        .gap(Size::default().height(Dimension::Points(4.dp())))
+        .size(Size::from(Dimension::Percent(1.)))
         .modifier(
             Modifier
                 .clickable(Role::Navigation, self.on_click)

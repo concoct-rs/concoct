@@ -1,15 +1,13 @@
 use crate::{
     composable::container,
+    dimension::{DevicePixels, Size},
     modify::{HandlerModifier, ModifyExt},
-    CanvasExt, DevicePixels, Modifier, View,
+    CanvasExt, Modifier, View,
 };
 use accesskit::Role;
 use container::Container;
 use skia_safe::{Color4f, Paint, PaintStyle};
-use taffy::{
-    geometry::Point,
-    prelude::{Layout, Size},
-};
+use taffy::{geometry::Point, prelude::Layout, style::Dimension};
 
 #[must_use]
 pub struct RadioButton {
@@ -43,7 +41,7 @@ impl View for RadioButton {
             .map(|on_click| Modifier.clickable(Role::RadioButton, on_click));
 
         Container::build(|| {}, Role::RadioButton)
-            .size(Size::from_points(outer_radius, outer_radius))
+            .size(Size::from(Dimension::Points(outer_radius)))
             .modifier(clickable.draw(move |layout, canvas| {
                 let mut paint = Paint::new(Color4f::new(255., 0., 0., 1.), None);
                 paint.set_stroke(true);
@@ -54,7 +52,7 @@ impl View for RadioButton {
                 let edge_size = (outer_radius - inner_radius) / 2.;
                 let inner_layout = Layout {
                     order: layout.order,
-                    size: Size {
+                    size: taffy::prelude::Size {
                         width: inner_radius,
                         height: inner_radius,
                     },

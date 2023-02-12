@@ -12,6 +12,8 @@ pub use composer::Composer;
 
 pub mod composable;
 
+pub mod dimension;
+
 pub mod modify;
 
 pub use modify::{Modifier, Modify};
@@ -60,22 +62,6 @@ pub enum Event {
         delta: f64,
     },
     Touch(Touch),
-}
-
-pub trait DevicePixels {
-    fn dp(self) -> f32;
-}
-
-impl DevicePixels for f32 {
-    fn dp(self) -> f32 {
-        Composer::with(|composer| self * composer.borrow().scale_factor)
-    }
-}
-
-impl DevicePixels for i32 {
-    fn dp(self) -> f32 {
-        (self as f32).dp()
-    }
 }
 
 pub trait CanvasExt {

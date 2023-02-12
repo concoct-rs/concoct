@@ -1,7 +1,11 @@
 use super::Container;
-use crate::{modify::ModifyExt, DevicePixels, Modifier, View};
+use crate::{
+    dimension::{DevicePixels, Size},
+    modify::ModifyExt,
+    Modifier, View,
+};
 use skia_safe::Data;
-use taffy::prelude::Size;
+use taffy::style::Dimension;
 
 #[must_use]
 pub struct Image {
@@ -25,7 +29,7 @@ impl View for Image {
     #[track_caller]
     fn view(self) {
         Container::build_row(|| {})
-            .size(Size::from_points(200.dp(), 200.dp()))
+            .size(Size::from(Dimension::Points(200.dp())))
             .modifier(Modifier.draw(move |layout, canvas| {
                 let image = skia_safe::Image::from_encoded(self.data.clone()).unwrap();
                 canvas.draw_image(image, (layout.location.x, layout.location.y), None);
