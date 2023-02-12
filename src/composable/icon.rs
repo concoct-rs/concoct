@@ -1,5 +1,5 @@
 use super::Container;
-use crate::{modify::ModifyExt, Modifier};
+use crate::{modify::ModifyExt, Modifier, View};
 use skia_safe::{Matrix, Paint, Path};
 use taffy::prelude::Size;
 
@@ -13,9 +13,11 @@ impl Icon {
         let path = Path::from_svg(svg).unwrap();
         Self { path, paint }
     }
+}
 
+impl View for Icon {
     #[track_caller]
-    pub fn view(self) {
+    fn view(self) {
         Container::build_row(|| {})
             .size(Size::from_points(50., 50.))
             .modifier(Modifier.draw(move |layout, canvas| {

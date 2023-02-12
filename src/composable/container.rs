@@ -1,7 +1,7 @@
 use crate::{
     composer::{Composer, Id},
     semantics::LayoutNode,
-    Modifier, Modify, Semantics, Widget,
+    Modifier, Modify, Semantics, View, Widget,
 };
 use accesskit::{kurbo::Rect, Node, NodeId, Role};
 use skia_safe::Canvas;
@@ -197,13 +197,15 @@ impl<C, M> Container<C, M> {
         self.config.role = role;
         self
     }
+}
 
+impl<C, M> View for Container<C, M>
+where
+    C: FnMut() + 'static,
+    M: Modify + 'static,
+{
     #[track_caller]
-    pub fn view(mut self)
-    where
-        C: FnMut() + 'static,
-        M: Modify + 'static,
-    {
+    fn view(mut self) {
         let location = Location::caller();
         Composer::with(|composer| {
             let id = composer.borrow_mut().id(location);

@@ -1,4 +1,4 @@
-use crate::{semantics::LayoutNode, Modifier, Modify, Widget};
+use crate::{semantics::LayoutNode, Modifier, Modify, View, Widget};
 use accesskit::{Node, NodeId, Role};
 use taffy::style::Style;
 
@@ -27,9 +27,9 @@ impl Element<Modifier> {
     }
 }
 
-impl<M: Modify + 'static> Element<M> {
+impl<M: Modify + 'static> View for Element<M> {
     #[track_caller]
-    pub fn view(self) {
+    fn view(self) {
         widget(
             self,
             |me| me,

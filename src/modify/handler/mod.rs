@@ -1,6 +1,7 @@
 use super::{Chain, ModifyExt};
 use crate::{
-    composable::interaction_source::InteractionSource, semantics::Handler, Modify, Semantics, Composable,
+    composable::interaction_source::InteractionSource, semantics::Handler, Composable, Modify,
+    Semantics,
 };
 use accesskit::{NodeId, Role};
 

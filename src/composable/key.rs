@@ -1,5 +1,5 @@
 use super::Container;
-use crate::Composer;
+use crate::{Composer, View};
 
 /// Specify a key for a given composable.
 #[track_caller]

@@ -2,7 +2,7 @@ use concoct::{
     composable::{key, Container, Text},
     modify::HandlerModifier,
     render::run,
-    Modifier,
+    Modifier, View,
 };
 
 fn app() {

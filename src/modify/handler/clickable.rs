@@ -1,4 +1,6 @@
-use crate::{composable::interaction_source::InteractionSource, semantics::Handler, Event, Composable};
+use crate::{
+    composable::interaction_source::InteractionSource, semantics::Handler, Composable, Event,
+};
 use accesskit::{kurbo::Rect, Node};
 use winit::{
     dpi::PhysicalPosition,

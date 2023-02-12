@@ -2,7 +2,7 @@ use super::text::{provide_text_style, TextStyle};
 use crate::composable::container::Padding;
 use crate::composable::{interaction_source, remember, Container};
 use crate::modify::{HandlerModifier, ModifyExt};
-use crate::{Composable, DevicePixels, Modifier, Modify};
+use crate::{Composable, DevicePixels, Modifier, Modify, View};
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
 use taffy::prelude::Size;
@@ -108,14 +108,16 @@ impl<C, M, F> Button<C, F, M> {
         self.size = size;
         self
     }
+}
 
+impl<C, F, M> View for Button<C, F, M>
+where
+    C: FnMut() + 'static,
+    F: Composable + 'static,
+    M: Modify + 'static,
+{
     #[track_caller]
-    pub fn view(self)
-    where
-        C: FnMut() + 'static,
-        F: Composable + 'static,
-        M: Modify + 'static,
-    {
+    fn view(self) {
         let color = if self.is_enabled {
             self.colors.enabled
         } else {

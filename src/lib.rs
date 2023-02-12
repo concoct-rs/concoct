@@ -93,6 +93,11 @@ impl CanvasExt for Canvas {
     }
 }
 
+#[must_use]
+pub trait View {
+    fn view(self);
+}
+
 pub trait Composable {
     fn compose(&mut self);
 }
@@ -104,7 +109,5 @@ impl<F: FnMut()> Composable for F {
 }
 
 impl Composable for () {
-    fn compose(&mut self) {
-        
-    }
+    fn compose(&mut self) {}
 }

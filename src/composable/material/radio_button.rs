@@ -1,7 +1,7 @@
 use crate::{
     composable::container,
     modify::{HandlerModifier, ModifyExt},
-    CanvasExt, DevicePixels, Modifier,
+    CanvasExt, DevicePixels, Modifier, View,
 };
 use accesskit::Role;
 use container::Container;
@@ -29,9 +29,11 @@ impl RadioButton {
         self.on_click = Some(Box::new(f));
         self
     }
+}
 
+impl View for RadioButton {
     #[track_caller]
-    pub fn view(self) {
+    fn view(self) {
         let outer_radius = 20.dp();
         let inner_radius = 12.dp();
         let stroke_width = 2.dp();

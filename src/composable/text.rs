@@ -1,5 +1,5 @@
 use super::widget;
-use crate::{semantics::LayoutNode, DevicePixels, Modifier, Modify, Semantics, Widget};
+use crate::{semantics::LayoutNode, DevicePixels, Modifier, Modify, Semantics, View, Widget};
 use accesskit::{Node, NodeId, Role};
 use skia_safe::{
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
@@ -72,9 +72,14 @@ where
             font_size: self.font_size,
         }
     }
+}
 
+impl<M> View for Text<M>
+where
+    M: Modify + 'static,
+{
     #[track_caller]
-    pub fn view(self) {
+    fn view(self) {
         widget(
             self,
             |text| TextWidget {

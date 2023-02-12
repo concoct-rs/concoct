@@ -1,5 +1,5 @@
 use super::{container::Container, widget};
-use crate::{Composer, Widget};
+use crate::{Composer, View, Widget};
 use std::{
     any::{Any, TypeId},
     rc::Rc,

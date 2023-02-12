@@ -1,5 +1,5 @@
 use super::Text;
-use crate::{modify::HandlerModifier, Modifier};
+use crate::{modify::HandlerModifier, Modifier, View};
 use winit::event::{ElementState, VirtualKeyCode};
 
 pub struct TextField<F> {
@@ -23,8 +23,18 @@ where
         Self::build(value, on_change).view()
     }
 
+    fn push_char(&mut self, c: char) {
+        self.value.push(c);
+        (self.on_change)(&self.value);
+    }
+}
+
+impl<F> View for TextField<F>
+where
+    F: FnMut(&str) + 'static,
+{
     #[track_caller]
-    pub fn view(mut self) {
+    fn view(mut self) {
         Text::build(self.value.clone())
             .modifier(Modifier.keyboard_handler(move |state, virtual_keycode| {
                 if state == ElementState::Pressed {
@@ -39,10 +49,5 @@ where
                 }
             }))
             .view()
-    }
-
-    fn push_char(&mut self, c: char) {
-        self.value.push(c);
-        (self.on_change)(&self.value);
     }
 }

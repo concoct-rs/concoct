@@ -8,7 +8,7 @@ use crate::{
         Container,
     },
     modify::{HandlerModifier, ModifyExt},
-    DevicePixels, Modifier, Modify,
+    DevicePixels, Modifier, Modify, View,
 };
 use accesskit::Role;
 use skia_safe::{Color4f, RGB};
@@ -53,13 +53,15 @@ impl<C, M> NavigationBar<C, M> {
             content_color: self.content_color,
         }
     }
+}
 
+impl<C, M> View for NavigationBar<C, M>
+where
+    C: FnMut() + 'static,
+    M: Modify + 'static,
+{
     #[track_caller]
-    pub fn view(self)
-    where
-        C: FnMut() + 'static,
-        M: Modify + 'static,
-    {
+    fn view(self) {
         let mut content_cell = Some(self.content);
 
         Container::build_row(move || {
@@ -122,15 +124,17 @@ impl<I, L, M, F> NavigationBarItem<I, L, M, F> {
         self.is_selected = is_selected;
         self
     }
+}
 
+impl<I, L, M, F> View for NavigationBarItem<I, L, M, F>
+where
+    I: FnMut() + 'static,
+    L: FnMut() + 'static,
+    M: Modify + 'static,
+    F: FnMut() + 'static,
+{
     #[track_caller]
-    pub fn view(self)
-    where
-        I: FnMut() + 'static,
-        L: FnMut() + 'static,
-        M: Modify + 'static,
-        F: FnMut() + 'static,
-    {
+    fn view(self) {
         let mut icon_cell = Some(self.icon);
         let mut label_cell = Some(self.label);
 
