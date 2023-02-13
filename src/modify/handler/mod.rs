@@ -1,4 +1,4 @@
-use super::{Chain, ModifyExt};
+use super::{Then, ModifyExt};
 use crate::{
     composable::interaction_source::InteractionSource, semantics::Handler, Composable, Modify,
     Semantics,
@@ -18,12 +18,12 @@ use self::{
 pub mod scrollable;
 
 pub trait HandlerModifier: Modify {
-    fn handler<H>(self, handler: H) -> Chain<Self, ModifierHandler<H>>
+    fn handler<H>(self, handler: H) -> Then<Self, ModifierHandler<H>>
     where
         Self: Sized,
         H: Handler + 'static,
     {
-        self.chain(ModifierHandler {
+        self.then(ModifierHandler {
             handler: Some(handler),
         })
     }
@@ -32,7 +32,7 @@ pub trait HandlerModifier: Modify {
         self,
         _role: Role,
         on_click: F,
-    ) -> Chain<Self, ModifierHandler<ClickHandler<(), F>>>
+    ) -> Then<Self, ModifierHandler<ClickHandler<(), F>>>
     where
         Self: Sized,
         F: FnMut() + 'static,
@@ -45,7 +45,7 @@ pub trait HandlerModifier: Modify {
         _role: Role,
         on_click: F,
         interaction_source: I,
-    ) -> Chain<Self, ModifierHandler<ClickHandler<I, F>>>
+    ) -> Then<Self, ModifierHandler<ClickHandler<I, F>>>
     where
         Self: Sized,
         F: Composable + 'static,
@@ -57,7 +57,7 @@ pub trait HandlerModifier: Modify {
     fn keyboard_handler<H>(
         self,
         handler: H,
-    ) -> Chain<Self, ModifierHandler<KeyboardInputHandler<H>>>
+    ) -> Then<Self, ModifierHandler<KeyboardInputHandler<H>>>
     where
         Self: Sized,
         H: KeyboardHandler + 'static,
@@ -66,7 +66,7 @@ pub trait HandlerModifier: Modify {
     }
 
     /// Detect scroll gestures without offsetting contents
-    fn scrollable<F>(self, on_delta: F) -> Chain<Self, ModifierHandler<Scrollable<(), F>>>
+    fn scrollable<F>(self, on_delta: F) -> Then<Self, ModifierHandler<Scrollable<(), F>>>
     where
         Self: Sized,
         F: FnMut(f64) + 'static,
@@ -79,7 +79,7 @@ pub trait HandlerModifier: Modify {
         self,
         on_delta: F,
         interaction_source: I,
-    ) -> Chain<Self, ModifierHandler<Scrollable<I, F>>>
+    ) -> Then<Self, ModifierHandler<Scrollable<I, F>>>
     where
         Self: Sized,
         F: FnMut(f64) + 'static,

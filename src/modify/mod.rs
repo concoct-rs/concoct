@@ -39,12 +39,12 @@ pub struct Modifier;
 
 impl Modify for Modifier {}
 
-pub struct Chain<A: Modify, B: Modify> {
+pub struct Then<A: Modify, B: Modify> {
     a: A,
     b: B,
 }
 
-impl<A: Modify, B: Modify> Modify for Chain<A, B> {
+impl<A: Modify, B: Modify> Modify for Then<A, B> {
     fn semantics(&mut self, node_id: NodeId, semantics: &mut Semantics) {
         self.a.semantics(node_id, semantics);
         self.b.semantics(node_id, semantics);
@@ -62,36 +62,36 @@ impl<A: Modify, B: Modify> Modify for Chain<A, B> {
 }
 
 pub trait ModifyExt: Modify {
-    fn background_color(self, color: impl Into<Color4f>) -> Chain<Self, BackgroundColor>
+    fn background_color(self, color: impl Into<Color4f>) -> Then<Self, BackgroundColor>
     where
         Self: Sized,
     {
-        self.chain(BackgroundColor {
+        self.then(BackgroundColor {
             color: color.into(),
         })
     }
 
-    fn chain<B>(self, modify: B) -> Chain<Self, B>
+    fn then<B>(self, modify: B) -> Then<Self, B>
     where
         Self: Sized,
         B: Modify,
     {
-        Chain { a: self, b: modify }
+        Then { a: self, b: modify }
     }
 
-    fn clip(self, radii: [Point; 4]) -> Chain<Self, Clip>
+    fn clip(self, radii: [Point; 4]) -> Then<Self, Clip>
     where
         Self: Sized,
     {
-        self.chain(Clip { radii })
+        self.then(Clip { radii })
     }
 
-    fn draw<F>(self, f: F) -> Chain<Self, Draw<F>>
+    fn draw<F>(self, f: F) -> Then<Self, Draw<F>>
     where
         Self: Sized,
         F: FnMut(&Layout, &mut Canvas),
     {
-        self.chain(Draw { f })
+        self.then(Draw { f })
     }
 }
 

@@ -148,7 +148,7 @@ where
                         .clip([Point::new(20.dp(), 20.dp()); 4])
                         .background_color(color)
                         .clickable_interaction(Role::Button, button.on_press, interaction_source)
-                        .chain(button.modifier),
+                        .then(button.modifier),
                 )
                 .view()
         })

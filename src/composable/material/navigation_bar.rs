@@ -77,7 +77,7 @@ where
         .modifier(
             Modifier
                 .background_color(self.container_color)
-                .chain(self.modifier),
+                .then(self.modifier),
         )
         .view()
     }
@@ -168,7 +168,7 @@ where
         .modifier(
             Modifier
                 .clickable(Role::Navigation, self.on_click)
-                .chain(self.modifier),
+                .then(self.modifier),
         )
         .view()
     }
