@@ -375,6 +375,14 @@ pub fn run_with_event_loop_builder(
                     if let Some(handler) = semantics.tasks.get_mut(id) {
                         handler(data);
                     }
+
+                    Composer::recompose(&mut semantics);
+
+                    env.as_mut()
+                        .unwrap()
+                        .windowed_context
+                        .window
+                        .request_redraw();
                 }
             },
             _ => (),

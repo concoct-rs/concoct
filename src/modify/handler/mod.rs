@@ -1,4 +1,4 @@
-use super::{Then, ModifyExt};
+use super::{ModifyExt, Then};
 use crate::{
     composable::interaction_source::InteractionSource, semantics::Handler, Composable, Modify,
     Semantics,
@@ -54,10 +54,7 @@ pub trait HandlerModifier: Modify {
         self.handler(ClickHandler::new(interaction_source, on_click))
     }
 
-    fn keyboard_handler<H>(
-        self,
-        handler: H,
-    ) -> Then<Self, ModifierHandler<KeyboardInputHandler<H>>>
+    fn keyboard_handler<H>(self, handler: H) -> Then<Self, ModifierHandler<KeyboardInputHandler<H>>>
     where
         Self: Sized,
         H: KeyboardHandler + 'static,
