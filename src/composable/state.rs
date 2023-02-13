@@ -46,7 +46,7 @@ pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
 
 pub struct State<T> {
     pub key: StateKey,
-    _marker: PhantomData<T>,
+    _marker: PhantomData<Rc<T>>,
 }
 
 impl<T> Clone for State<T> {
