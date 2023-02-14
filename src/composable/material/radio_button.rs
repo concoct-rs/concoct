@@ -9,7 +9,6 @@ use container::Container;
 use skia_safe::{Color4f, Paint, PaintStyle};
 use taffy::{geometry::Point, prelude::Layout, style::Dimension};
 
-#[must_use]
 pub struct RadioButton {
     on_click: Option<Box<dyn FnMut()>>,
 }

@@ -15,7 +15,6 @@ use taffy::{
     style::{AlignItems, JustifyContent},
 };
 
-#[must_use]
 pub struct NavigationBar<C, M> {
     content: C,
     modifier: M,
@@ -83,7 +82,6 @@ where
     }
 }
 
-#[must_use]
 pub struct NavigationBarItem<I, L, M, F> {
     icon: I,
     label: L,

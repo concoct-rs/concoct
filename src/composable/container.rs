@@ -15,7 +15,6 @@ struct ContainerConfig {
     style: Style,
 }
 
-#[must_use = "Containers must be viewed with `Container::view`"]
 pub struct Container<C, M> {
     content: C,
     modifier: M,

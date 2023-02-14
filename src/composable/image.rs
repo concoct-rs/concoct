@@ -7,7 +7,6 @@ use crate::{
 use skia_safe::Data;
 use taffy::style::Dimension;
 
-#[must_use]
 pub struct Image {
     data: Data,
 }

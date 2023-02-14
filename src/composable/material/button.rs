@@ -51,7 +51,6 @@ impl From<Color4f> for ButtonColors {
 ///     }
 ///     ).view()
 /// ```
-#[must_use = "Buttons must be viewed with `Button::view`"]
 pub struct Button<C, F, M> {
     pub content: C,
     pub on_press: F,
@@ -124,9 +123,7 @@ where
 
         (|| {
             remember([], || {
-                interaction_source.on_item(|interaction| {
-                    dbg!(interaction);
-                });
+                interaction_source.on_item(|_interaction| {});
             })
         })();
 

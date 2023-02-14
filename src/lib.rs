@@ -76,7 +76,7 @@ impl CanvasExt for Canvas {
     }
 }
 
-#[must_use]
+#[must_use = "Views must be viewed with `View::view`"]
 pub trait View {
     fn view(self);
 }

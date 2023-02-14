@@ -17,7 +17,6 @@ use taffy::{
     style::Style,
 };
 
-#[must_use = "Text must be viewed with `Text::view`"]
 pub struct Text<M> {
     pub modifier: M,
     pub string: String,
