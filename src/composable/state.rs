@@ -10,6 +10,7 @@ use std::{
     rc::Rc,
 };
 
+/// Create or retrieve application state.
 #[track_caller]
 pub fn state<T: 'static>(f: impl FnOnce() -> T) -> State<T> {
     let location = Location::caller();
@@ -61,6 +62,7 @@ impl<T> Clone for State<T> {
 impl<T> Copy for State<T> {}
 
 impl<T: 'static> State<T> {
+    /// Get a reference to this state
     pub fn get(self) -> StateRef<T> {
         Composer::with(|composer| {
             let cx = composer.borrow();
@@ -74,6 +76,14 @@ impl<T: 'static> State<T> {
                 rc: widget.value.clone(),
             }
         })
+    }
+
+    /// Get the cloned current value of this state
+    pub fn cloned(self) -> T
+    where
+        T: Clone,
+    {
+        self.get().cloned()
     }
 }
 
@@ -102,6 +112,7 @@ impl<T> StateRef<T> {
         self.rc.as_ref().borrow_mut()
     }
 
+    /// Return the cloned current value
     pub fn cloned(&self) -> T
     where
         T: Clone,

@@ -1,3 +1,4 @@
+use super::widget;
 use crate::{render::UserEvent, Semantics, Widget};
 use futures::{Future, Stream, StreamExt};
 use slotmap::DefaultKey;
@@ -6,8 +7,6 @@ use std::{
     marker::{PhantomData, Unpin},
 };
 use tokio::task::JoinHandle;
-
-use super::widget;
 
 #[track_caller]
 pub fn stream<
