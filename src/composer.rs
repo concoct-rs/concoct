@@ -34,11 +34,12 @@ pub struct Id {
 
 impl fmt::Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for segment in self.path.iter() {
-            segment.fmt(f)?;
-        }
-
-        Ok(())
+        self.path
+            .iter()
+            .map(|segment| format!("{}", segment))
+            .collect::<Vec<_>>()
+            .join("->")
+            .fmt(f)
     }
 }
 
