@@ -9,6 +9,7 @@ use std::{
     panic::Location,
     rc::Rc,
 };
+use tracing::debug;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IdSegment {
@@ -243,9 +244,12 @@ impl Composer {
                 .min_by_key(|(_key, id)| id.path.len())
                 .cloned()
             {
+                debug!("Recomposing {:?}", &parent_id);
+
                 let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
                 let mut content = container.content.take().unwrap();
                 cx.current_group_id = parent_id.clone();
+                cx.changed.clear();
                 drop(cx);
 
                 let children = Self::group(&parent_id, &mut content);

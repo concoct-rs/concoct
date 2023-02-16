@@ -5,6 +5,7 @@ use concoct::{
     View,
 };
 use taffy::style::{AlignItems, Dimension, JustifyContent};
+use tracing::Level;
 
 fn app() {
     Container::build_column(|| {
@@ -35,5 +36,10 @@ fn app() {
 
 #[tokio::main]
 async fn main() {
+    let collector = tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .finish();
+    tracing::subscriber::set_global_default(collector).unwrap();
+
     run(app)
 }

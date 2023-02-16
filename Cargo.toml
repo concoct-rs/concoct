@@ -17,6 +17,7 @@ futures = "0.3.26"
 tokio = { version = "1.25.0", features = ["full"] }
 material-icons = "0.2.0"
 tokio-stream = { version = "0.1.11", features = ["sync"] }
+tracing = "0.1.37"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 skia-safe = { version = "0.58.0", features = ["all-linux"] }
@@ -35,3 +36,6 @@ winit = { version = "0.28", features = [ "android-native-activity" ] }
 [target.'cfg(not(target_os = "android"))'.dependencies]
 skia-safe = { version = "0.58.0", features = ["gl"] }
 winit = "0.28"
+
+[dev-dependencies]
+tracing-subscriber = "0.3.16"
