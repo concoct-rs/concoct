@@ -27,7 +27,21 @@ impl Element<Modifier> {
     }
 }
 
-impl<M: Modify + 'static> View for Element<M> {
+impl<M> Element<M> {
+    pub fn modifier<M2>(self, modifier: M2) -> Element<M2> {
+        Element {
+            modifier,
+            style: self.style,
+            layout_node: self.layout_node,
+            node_id: self.node_id,
+        }
+    }
+}
+
+impl<M> View for Element<M>
+where
+    M: Modify + 'static,
+{
     #[track_caller]
     fn view(self) {
         widget(

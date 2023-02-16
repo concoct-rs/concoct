@@ -1,9 +1,5 @@
 use super::Container;
-use crate::{
-    dimension::{DevicePixels, Size},
-    modify::ModifyExt,
-    Modifier, View,
-};
+use crate::{dimension::Size, modify::ModifyExt, Modifier, View};
 use skia_safe::{Matrix, Paint, Path};
 use taffy::style::Dimension;
 
@@ -23,7 +19,7 @@ impl View for Icon {
     #[track_caller]
     fn view(self) {
         Container::build_row(|| {})
-            .size(Size::from(Dimension::Points(50.dp())))
+            .size(Size::from(Dimension::Points(50.)))
             .modifier(Modifier.draw(move |layout, canvas| {
                 let translation = Matrix::translate((layout.location.x, layout.location.y));
                 canvas.draw_path(&self.path.with_transform(&translation), &self.paint);

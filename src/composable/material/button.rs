@@ -51,6 +51,7 @@ impl From<Color4f> for ButtonColors {
 ///     }
 ///     ).view()
 /// ```
+#[must_use]
 pub struct Button<C, F, M> {
     pub content: C,
     pub on_press: F,
