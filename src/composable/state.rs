@@ -1,3 +1,5 @@
+use tracing::trace;
+
 use crate::{
     composer::{Id, StateKey},
     Composer, Semantics, Widget,
@@ -102,6 +104,8 @@ impl<T> StateRef<T> {
     /// Return a mutable reference to this state's value.
     /// This will trigger a recompose for this state's parent.
     pub fn as_mut(&self) -> RefMut<'_, T> {
+        trace!("State changed in {}", &self.group_id);
+
         Composer::with(|composer| {
             composer
                 .borrow_mut()

@@ -17,9 +17,29 @@ pub struct IdSegment {
     location: &'static Location<'static>,
 }
 
+impl fmt::Display for IdSegment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(key) = self.key {
+            write!(f, "({}) ", key)?;
+        }
+
+        self.location.fmt(f)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Id {
     path: Rc<Box<[IdSegment]>>,
+}
+
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for segment in self.path.iter() {
+            segment.fmt(f)?;
+        }
+
+        Ok(())
+    }
 }
 
 pub struct WidgetNode {
@@ -244,7 +264,7 @@ impl Composer {
                 .min_by_key(|(_key, id)| id.path.len())
                 .cloned()
             {
-                debug!("Recomposing {:?}", &parent_id);
+                debug!("Recomposing {}", &parent_id);
 
                 let container: &mut ContainerWidget = cx.get_mut(&parent_id).unwrap();
                 let mut content = container.content.take().unwrap();
