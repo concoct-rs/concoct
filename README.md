@@ -18,10 +18,10 @@ Cross-platform UI framework in Rust with
 
 # Hello World
 ```rust
-use concoct::{composable::text, render::run, Modifier};
+use concoct::{composable::Text, render::run};
 
 fn app() {
-    Text::new( "Hello World!")
+    Text::new("Hello World!")
 }
 
 fn main() {
@@ -31,29 +31,30 @@ fn main() {
 
 # Counter
 ```rust
-fn app() {
-    Container::build_column(|| {
-        let count = state(|| 0);
+Container::build_column(|| {
+    let count = state(|| 0);
 
-        Text::build(count.get().cloned().to_string())
-            .font_size(80.dp())
+    Text::build(count.get().cloned().to_string())
+        .font_size(80.dp())
+        .view();
+
+    Container::build_row(move || {
+        Button::new(|| Text::new("Less"))
+            .on_press(move || *count.get().as_mut() -= 1)
             .view();
 
-        Container::build_row(move || {
-            Button::new(move || *count.get().as_mut() -= 1, || Text::new("Less"));
-
-            Button::new(move || *count.get().as_mut() += 1, || Text::new("More"));
-        })
-        .gap(Gap::default().width(Dimension::Points(20.dp())))
-        .view()
+        Button::new(|| Text::new("More"))
+            .on_press(move || *count.get().as_mut() += 1)
+            .view();
     })
-    .align_items(AlignItems::Center)
-    .justify_content(JustifyContent::Center)
-    .flex_grow(1.)
-    .gap(Gap::default().height(Dimension::Points(20.dp())))
-    .size(Size::default())
+    .gap(Size::default().width(Dimension::Points(20.dp())))
     .view()
-}
+})
+.align_items(AlignItems::Center)
+.justify_content(JustifyContent::Center)
+.flex_grow(1.)
+.gap(Size::default().height(Dimension::Points(20.dp())))
+.view()
 ```
 
 # Creating a composable
