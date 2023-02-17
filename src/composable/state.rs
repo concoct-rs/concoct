@@ -87,6 +87,12 @@ impl<T: 'static> State<T> {
     {
         self.get().cloned()
     }
+
+    /// Set the current value of this state.
+    /// This will trigger a recompose for this state's parent.
+    pub fn set(self, value: T) {
+        *self.get().as_mut() = value;
+    }
 }
 
 pub struct StateRef<T> {

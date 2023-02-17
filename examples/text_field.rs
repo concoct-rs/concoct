@@ -7,9 +7,7 @@ fn app() {
     Container::column(|| {
         let name = state(String::new);
 
-        TextField::new(name.get().cloned(), move |value| {
-            *name.get().as_mut() = value.to_owned();
-        })
+        TextField::new(name.cloned(), move |value| name.set(value.to_owned()))
     })
 }
 

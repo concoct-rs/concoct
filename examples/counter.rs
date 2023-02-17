@@ -11,7 +11,7 @@ fn app() {
     Container::build_column(|| {
         let count = state(|| 0);
 
-        Text::build(count.get().cloned().to_string())
+        Text::build(count.cloned().to_string())
             .font_size(80.dp())
             .view();
 
