@@ -39,6 +39,7 @@ pub struct Context {
     children: Vec<Node>,
     widgets: SlotMap<DefaultKey, Box<dyn Widget>>,
     updated: Vec<DefaultKey>,
+    is_first_tree_update: bool,
 }
 
 impl Context {
@@ -52,6 +53,7 @@ impl Context {
             children: Vec::new(),
             widgets: SlotMap::new(),
             updated: Vec::new(),
+            is_first_tree_update: true,
         }
     }
 
@@ -82,24 +84,29 @@ impl Context {
 
     pub fn tree_update(&mut self) -> TreeUpdate {
         let mut tree_update = TreeUpdate::default();
-        let mut node_children = Vec::new();
 
-        for id in std::mem::take(&mut self.updated) {
-            let widget = self.widgets.get_mut(id).unwrap();
-            widget.semantics(&mut SemanticsContext {
-                next_id: &mut self.next_id,
-                unused_ids: &mut self.unused_ids,
-                tree_update: &mut tree_update,
-                node_children: &mut node_children,
-            });
+        if self.is_first_tree_update {
+            let mut node_children = Vec::new();
+
+            for id in std::mem::take(&mut self.updated) {
+                let widget = self.widgets.get_mut(id).unwrap();
+                widget.semantics(&mut SemanticsContext {
+                    next_id: &mut self.next_id,
+                    unused_ids: &mut self.unused_ids,
+                    tree_update: &mut tree_update,
+                    node_children: &mut node_children,
+                });
+            }
+
+            const WINDOW_ID: NodeId = NodeId(unsafe { NonZeroU128::new_unchecked(1) });
+            let mut builder = NodeBuilder::new(Role::Window);
+            builder.set_children(node_children);
+            builder.set_name("WINDOW_TITLE");
+            let node = builder.build(&mut NodeClassSet::lock_global());
+            tree_update.nodes.push((WINDOW_ID, node));
+
+            self.is_first_tree_update = false;
         }
-
-        const WINDOW_ID: NodeId = NodeId(unsafe { NonZeroU128::new_unchecked(1) });
-        let mut builder = NodeBuilder::new(Role::Window);
-        builder.set_children(node_children);
-        builder.set_name("WINDOW_TITLE");
-        let node = builder.build(&mut NodeClassSet::lock_global());
-        tree_update.nodes.push((WINDOW_ID, node));
 
         tree_update
     }
@@ -112,15 +119,22 @@ pub trait Widget {
 #[cfg(test)]
 mod tests {
     use crate::{view::Text, Context, View};
+    use accesskit::Role;
 
     #[test]
-    fn f() {
+    fn it_creates_tree_updates() {
         let mut cx = Context::new();
         let mut text = Text::new("Test");
         text.view(&mut cx);
 
         cx.layout();
 
-        dbg!(cx.tree_update());
+        let tree_update = cx.tree_update();
+        assert_eq!(tree_update.nodes.len(), 2);
+        assert_eq!(tree_update.nodes[0].1.role(), Role::StaticText);
+        assert_eq!(tree_update.nodes[1].1.role(), Role::Window);
+
+        let tree_update = cx.tree_update();
+        assert_eq!(tree_update.nodes.len(), 0);
     }
 }
