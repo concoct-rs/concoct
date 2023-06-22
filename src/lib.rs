@@ -1,5 +1,5 @@
-use accesskit::{Node, NodeBuilder, NodeClassSet, NodeId, Role};
-use std::num::NonZeroU128;
+use accesskit::{Node, NodeBuilder, NodeClassSet, NodeId, Role, Tree, TreeUpdate};
+use std::{mem, num::NonZeroU128};
 
 pub struct Context {
     next_id: NonZeroU128,
@@ -122,9 +122,45 @@ where
     }
 }
 
+pub struct Composer {
+    context: Context,
+    is_tree_changed: bool,
+}
+
+impl Composer {
+    pub fn new() -> Self {
+        Self {
+            context: Context::new(),
+            is_tree_changed: true,
+        }
+    }
+
+    pub fn tree_update(&mut self, mut semantics: impl Semantics) -> TreeUpdate {
+        let node_id = self.context.node_id();
+        let tree = if self.is_tree_changed {
+            Some(Tree::new(node_id))
+        } else {
+            self.is_tree_changed = false;
+            None
+        };
+
+        let builder = semantics.build(&mut self.context);
+        let node = builder.build(&mut NodeClassSet::lock_global());
+
+        let mut nodes = mem::take(&mut self.context.nodes);
+        nodes.push((node_id, node));
+
+        TreeUpdate {
+            nodes,
+            tree,
+            focus: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Child, Context, Row, Semantics, Text};
+    use crate::{Child, Composer, Context, Row, Semantics, Text};
 
     #[test]
     fn it_works() {
@@ -142,9 +178,9 @@ mod tests {
 
     #[test]
     fn container() {
-        let mut cx = Context::new();
-        let mut semantics = Row::new((Child::new(Text::new("A")), Child::new(Text::new("B"))));
+        let mut composer = Composer::new();
+        let semantics = Row::new((Child::new(Text::new("A")), Child::new(Text::new("B"))));
 
-        dbg!(semantics.build(&mut cx));
+        dbg!(composer.tree_update(semantics));
     }
 }
