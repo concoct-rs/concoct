@@ -1,4 +1,29 @@
-use accesskit::{NodeBuilder, Role};
+use std::num::NonZeroU128;
+use accesskit::{Node, NodeBuilder, NodeClassSet, NodeId, Role};
+
+pub struct Context {
+    next_id: NonZeroU128,
+    unused_ids: Vec<NodeId>,
+}
+
+impl Context {
+    pub fn new() -> Self {
+        Self {
+            next_id: NonZeroU128::MIN,
+            unused_ids: Vec::new(),
+        }
+    }
+
+    pub fn node_id(&mut self) -> NodeId {
+        if let Some(node_id) = self.unused_ids.pop() {
+            node_id
+        } else {
+            let id = self.next_id;
+            self.next_id = self.next_id.checked_add(1).unwrap();
+            NodeId(id)
+        }
+    }
+}
 
 pub trait Semantics {
     fn is_changed(&self, old: &Self) -> bool;
@@ -11,6 +36,10 @@ pub trait Semantics {
         F: FnMut(&mut NodeBuilder),
     {
         ModifySemantics { semantics: self, f }
+    }
+
+    fn build_node(&mut self) -> Node {
+        self.build().build(&mut NodeClassSet::lock_global())
     }
 }
 
