@@ -1,94 +1,52 @@
-use accesskit::{Node, NodeBuilder, NodeClassSet, NodeId, Role, TreeUpdate};
-use std::{mem, num::NonZeroU128};
-
-pub struct Context {
-    next_id: NonZeroU128,
-    nodes: Vec<(NodeId, Node)>,
-}
-
-impl Context {
-    pub fn new() -> Self {
-        Self {
-            next_id: NonZeroU128::MIN,
-            nodes: Vec::new(),
-        }
-    }
-
-    pub fn node_id(&mut self) -> NodeId {
-        let id = self.next_id;
-        self.next_id = self.next_id.checked_add(1).unwrap();
-
-        NodeId(id)
-    }
-
-    pub fn tree_update(&mut self) -> TreeUpdate {
-        let mut tree_update = TreeUpdate::default();
-        tree_update.nodes = mem::take(&mut self.nodes);
-        tree_update
-    }
-}
+use accesskit::{NodeBuilder, Role};
 
 pub trait Semantics {
-    fn build(&mut self, cx: &mut Context);
+    fn is_changed(&self, old: &Self) -> bool;
 
-    fn rebuild(&mut self, cx: &mut Context, old: Self);
+    fn build(&mut self) -> NodeBuilder;
+
+    fn modify<F>(self, f: F) -> ModifySemantics<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(&mut NodeBuilder),
+    {
+        ModifySemantics { semantics: self, f }
+    }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Text {
     string: String,
-    node_id: Option<NodeId>,
-}
-
-impl Text {
-    pub fn new(string: impl Into<String>) -> Self {
-        Self {
-            string: string.into(),
-            node_id: None,
-        }
-    }
 }
 
 impl Semantics for Text {
-    fn build(&mut self, cx: &mut Context) {
-        let mut builder = NodeBuilder::new(Role::StaticText);
-        builder.set_value(self.string.clone());
-        let node = builder.build(&mut NodeClassSet::lock_global());
-
-        let node_id = cx.node_id();
-        self.node_id = Some(node_id);
-
-        cx.nodes.push((node_id, node));
+    fn is_changed(&self, old: &Self) -> bool {
+        self.string != old.string
     }
 
-    fn rebuild(&mut self, cx: &mut Context, old: Self) {
-        if *self != old {
-            let mut builder = NodeBuilder::new(Role::StaticText);
-            builder.set_value(self.string.clone());
-            let node = builder.build(&mut NodeClassSet::lock_global());
-
-            let node_id = old.node_id.unwrap();
-            self.node_id = Some(node_id);
-
-            cx.nodes.push((node_id, node));
-        }
+    fn build(&mut self) -> NodeBuilder {
+        let mut builder = NodeBuilder::new(Role::StaticText);
+        builder.set_value(self.string.clone());
+        builder
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::{Context, Semantics, Text};
+pub struct ModifySemantics<T, F> {
+    semantics: T,
+    f: F,
+}
 
-    #[test]
-    fn f() {
-        let mut text = Text::new("old");
-        let mut cx = Context::new();
+impl<T, F> Semantics for ModifySemantics<T, F>
+where
+    T: Semantics,
+    F: FnMut(&mut NodeBuilder),
+{
+    fn is_changed(&self, old: &Self) -> bool {
+        self.semantics.is_changed(&old.semantics)
+    }
 
-        text.build(&mut cx);
-        dbg!(cx.tree_update());
-
-        let mut new_text = Text::new("new");
-        new_text.rebuild(&mut cx, text);
-        dbg!(cx.tree_update());
+    fn build(&mut self) -> NodeBuilder {
+        let mut builder = self.semantics.build();
+        (self.f)(&mut builder);
+        builder
     }
 }
