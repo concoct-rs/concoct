@@ -4,8 +4,8 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-accesskit = "0.8.1"
-accesskit_winit = "0.9.0"
+accesskit = "0.11.0"
+accesskit_winit = "0.14.1"
 glutin = "0.30.3"
 glutin-winit = "0.3.0"
 gl = "0.14.0"
