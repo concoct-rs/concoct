@@ -1,9 +1,10 @@
-use accesskit::{NodeBuilder, NodeId, Role};
+use accesskit::{Node, NodeBuilder, NodeClassSet, NodeId, Role};
 use std::num::NonZeroU128;
 
 pub struct Context {
     next_id: NonZeroU128,
     unused_ids: Vec<NodeId>,
+    nodes: Vec<(NodeId, Node)>,
 }
 
 impl Context {
@@ -11,6 +12,7 @@ impl Context {
         Self {
             next_id: NonZeroU128::MIN,
             unused_ids: Vec::new(),
+            nodes: Vec::new(),
         }
     }
 
@@ -26,9 +28,9 @@ impl Context {
 }
 
 pub trait Semantics {
-    fn build(&mut self) -> NodeBuilder;
+    fn build(&mut self, cx: &mut Context) -> NodeBuilder;
 
-    fn rebuild(&mut self, old: &mut Self) -> Option<NodeBuilder>;
+    fn rebuild(&mut self, cx: &mut Context, old: &mut Self) -> Option<NodeBuilder>;
 }
 
 pub struct Text {
@@ -44,32 +46,105 @@ impl Text {
 }
 
 impl Semantics for Text {
-    fn build(&mut self) -> NodeBuilder {
+    fn build(&mut self, cx: &mut Context) -> NodeBuilder {
         NodeBuilder::new(Role::StaticText)
     }
 
-    fn rebuild(&mut self, old: &mut Self) -> Option<NodeBuilder> {
+    fn rebuild(&mut self, cx: &mut Context, old: &mut Self) -> Option<NodeBuilder> {
         if self.string != old.string {
-            Some(self.build())
+            Some(self.build(cx))
         } else {
             None
         }
     }
 }
 
+pub struct Child<T> {
+    node_id: Option<NodeId>,
+    semantics: T,
+}
+
+impl<T> Child<T> {
+    pub fn new(semantics: T) -> Self {
+        Self {
+            node_id: None,
+            semantics,
+        }
+    }
+}
+
+pub struct Row<T> {
+    children: T,
+}
+
+impl<T> Row<T> {
+    pub fn new(children: T) -> Self {
+        Self { children }
+    }
+}
+
+impl<A, B> Semantics for Row<(Child<A>, Child<B>)>
+where
+    A: Semantics,
+    B: Semantics,
+{
+    fn build(&mut self, cx: &mut Context) -> NodeBuilder {
+        let mut row_builder = NodeBuilder::new(Role::Row);
+
+        let builder = self.children.0.semantics.build(cx);
+        let node = builder.build(&mut NodeClassSet::lock_global());
+
+        let node_id = cx.node_id();
+        self.children.0.node_id = Some(node_id);
+
+        cx.nodes.push((node_id, node));
+        row_builder.push_child(node_id);
+
+        row_builder
+    }
+
+    fn rebuild(&mut self, cx: &mut Context, old: &mut Self) -> Option<NodeBuilder> {
+        if let Some(builder) = self
+            .children
+            .0
+            .semantics
+            .rebuild(cx, &mut old.children.0.semantics)
+        {
+            let node = builder.build(&mut NodeClassSet::lock_global());
+
+            let node_id = old.children.0.node_id.unwrap();
+            self.children.0.node_id = Some(node_id);
+
+            cx.nodes.push((node_id, node));
+        }
+
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Semantics, Text};
+    use crate::{Child, Context, Row, Semantics, Text};
 
     #[test]
     fn it_works() {
+        let mut cx = Context::new();
+
         let mut text = Text::new("old");
-        text.build();
+        text.build(&mut cx);
 
         let mut new_text = Text::new("old");
-        assert!(new_text.rebuild(&mut text).is_none());
+        assert!(new_text.rebuild(&mut cx, &mut text).is_none());
 
         let mut new_text = Text::new("new");
-        assert!(new_text.rebuild(&mut text).is_some());
+        assert!(new_text.rebuild(&mut cx, &mut text).is_some());
+    }
+
+    #[test]
+    fn container() {
+        let mut cx = Context::new();
+        let mut semantics = Row::new((Child::new(Text::new("A")), Child::new(Text::new("B"))));
+
+        dbg!(semantics.build(&mut cx));
     }
 }
