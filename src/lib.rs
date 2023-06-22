@@ -1,5 +1,5 @@
+use accesskit::{NodeBuilder, NodeId, Role};
 use std::num::NonZeroU128;
-use accesskit::{Node, NodeBuilder, NodeClassSet, NodeId, Role};
 
 pub struct Context {
     next_id: NonZeroU128,
@@ -26,56 +26,50 @@ impl Context {
 }
 
 pub trait Semantics {
-    fn is_changed(&self, old: &Self) -> bool;
-
     fn build(&mut self) -> NodeBuilder;
 
-    fn modify<F>(self, f: F) -> ModifySemantics<Self, F>
-    where
-        Self: Sized,
-        F: FnMut(&mut NodeBuilder),
-    {
-        ModifySemantics { semantics: self, f }
-    }
-
-    fn build_node(&mut self) -> Node {
-        self.build().build(&mut NodeClassSet::lock_global())
-    }
+    fn rebuild(&mut self, old: &mut Self) -> Option<NodeBuilder>;
 }
 
 pub struct Text {
     string: String,
 }
 
+impl Text {
+    pub fn new(string: impl Into<String>) -> Self {
+        Self {
+            string: string.into(),
+        }
+    }
+}
+
 impl Semantics for Text {
-    fn is_changed(&self, old: &Self) -> bool {
-        self.string != old.string
+    fn build(&mut self) -> NodeBuilder {
+        NodeBuilder::new(Role::StaticText)
     }
 
-    fn build(&mut self) -> NodeBuilder {
-        let mut builder = NodeBuilder::new(Role::StaticText);
-        builder.set_value(self.string.clone());
-        builder
+    fn rebuild(&mut self, old: &mut Self) -> Option<NodeBuilder> {
+        if self.string != old.string {
+            Some(self.build())
+        } else {
+            None
+        }
     }
 }
 
-pub struct ModifySemantics<T, F> {
-    semantics: T,
-    f: F,
-}
+#[cfg(test)]
+mod tests {
+    use crate::{Semantics, Text};
 
-impl<T, F> Semantics for ModifySemantics<T, F>
-where
-    T: Semantics,
-    F: FnMut(&mut NodeBuilder),
-{
-    fn is_changed(&self, old: &Self) -> bool {
-        self.semantics.is_changed(&old.semantics)
-    }
+    #[test]
+    fn it_works() {
+        let mut text = Text::new("old");
+        text.build();
 
-    fn build(&mut self) -> NodeBuilder {
-        let mut builder = self.semantics.build();
-        (self.f)(&mut builder);
-        builder
+        let mut new_text = Text::new("old");
+        assert!(new_text.rebuild(&mut text).is_none());
+
+        let mut new_text = Text::new("new");
+        assert!(new_text.rebuild(&mut text).is_some());
     }
 }
