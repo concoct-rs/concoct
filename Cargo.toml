@@ -11,7 +11,7 @@ glutin-winit = "0.3.0"
 gl = "0.14.0"
 raw-window-handle = "0.5.0"
 slotmap = "1.0.6"
-taffy = "0.2.2"
+taffy = "0.3.12"
 
 futures = "0.3.26"
 tokio = { version = "1.25.0", features = ["full"] }

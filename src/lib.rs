@@ -1,6 +1,13 @@
 use std::collections::HashMap;
 
 pub mod view;
+use slotmap::DefaultKey;
+use taffy::{
+    prelude::{Node, Size},
+    style::{AvailableSpace, FlexDirection, Style},
+    style_helpers::{points, TaffyMaxContent},
+    Taffy,
+};
 pub use view::View;
 
 #[derive(Default)]
@@ -8,11 +15,35 @@ pub struct Context {
     next_id: usize,
     unused_ids: Vec<usize>,
     handlers: HashMap<usize, Box<dyn FnMut()>>,
+    taffy: Taffy,
+    root: Option<DefaultKey>,
+    children: Vec<Node>,
 }
 
 impl Context {
     pub fn handle(&mut self, id: usize) {
         self.handlers.get_mut(&id).unwrap()();
+    }
+
+    pub fn layout(&mut self) {
+        let root = if let Some(root) = self.root {
+            self.taffy.set_children(root, &self.children).unwrap();
+            root
+        } else {
+            let style = Style {
+                flex_direction: FlexDirection::Column,
+                size: Size {
+                    width: points(800.0),
+                    height: points(600.0),
+                },
+                ..Default::default()
+            };
+            let root = self.taffy.new_with_children(style, &self.children).unwrap();
+            self.root = Some(root);
+            root
+        };
+
+        self.taffy.compute_layout(root, Size::MAX_CONTENT).unwrap();
     }
 }
 
@@ -39,16 +70,18 @@ impl Id {
 
 #[cfg(test)]
 mod tests {
-    use crate::{view::Button, Context, View};
+    use crate::{
+        view::{Button, Text},
+        Context, View,
+    };
 
     #[test]
     fn f() {
         let mut cx = Context::default();
-        let mut button = Button::new(String::from("Hello World!"), || {
-            dbg!("Press!");
-        });
+        let mut text = Text::new("Test");
+        text.view(&mut cx);
 
-        button.view(&mut cx);
-        cx.handle(0);
+        cx.layout();
+        dbg!(cx.taffy.layout(cx.children.first().unwrap().clone()));
     }
 }
