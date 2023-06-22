@@ -5,6 +5,7 @@ pub struct Context {
     next_id: NonZeroU128,
     unused_ids: Vec<NodeId>,
     nodes: Vec<(NodeId, Node)>,
+    node_id: Option<NodeId>,
 }
 
 impl Context {
@@ -13,6 +14,7 @@ impl Context {
             next_id: NonZeroU128::MIN,
             unused_ids: Vec::new(),
             nodes: Vec::new(),
+            node_id: None,
         }
     }
 
@@ -23,6 +25,39 @@ impl Context {
             let id = self.next_id;
             self.next_id = self.next_id.checked_add(1).unwrap();
             NodeId(id)
+        }
+    }
+
+    pub fn build(&mut self, semantics: &mut impl Semantics) -> TreeUpdate {
+        let node_id = self.node_id();
+        self.node_id = Some(node_id);
+
+        let builder = semantics.build(self);
+        let node = builder.build(&mut NodeClassSet::lock_global());
+
+        let mut nodes = mem::take(&mut self.nodes);
+        nodes.push((node_id, node));
+
+        TreeUpdate {
+            nodes,
+            tree: Some(Tree::new(node_id)),
+            focus: None,
+        }
+    }
+
+    pub fn rebuild<S: Semantics>(&mut self, new: &mut S, old: &mut S) -> TreeUpdate {
+        let node_id = self.node_id.unwrap();
+        let mut nodes = mem::take(&mut self.nodes);
+
+        if let Some(builder) = new.rebuild(self, old) {
+            let node = builder.build(&mut NodeClassSet::lock_global());
+            nodes.push((node_id, node));
+        }
+
+        TreeUpdate {
+            nodes,
+            tree: None,
+            focus: None,
         }
     }
 }
@@ -122,45 +157,9 @@ where
     }
 }
 
-pub struct Composer {
-    context: Context,
-    is_tree_changed: bool,
-}
-
-impl Composer {
-    pub fn new() -> Self {
-        Self {
-            context: Context::new(),
-            is_tree_changed: true,
-        }
-    }
-
-    pub fn tree_update(&mut self, mut semantics: impl Semantics) -> TreeUpdate {
-        let node_id = self.context.node_id();
-        let tree = if self.is_tree_changed {
-            Some(Tree::new(node_id))
-        } else {
-            self.is_tree_changed = false;
-            None
-        };
-
-        let builder = semantics.build(&mut self.context);
-        let node = builder.build(&mut NodeClassSet::lock_global());
-
-        let mut nodes = mem::take(&mut self.context.nodes);
-        nodes.push((node_id, node));
-
-        TreeUpdate {
-            nodes,
-            tree,
-            focus: None,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{Child, Composer, Context, Row, Semantics, Text};
+    use crate::{Child, Context, Row, Semantics, Text};
 
     #[test]
     fn it_works() {
@@ -178,9 +177,12 @@ mod tests {
 
     #[test]
     fn container() {
-        let mut composer = Composer::new();
-        let semantics = Row::new((Child::new(Text::new("A")), Child::new(Text::new("B"))));
+        let mut cx = Context::new();
+        let mut semantics = Row::new((Child::new(Text::new("A")), Child::new(Text::new("B"))));
 
-        dbg!(composer.tree_update(semantics));
+        dbg!(cx.build(&mut semantics));
+
+        let mut new = Row::new((Child::new(Text::new("A")), Child::new(Text::new("B"))));
+        dbg!(cx.rebuild(&mut semantics, &mut new));
     }
 }
