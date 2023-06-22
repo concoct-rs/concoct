@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+pub mod view;
+pub use view::View;
+
 #[derive(Default)]
 pub struct Context {
     next_id: usize,
@@ -10,16 +13,6 @@ pub struct Context {
 impl Context {
     pub fn handle(&mut self, id: usize) {
         self.handlers.get_mut(&id).unwrap()();
-    }
-}
-
-pub trait View {
-    fn view(&mut self, cx: &mut Context);
-}
-
-impl View for String {
-    fn view(&mut self, cx: &mut Context) {
-        dbg!(self);
     }
 }
 
@@ -44,40 +37,9 @@ impl Id {
     }
 }
 
-pub struct Button<V, F> {
-    id: Id,
-    view: V,
-    on_press: Option<F>,
-}
-
-impl<V, F> Button<V, F> {
-    pub fn new(view: V, on_press: F) -> Self {
-        Self {
-            id: Id { cell: None },
-            view,
-            on_press: Some(on_press),
-        }
-    }
-}
-
-impl<V, F> View for Button<V, F>
-where
-    V: View,
-    F: FnMut() + 'static,
-{
-    fn view(&mut self, cx: &mut Context) {
-        if let Some(on_press) = self.on_press.take() {
-            let id = self.id.get(cx);
-            cx.handlers.insert(id, Box::new(on_press));
-        }
-
-        self.view.view(cx);
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{Button, Context, View};
+    use crate::{view::Button, Context, View};
 
     #[test]
     fn f() {
