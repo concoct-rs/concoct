@@ -4,38 +4,5 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-accesskit = "0.11.0"
-accesskit_winit = "0.14.1"
-glutin = "0.30.3"
-glutin-winit = "0.3.0"
-gl = "0.14.0"
-raw-window-handle = "0.5.0"
-slotmap = "1.0.6"
-taffy = "0.3.12"
-
-futures = "0.3.26"
-tokio = { version = "1.25.0", features = ["full"] }
-material-icons = "0.2.0"
-tokio-stream = { version = "0.1.11", features = ["sync"] }
-tracing = "0.1.37"
-
-[target.'cfg(target_os = "linux")'.dependencies]
-skia-safe = { version = "0.58.0", features = ["all-linux"] }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-skia-safe = { version = "0.58.0", features = ["all-macos"] }
-
-[target.'cfg(target_os = "windows")'.dependencies]
-skia-safe = { version = "0.58.0", features = ["all-windows"] }
-
-[target.'cfg(target_os = "android")'.dependencies]
-android-activity = { version = "0.4.0", features = ["native-activity"] }
-skia-safe = { version = "0.58.0", features = ["gl"] }
-winit = { version = "0.28", features = [ "android-native-activity" ] }
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-skia-safe = { version = "0.58.0", features = ["gl"] }
-winit = "0.28"
-
-[dev-dependencies]
-tracing-subscriber = "0.3.16"
+quote = "1.0.28"
+syn = { version = "2.0.22", features = ["full", "fold", "visit"] }
