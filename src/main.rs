@@ -43,7 +43,7 @@ fn main() {
                         .collect();
 
                     sig.inputs
-                        .insert(0, parse_quote!(composer: &mut impl Composer));
+                        .insert(0, parse_quote!(composer: &mut impl Compose));
                     sig.inputs.insert(1, parse_quote!(changed: u64));
 
                     let old_block =
@@ -72,17 +72,17 @@ fn main() {
                     };
 
                     let check = if args.is_empty() {
-                        quote!(changed == 0)
+                        quote!(changed == 0 &&)
                     } else {
                         let checks = args.iter().enumerate().map(|(idx, _arg)| {
                             let bits: u64 = (0b101 << (idx * 3 + 1)) + 1;
                             quote! {
-                               changed & #bits == 2
+                               dirty & #bits == 2
                             }
                         });
 
                         quote! {
-                            #(#checks || )*
+                            #(#checks && )*
                         }
                     };
 
@@ -92,7 +92,7 @@ fn main() {
 
                             #dirty
 
-                            if #check && composer.is_skipping() {
+                            if #check composer.is_skipping() {
                                 composer.skip_to_group_end();
                             } else {
                                 #block
