@@ -1,6 +1,6 @@
-use quote::{format_ident, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use std::{io::Read, mem};
-use syn::{fold::Fold, parse_quote, Expr, FnArg, Ident, Item, Type, PatType, Pat};
+use syn::{fold::Fold, parse_quote, Expr, FnArg, Ident, Item, Pat};
 
 fn main() {
     let mut source_file = std::fs::File::open("app.rs").unwrap();
@@ -29,13 +29,18 @@ fn main() {
                     let ident = format_ident!("{}Composable", sig.ident);
                     sig.ident = ident.clone();
 
-                    let args = sig.inputs.clone().into_iter().map(|input| match input {
-                        FnArg::Typed(pat_type) => match &*pat_type.pat {
-                            Pat::Ident(pat_ident) => pat_ident.ident.clone(),
-                            _ => todo!(),
-                        },
-                        FnArg::Receiver(_) => todo!(),
-                    });
+                    let args: Vec<_> = sig
+                        .inputs
+                        .clone()
+                        .into_iter()
+                        .map(|input| match input {
+                            FnArg::Typed(pat_type) => match &*pat_type.pat {
+                                Pat::Ident(pat_ident) => pat_ident.ident.clone(),
+                                _ => todo!(),
+                            },
+                            FnArg::Receiver(_) => todo!(),
+                        })
+                        .collect();
 
                     sig.inputs
                         .insert(0, parse_quote!(composer: &mut impl Composer));
@@ -48,11 +53,46 @@ fn main() {
                     let id = current_id;
                     current_id += 1;
 
+                    let dirty = if args.is_empty() {
+                        quote!()
+                    } else {
+                        let checks = args.iter().enumerate().map(|(idx, arg)| {
+                            let bits: u64 = 0b111 << (idx * 3 + 1);
+                            quote! {
+                                if changed & #bits == 0 {
+                                    dirty = changed | if composer.changed(#arg) { 4 } else { 2 };
+                                }
+                            }
+                        });
+
+                        quote! {
+                            let mut dirty = changed;
+                            #(#checks)*
+                        }
+                    };
+
+                    let check = if args.is_empty() {
+                        quote!(changed == 0)
+                    } else {
+                        let checks = args.iter().enumerate().map(|(idx, _arg)| {
+                            let bits: u64 = (0b101 << (idx * 3 + 1)) + 1;
+                            quote! {
+                               changed & #bits == 2
+                            }
+                        });
+
+                        quote! {
+                            #(#checks || )*
+                        }
+                    };
+
                     let composable = parse_quote! {
                         #sig {
                             composer.start_restart_group(#id);
 
-                            if changed == 0 && composer.is_skipping() {
+                            #dirty
+
+                            if #check && composer.is_skipping() {
                                 composer.skip_to_group_end();
                             } else {
                                 #block

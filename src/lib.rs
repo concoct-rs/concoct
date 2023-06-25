@@ -1,4 +1,6 @@
 pub trait Composer {
+    fn changed<T>(&mut self, value: T);
+
     fn is_skipping(&self) -> bool;
 
     fn skip_to_group_end(&mut self);
