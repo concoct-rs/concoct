@@ -1,9 +1,8 @@
 #[composable]
 pub fn a() {
-    b();
 }
 
 #[composable]
-pub fn b() {
+pub fn b(x: i32) {
 
 }

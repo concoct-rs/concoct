@@ -1,6 +1,6 @@
 use quote::{format_ident, ToTokens};
 use std::{io::Read, mem};
-use syn::{fold::Fold, parse_quote, Expr, Ident, Item};
+use syn::{fold::Fold, parse_quote, Expr, FnArg, Ident, Item, Type, PatType, Pat};
 
 fn main() {
     let mut source_file = std::fs::File::open("app.rs").unwrap();
@@ -29,7 +29,14 @@ fn main() {
                     let ident = format_ident!("{}Composable", sig.ident);
                     sig.ident = ident.clone();
 
-                    let old_inputs = sig.inputs.clone();
+                    let args = sig.inputs.clone().into_iter().map(|input| match input {
+                        FnArg::Typed(pat_type) => match &*pat_type.pat {
+                            Pat::Ident(pat_ident) => pat_ident.ident.clone(),
+                            _ => todo!(),
+                        },
+                        FnArg::Receiver(_) => todo!(),
+                    });
+
                     sig.inputs
                         .insert(0, parse_quote!(composer: &mut impl Composer));
                     sig.inputs.insert(1, parse_quote!(changed: u64));
@@ -52,7 +59,7 @@ fn main() {
                             }
 
                             composer.end_restart_group(|composer| {
-                                #ident(composer, changed | 1, #old_inputs)
+                                #ident(composer, changed | 1, #(#args),*)
                             });
 
                         }
