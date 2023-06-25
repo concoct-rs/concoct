@@ -16,7 +16,7 @@ pub struct Composer {
 }
 
 impl Compose for Composer {
-    fn changed<T: Clone>(&mut self, value: &T) -> bool {
+    fn changed<T: Clone>(&mut self, _value: &T) -> bool {
         self.is_changed = !self.is_changed;
         self.is_changed
     }
@@ -27,9 +27,9 @@ impl Compose for Composer {
 
     fn skip_to_group_end(&mut self) {}
 
-    fn start_restart_group(&mut self, id: u64) {}
+    fn start_restart_group(&mut self, _id: u64) {}
 
-    fn end_restart_group(&mut self, update: impl FnMut(&mut Self)) {}
+    fn end_restart_group(&mut self, _update: impl FnMut(&mut Self)) {}
 }
 
 use quote::{format_ident, quote, ToTokens};
