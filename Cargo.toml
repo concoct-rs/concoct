@@ -3,6 +3,12 @@ name = "concoct"
 version = "0.2.0"
 edition = "2021"
 
+[workspace]
+members = [
+    ".",
+    "example"
+]
+
 [dependencies]
 quote = "1.0.28"
 syn = { version = "2.0.22", features = ["full", "fold", "visit"] }
