@@ -21,3 +21,27 @@ counter(1); // Displays 1
 counter(1); // Displays nothing
 counter(2); // Displays 2
 ```
+
+### Compiler
+The runtime is heavily optimized to make use of the compiler.
+When creating a `#[composable]` function, the compiler transforms it to use the runtime.
+The previous example can be compiled as: 
+```rust
+pub fn counter(count: i32) {
+    panic!("Must be called from a concoct runtime.")
+}
+
+fn counterComposable(composer: &mut impl concoct::Compose, changed: u64, count: i32) {
+    composer.start_restart_group(0u64);
+    let mut dirty = changed;
+    if changed & 14u64 == 0 {
+        dirty = changed | if composer.changed(&count) { 4 } else { 2 };
+    }
+    if dirty & 11u64 == 2 && composer.is_skipping() {
+        composer.skip_to_group_end();
+    } else {
+        dbg!(count);
+    }
+    composer.end_restart_group(|composer| counterComposable(composer, changed | 1, count));
+}
+```
