@@ -1,20 +1,14 @@
-use quote::{format_ident, quote, ToTokens};
-use std::{
-    io::{Read, Write},
-    mem,
-};
-use syn::{
-    fold::Fold,
-    parse_quote,
-    visit::{self, Visit},
-    Expr, File, Ident, Item,
-};
+use quote::{format_ident, ToTokens};
+use std::{io::Read, mem};
+use syn::{fold::Fold, parse_quote, Expr, Ident, Item};
 
 fn main() {
     let mut source_file = std::fs::File::open("app.rs").unwrap();
     let mut content = String::new();
     source_file.read_to_string(&mut content).unwrap();
     let mut file = syn::parse_file(&content).unwrap();
+
+    let mut current_id = 0u64;
 
     let mut composables = Vec::new();
     let mut fold = ParenthesizeEveryExpr {
@@ -32,17 +26,35 @@ fn main() {
                     fold.composables.push(item_fn.sig.ident.clone());
 
                     let mut sig = item_fn.sig.clone();
-                    sig.ident = format_ident!("{}Composable", sig.ident);
+                    let ident = format_ident!("{}Composable", sig.ident);
+                    sig.ident = ident.clone();
 
-                    let arg = parse_quote!(composer: &mut Composer);
-                    sig.inputs.insert(0, arg);
+                    let old_inputs = sig.inputs.clone();
+                    sig.inputs
+                        .insert(0, parse_quote!(composer: &mut impl Composer));
+                    sig.inputs.insert(1, parse_quote!(changed: u64));
 
-                    let block = parse_quote!({ panic!("Must be called from a concoct runtime.") });
-                    let block = mem::replace(&mut item_fn.block, block);
+                    let old_block =
+                        parse_quote!({ panic!("Must be called from a concoct runtime.") });
+                    let block = mem::replace(&mut item_fn.block, old_block);
+
+                    let id = current_id;
+                    current_id += 1;
 
                     let composable = parse_quote! {
                         #sig {
-                            #block
+                            composer.start_restart_group(#id);
+
+                            if changed == 0 && composer.is_skipping() {
+                                composer.skip_to_group_end();
+                            } else {
+                                #block
+                            }
+
+                            composer.end_restart_group(|composer| {
+                                #ident(composer, changed | 1, #old_inputs)
+                            });
+
                         }
                     };
                     composables.push(composable);
@@ -67,13 +79,12 @@ struct ParenthesizeEveryExpr {
 
 impl Fold for ParenthesizeEveryExpr {
     fn fold_expr_call(&mut self, mut i: syn::ExprCall) -> syn::ExprCall {
-   
         if let Expr::Path(path) = &mut *i.func {
-         
             if let Some(segment) = path.path.segments.last_mut() {
                 if self.composables.contains(&segment.ident) {
                     segment.ident = format_ident!("{}Composable", segment.ident);
                     i.args.insert(0, parse_quote!(composer));
+                    i.args.insert(1, parse_quote!(changed));
                 }
             }
         }
