@@ -4,6 +4,6 @@ use concoct::Composer;
 
 fn main() {
     let mut cx = Composer::default();
-    appComposable(&mut cx, 0, 0);
-    appComposable(&mut cx, 0, 0);
+    counterComposable(&mut cx, 0, 0);
+    counterComposable(&mut cx, 0, 0);
 }

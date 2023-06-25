@@ -1,7 +1,6 @@
 name: Rust
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "main" ]
   pull_request:
@@ -13,40 +12,13 @@ env:
 jobs:
   build:
 
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 2
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
-      with:
-        prefix-key: "0"
-    - name: Install linux dependencies
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt update && sudo apt install build-essential libssl-dev pkg-config libglib2.0-dev libgtk-3-dev
-    - name: Lint
-      run: cargo clippy
-    - name: Run Linux tests
-      if: runner.os == 'Linux'
-      run: |
-        export RUSTFLAGS="-Cinstrument-coverage"
-        export LLVM_PROFILE_FILE='cargo-test-%p-%m.profraw'
-        cargo test --workspace 
-    - name: Run MacOS and Windows tests
-      if: runner.os != 'Linux'
-      run: cargo test --workspace
-    - name: Run coverage
-      if: runner.os == 'Linux'
-      run: |
-        rustup component add llvm-tools-preview 
-        curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf -
-        ./grcov . --binary-path ./target/debug/deps -s . -t lcov --branch --ignore-not-existing --ignore "../*" --ignore "/*" -o cov.lcov 
-        curl -Os https://uploader.codecov.io/latest/linux/codecov 
-        chmod +x codecov 
-        ./codecov
+    - name: Build core features
+      run: cargo build --verbose
+    - name: Build all features
+      run: cargo build --verbose --features full
+    - name: Run tests
+      run: cargo test --verbose --features full

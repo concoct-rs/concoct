@@ -1,4 +1,4 @@
 #[composable]
-pub fn app(x: i32) {
-    dbg!(x);
+pub fn counter(count: i32) {
+    dbg!(count);
 }
