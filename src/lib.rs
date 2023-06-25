@@ -1,3 +1,6 @@
+mod applier;
+pub use applier::Applier;
+
 pub trait Compose {
     fn changed<T: Clone>(&mut self, value: &T) -> bool;
 
