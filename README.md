@@ -16,4 +16,8 @@ For example, a counter that only prints a `count` when it changes:
 pub fn counter(count: i32) {
     dbg!(count);
 }
+
+counter(1); // Displays 1
+counter(1); // Displays nothing
+counter(2); // Displays 2
 ```
