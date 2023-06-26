@@ -1,9 +1,9 @@
 
 use quote::{format_ident, quote, ToTokens};
 use std::{io::Read, mem, path::Path};
-use syn::{fold::Fold, parse_quote, Expr, FnArg, Ident, Item, Pat};
+use syn::{fold::Fold, parse_quote, Expr, FnArg, Ident, Item, Pat, File};
 
-pub fn run(src: impl AsRef<Path>, dst: impl AsRef<Path>) {
+pub fn run(src: impl AsRef<Path>) -> File {
     let mut source_file = std::fs::File::open(src).unwrap();
     let mut content = String::new();
     source_file.read_to_string(&mut content).unwrap();
@@ -120,7 +120,7 @@ pub fn run(src: impl AsRef<Path>, dst: impl AsRef<Path>) {
             .map(|composable| Item::Fn(fold.fold_item_fn(composable))),
     );
 
-    std::fs::write(dst, file.into_token_stream().to_string()).unwrap();
+    file
 }
 
 struct ParenthesizeEveryExpr {
