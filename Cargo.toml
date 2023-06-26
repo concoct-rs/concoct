@@ -9,6 +9,7 @@ full = []
 [workspace]
 members = [
     ".",
+    "macros",
     "example"
 ]
 

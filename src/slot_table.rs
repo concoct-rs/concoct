@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-const Group_Fields_Size: usize = 5;
+const GROUP_FIELDS_SIZE: usize = 5;
 
 pub type Slot = Option<Box<dyn Any>>;
 
@@ -79,9 +79,9 @@ impl SlotTable {
 
         SlotWriter {
             table: self.clone(),
-            capacity: table.groups.len() / Group_Fields_Size,
+            capacity: table.groups.len() / GROUP_FIELDS_SIZE,
             current_group_end: table.groups_len,
-            group_gap_len: table.groups.len() / Group_Fields_Size - table.groups_len,
+            group_gap_len: table.groups.len() / GROUP_FIELDS_SIZE - table.groups_len,
             insert_count: 0,
             start_stack: Vec::new(),
             end_stack: Vec::new(),
@@ -186,4 +186,15 @@ impl SlotWriter {
     ) {
         self.node_count_stack.push(self.node_count);
     }
+
+    // Insert `size` number of groups in front of `currentGroup`.
+    // These groups are implicitly a child of `parent`.
+    fn insert_groups(&mut self, count: usize) {
+        if count == 0 {
+            return;
+        }
+    }
+
+    // Move the gap in [groups] to [index].
+    fn move_group_gap_to(&mut self, index: usize) {}
 }
