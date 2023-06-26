@@ -4,6 +4,8 @@ pub use applier::Applier;
 mod compiler;
 pub use compiler::run;
 
+mod slot_table;
+
 pub trait Compose {
     fn changed<T: Clone>(&mut self, value: &T) -> bool;
 
