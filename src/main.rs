@@ -7,18 +7,22 @@ extern crate rustc_errors;
 extern crate rustc_hash;
 extern crate rustc_hir;
 extern crate rustc_interface;
+extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
 use clap::Parser;
-use rustc_ast_pretty::pprust::item_to_string;
+use quote::format_ident;
 use rustc_errors::registry;
+use rustc_hir::intravisit::{self, Visitor};
+use rustc_middle::ty::TyCtxt;
 use rustc_session::config::{self, CheckCfg};
 use rustc_span::source_map;
 use std::{
     path::{self, PathBuf},
     process, str,
 };
+use syn::parse_quote;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -64,26 +68,79 @@ pub fn compile(input: String) {
     };
     rustc_interface::run_compiler(config, |compiler| {
         compiler.enter(|queries| {
-            // TODO: add this to -Z unpretty
-            let ast_krate = queries.parse().unwrap().get_mut().clone();
-            for item in ast_krate.items {
-                println!("{}", item_to_string(&item));
-            }
-            // Analyze the crate and inspect the types under the cursor.
+            let mut cooked = syn::File {
+                shebang: None,
+                attrs: Vec::new(),
+                items: Vec::new(),
+            };
+
             queries.global_ctxt().unwrap().enter(|tcx| {
-                // Every compilation contains a single crate.
                 let hir_krate = tcx.hir();
-           
-                // Iterate over the top-level items in the crate, looking for the main function.
+
                 for id in hir_krate.items() {
                     let item = hir_krate.item(id);
-                    // Use pattern-matching to find a specific node inside the main function.
-                    if let rustc_hir::ItemKind::Fn(_, _, body_id) = item.kind {
-                        let expr = &tcx.hir().body(body_id).value;
-                        dbg!(&expr);
+
+                    if let rustc_hir::ItemKind::Fn(_sig, _, body_id) = item.kind {
+                        let expr = tcx.hir().body(body_id);
+
+                        let mut visitor = Visit {
+                            tcx,
+                            items: Vec::new(),
+                        };
+                        visitor.visit_expr(expr.value);
+                        let items = visitor.items;
+
+                        let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
+
+                        let item = parse_quote! {
+                            fn #name(composer: &mut impl concoct::Compose, changed: u32) {
+                                #(#items)*
+                            }
+                        };
+                        cooked.items.push(item);
                     }
                 }
-            })
+            });
+
+            println!("{}", prettyplease::unparse(&cooked));
         });
     });
+}
+
+struct Visit<'a> {
+    tcx: TyCtxt<'a>,
+    items: Vec<syn::Stmt>,
+}
+
+impl<'a, 'v> Visitor<'v> for Visit<'a> {
+    fn visit_expr(&mut self, ex: &'v rustc_hir::Expr<'v>) {
+        if let rustc_hir::ExprKind::Call(func, _args) = ex.kind {
+            if let rustc_hir::ExprKind::Path(path) = func.kind {
+                if let rustc_hir::QPath::Resolved(_, path) = path {
+                    let id = path.res.def_id();
+
+                    let ident = format_ident!("{}", self.tcx.item_name(id).to_string());
+
+                    let attrs = self.tcx.get_attrs_unchecked(id);
+                    if attrs
+                        .get(0)
+                        .and_then(|attr| attr.ident())
+                        .map(|ident| ident.to_string())
+                        .as_deref()
+                        == Some("inline")
+                    {
+                        self.items.push(parse_quote! {
+                            #ident(composer, changed);
+                        });
+                    } else {
+                        self.items.push(parse_quote! {
+                            #ident();
+                        });
+                    }
+                }
+            }
+        }
+
+        intravisit::walk_expr(self, ex)
+    }
 }

@@ -1,6 +1,6 @@
 use std::{
     any::Any,
-    cell::{Ref, RefCell, RefMut},
+    cell::{Ref, RefCell},
     rc::Rc,
 };
 
@@ -179,10 +179,10 @@ impl SlotWriter {
 
     fn start_group_inner(
         &mut self,
-        key: usize,
-        object_key: Option<Box<dyn Any>>,
-        is_node: bool,
-        aux: Option<Box<dyn Any>>,
+        _key: usize,
+        _object_key: Option<Box<dyn Any>>,
+        _is_node: bool,
+        _aux: Option<Box<dyn Any>>,
     ) {
         self.node_count_stack.push(self.node_count);
     }
@@ -196,5 +196,5 @@ impl SlotWriter {
     }
 
     // Move the gap in [groups] to [index].
-    fn move_group_gap_to(&mut self, index: usize) {}
+    fn move_group_gap_to(&mut self, _index: usize) {}
 }

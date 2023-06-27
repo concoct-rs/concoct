@@ -1,3 +1,10 @@
-fn a(count: i32) -> i32 {
+fn a() {
+    b();
     
+    c();
 }
+
+fn b() {}
+
+#[inline]
+fn c() {}

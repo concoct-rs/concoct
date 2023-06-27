@@ -1,7 +1,6 @@
-
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use std::{io::Read, mem, path::Path};
-use syn::{fold::Fold, parse_quote, Expr, FnArg, Ident, Item, Pat, File};
+use syn::{fold::Fold, parse_quote, Expr, File, FnArg, Ident, Item, Pat};
 
 pub fn run(src: impl AsRef<Path>) -> File {
     let mut source_file = std::fs::File::open(src).unwrap();

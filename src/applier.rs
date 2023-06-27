@@ -1,7 +1,6 @@
-
 /// An Applier is responsible for applying the tree-based operations that get emitted during a
 /// composition. Every [Composer] has an [Applier] which it uses to emit a [ComposeNode].
-/// 
+///
 /// A custom [Applier] implementation will be needed in order to utilize Compose to build and
 /// maintain a tree of a novel type.
 pub trait Applier<N> {
@@ -72,20 +71,20 @@ pub trait Applier<N> {
     ///  3. `B` is notified of `C` entering, `R` is notified of `C` entering.
     ///  for a total of 5 notifications. The number of notifications grows exponentially with the
     ///  number of inserts.
-    /// 
+    ///
     ///  For bottom-up, the notifications are,
     ///  1. `B` is notified `A` entering.
     ///  2. `B` is notified `C` entering.
     ///  3. `R` is notified `B` entering.
     ///  The notifications are linear to the number of nodes inserted.
-    /// 
+    ///
     ///  If, on the other hand, all children are notified when the parent enters a tree, then the
     ///  notifications are, for top-down,
     ///  1. `B` is notified it is entering `R`.
     ///  2. `A` is notified it is entering `B`.
     ///  3. `C` is notified it is entering `B`.
     ///  which is linear to the number of nodes inserted.
-    /// 
+    ///
     ///  For bottom-up, the notifications look like,
     ///  1. `A` is notified it is entering `B`.
     ///  2. `C` is notified it is entering `B`.
