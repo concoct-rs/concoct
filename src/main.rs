@@ -1,86 +1,115 @@
 #![feature(rustc_private)]
 
-extern crate rustc_ast_pretty;
 extern crate rustc_driver;
-extern crate rustc_error_codes;
-extern crate rustc_errors;
-extern crate rustc_hash;
+extern crate rustc_driver_impl;
 extern crate rustc_hir;
 extern crate rustc_interface;
 extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
-use clap::Parser;
 use quote::format_ident;
-use rustc_errors::registry;
+use rustc_driver_impl::Compilation;
 use rustc_hir::intravisit::{self, Visitor};
+use rustc_interface::interface;
 use rustc_middle::ty::TyCtxt;
-use rustc_session::config::{self, CheckCfg};
-use rustc_span::source_map;
-use std::{
-    path::{self, PathBuf},
-    process, str,
-};
+use rustc_session::parse::ParseSess;
+use rustc_span::symbol::Symbol;
 use syn::parse_quote;
 
-/// Simple program to greet a person
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    input: PathBuf,
+use std::env;
+use std::ops::Deref;
+use std::path::Path;
+use std::process::exit;
+
+/// If a command-line option matches `find_arg`, then apply the predicate `pred` on its value. If
+/// true, then return it. The parameter is assumed to be either `--arg=value` or `--arg value`.
+fn arg_value<'a, T: Deref<Target = str>>(
+    args: &'a [T],
+    find_arg: &str,
+    pred: impl Fn(&str) -> bool,
+) -> Option<&'a str> {
+    let mut args = args.iter().map(Deref::deref);
+    while let Some(arg) = args.next() {
+        let mut arg = arg.splitn(2, '=');
+        if arg.next() != Some(find_arg) {
+            continue;
+        }
+
+        match arg.next().or_else(|| args.next()) {
+            Some(v) if pred(v) => return Some(v),
+            _ => {}
+        }
+    }
+    None
 }
 
-fn main() {
-    let args = Args::parse();
-    let content = std::fs::read_to_string(args.input).unwrap();
-    compile(content)
+#[test]
+fn test_arg_value() {
+    let args = &["--bar=bar", "--foobar", "123", "--foo"];
+
+    assert_eq!(arg_value(&[] as &[&str], "--foobar", |_| true), None);
+    assert_eq!(arg_value(args, "--bar", |_| false), None);
+    assert_eq!(arg_value(args, "--bar", |_| true), Some("bar"));
+    assert_eq!(arg_value(args, "--bar", |p| p == "bar"), Some("bar"));
+    assert_eq!(arg_value(args, "--bar", |p| p == "foo"), None);
+    assert_eq!(arg_value(args, "--foobar", |p| p == "foo"), None);
+    assert_eq!(arg_value(args, "--foobar", |p| p == "123"), Some("123"));
+    assert_eq!(
+        arg_value(args, "--foobar", |p| p.contains("12")),
+        Some("123")
+    );
+    assert_eq!(arg_value(args, "--foo", |_| true), None);
 }
 
-pub fn compile(input: String) {
-    let out = process::Command::new("rustc")
-        .arg("--print=sysroot")
-        .current_dir(".")
-        .output()
-        .unwrap();
-    let sysroot = str::from_utf8(&out.stdout).unwrap().trim();
-    let config = rustc_interface::Config {
-        opts: config::Options {
-            maybe_sysroot: Some(path::PathBuf::from(sysroot)),
-            ..config::Options::default()
-        },
-        input: config::Input::Str {
-            name: source_map::FileName::Custom("main.rs".to_string()),
-            input,
-        },
-        crate_cfg: rustc_hash::FxHashSet::default(),
-        crate_check_cfg: CheckCfg::default(),
-        output_dir: None,
-        output_file: None,
-        file_loader: None,
-        locale_resources: rustc_driver::DEFAULT_LOCALE_RESOURCES,
-        lint_caps: rustc_hash::FxHashMap::default(),
-        parse_sess_created: None,
-        register_lints: None,
-        override_queries: None,
-        make_codegen_backend: None,
-        registry: registry::Registry::new(&rustc_error_codes::DIAGNOSTICS),
-    };
-    rustc_interface::run_compiler(config, |compiler| {
-        compiler.enter(|queries| {
-            let mut cooked = syn::File {
-                shebang: None,
-                attrs: Vec::new(),
-                items: Vec::new(),
-            };
+struct DefaultCallbacks;
+impl rustc_driver::Callbacks for DefaultCallbacks {}
 
-            queries.global_ctxt().unwrap().enter(|tcx| {
-                let hir_krate = tcx.hir();
+/// This is different from `DefaultCallbacks` that it will inform Cargo to track the value of
+/// `CLIPPY_ARGS` environment variable.
+struct RustcCallbacks {
+    clippy_args_var: Option<String>,
+}
 
-                for id in hir_krate.items() {
-                    let item = hir_krate.item(id);
+impl rustc_driver::Callbacks for RustcCallbacks {
+    fn config(&mut self, config: &mut interface::Config) {
+        let clippy_args_var = self.clippy_args_var.take();
+    }
+}
 
-                    if let rustc_hir::ItemKind::Fn(_sig, _, body_id) = item.kind {
+struct ClippyCallbacks {
+    clippy_args_var: Option<String>,
+}
+
+impl rustc_driver::Callbacks for ClippyCallbacks {
+    fn after_parsing<'tcx>(
+        &mut self,
+        compiler: &interface::Compiler,
+        queries: &'tcx rustc_interface::Queries<'tcx>,
+    ) -> rustc_driver_impl::Compilation {
+        let mut cooked = syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: Vec::new(),
+        };
+
+        queries.global_ctxt().unwrap().enter(|tcx| {
+            let hir_krate = tcx.hir();
+
+            for id in hir_krate.items() {
+                let item = hir_krate.item(id);
+
+                if let rustc_hir::ItemKind::Fn(_sig, _, body_id) = item.kind {
+                    let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
+
+                    let attrs = hir_krate.attrs(id.hir_id());
+                    let item = if attrs
+                        .get(0)
+                        .and_then(|attr| attr.ident())
+                        .map(|ident| ident.to_string())
+                        .as_deref()
+                        == Some("inline")
+                    {
                         let expr = tcx.hir().body(body_id);
 
                         let mut visitor = Visit {
@@ -92,19 +121,120 @@ pub fn compile(input: String) {
 
                         let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
 
-                        let item = parse_quote! {
+                        parse_quote! {
                             fn #name(composer: &mut impl concoct::Compose, changed: u32) {
                                 #(#items)*
                             }
-                        };
-                        cooked.items.push(item);
-                    }
-                }
-            });
+                        }
+                    } else {
+                        parse_quote!(
+                            fn #name() {
 
-            println!("{}", prettyplease::unparse(&cooked));
+                            }
+                        )
+                    };
+
+                    cooked.items.push(item);
+                }
+            }
         });
-    });
+
+        std::fs::write("out.rs", prettyplease::unparse(&cooked)).unwrap();
+
+        Compilation::Stop
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+pub fn main() {
+    rustc_driver::init_rustc_env_logger();
+
+    // rustc_driver::install_ice_hook(BUG_REPORT_URL, |handler| {});
+
+    exit(rustc_driver::catch_with_exit_code(move || {
+        let mut orig_args: Vec<String> = env::args().collect();
+        let has_sysroot_arg = arg_value(&orig_args, "--sysroot", |_| true).is_some();
+
+        let sys_root_env = std::env::var("SYSROOT").ok();
+        let pass_sysroot_env_if_given = |args: &mut Vec<String>, sys_root_env| {
+            if let Some(sys_root) = sys_root_env {
+                if !has_sysroot_arg {
+                    args.extend(vec!["--sysroot".into(), sys_root]);
+                }
+            };
+        };
+
+        // make "clippy-driver --rustc" work like a subcommand that passes further args to "rustc"
+        // for example `clippy-driver --rustc --version` will print the rustc version that clippy-driver
+        // uses
+        if let Some(pos) = orig_args.iter().position(|arg| arg == "--rustc") {
+            orig_args.remove(pos);
+            orig_args[0] = "rustc".to_string();
+
+            let mut args: Vec<String> = orig_args.clone();
+            pass_sysroot_env_if_given(&mut args, sys_root_env);
+
+            return rustc_driver::RunCompiler::new(&args, &mut DefaultCallbacks).run();
+        }
+
+        if orig_args.iter().any(|a| a == "--version" || a == "-V") {
+            exit(0);
+        }
+
+        // Setting RUSTC_WRAPPER causes Cargo to pass 'rustc' as the first argument.
+        // We're invoking the compiler programmatically, so we ignore this/
+        let wrapper_mode =
+            orig_args.get(1).map(Path::new).and_then(Path::file_stem) == Some("rustc".as_ref());
+
+        if wrapper_mode {
+            // we still want to be able to invoke it normally though
+            orig_args.remove(1);
+        }
+
+        if !wrapper_mode
+            && (orig_args.iter().any(|a| a == "--help" || a == "-h") || orig_args.len() == 1)
+        {
+            // display_help();
+            exit(0);
+        }
+
+        let mut args: Vec<String> = orig_args.clone();
+        pass_sysroot_env_if_given(&mut args, sys_root_env);
+
+        let mut no_deps = false;
+        let clippy_args_var = env::var("CLIPPY_ARGS").ok();
+        let clippy_args = clippy_args_var
+            .as_deref()
+            .unwrap_or_default()
+            .split("__CLIPPY_HACKERY__")
+            .filter_map(|s| match s {
+                "" => None,
+                "--no-deps" => {
+                    no_deps = true;
+                    None
+                }
+                _ => Some(s.to_string()),
+            })
+            .chain(vec!["--cfg".into(), r#"feature="cargo-clippy""#.into()])
+            .collect::<Vec<String>>();
+
+        // We enable Clippy if one of the following conditions is met
+        // - IF Clippy is run on its test suite OR
+        // - IF Clippy is run on the main crate, not on deps (`!cap_lints_allow`) THEN
+        //    - IF `--no-deps` is not set (`!no_deps`) OR
+        //    - IF `--no-deps` is set and Clippy is run on the specified primary package
+        let cap_lints_allow = arg_value(&orig_args, "--cap-lints", |val| val == "allow").is_some()
+            && arg_value(&orig_args, "--force-warn", |val| val.contains("clippy::")).is_none();
+        let in_primary_package = env::var("CARGO_PRIMARY_PACKAGE").is_ok();
+
+        let clippy_enabled = !cap_lints_allow && (!no_deps || in_primary_package);
+        if clippy_enabled {
+            args.extend(clippy_args);
+            rustc_driver::RunCompiler::new(&args, &mut ClippyCallbacks { clippy_args_var }).run()
+        } else {
+            rustc_driver::RunCompiler::new(&args, &mut RustcCallbacks { clippy_args_var }).run()
+        }
+    }))
 }
 
 struct Visit<'a> {
