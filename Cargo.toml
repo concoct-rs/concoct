@@ -3,10 +3,17 @@ name = "concoct"
 version = "0.2.0"
 edition = "2021"
 
+[workspace]
+members = [
+    ".",
+    "macros"
+]
+
 [features]
 full = []
 
 [dependencies]
+concoct-macros = { path = "macros" }
 clap = { version = "4.3.8", features = ["derive"] }
 log = "0.4.19"
 prettyplease = "0.2.9"

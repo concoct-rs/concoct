@@ -1,8 +1,9 @@
-#[inline]
-fn a() {
+#![feature(register_tool)]
+#![register_tool(concoct_rt)]
 
-}
+use concoct::composable;
 
-fn main() {
-    
-}
+#[composable]
+fn a() {}
+
+fn main() {}

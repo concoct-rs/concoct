@@ -1,5 +1,6 @@
 #![feature(rustc_private)]
 
+extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_driver_impl;
 extern crate rustc_hir;
@@ -9,6 +10,7 @@ extern crate rustc_session;
 extern crate rustc_span;
 
 use quote::format_ident;
+use rustc_ast::AttrKind;
 use rustc_driver_impl::Compilation;
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_interface::interface;
@@ -102,37 +104,39 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
                 if let rustc_hir::ItemKind::Fn(_sig, _, body_id) = item.kind {
                     let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
 
+                    let mut item = parse_quote!(
+                        fn #name() {
+
+                        }
+                    );
+
                     let attrs = hir_krate.attrs(id.hir_id());
-                    let item = if attrs
-                        .get(0)
-                        .and_then(|attr| attr.ident())
-                        .map(|ident| ident.to_string())
-                        .as_deref()
-                        == Some("inline")
-                    {
-                        let expr = tcx.hir().body(body_id);
+                    if attrs.len() > 0 {
+                        if let AttrKind::Normal(attr) = &attrs[0].kind {
+                            let segments = &attr.item.path.segments;
+                            if segments[0].ident.to_string() == "concoct_rt"
+                                && segments[1].ident.to_string() == "composable"
+                            {
+                                let expr = tcx.hir().body(body_id);
 
-                        let mut visitor = Visit {
-                            tcx,
-                            items: Vec::new(),
-                        };
-                        visitor.visit_expr(expr.value);
-                        let items = visitor.items;
+                                let mut visitor = Visit {
+                                    tcx,
+                                    items: Vec::new(),
+                                };
+                                visitor.visit_expr(expr.value);
+                                let items = visitor.items;
 
-                        let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
+                                let name =
+                                    format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
 
-                        parse_quote! {
-                            fn #name(composer: &mut impl concoct::Compose, changed: u32) {
-                                #(#items)*
+                                item = parse_quote! {
+                                    fn #name(composer: &mut impl concoct::Compose, changed: u32) {
+                                        #(#items)*
+                                    }
+                                };
                             }
                         }
-                    } else {
-                        parse_quote!(
-                            fn #name() {
-
-                            }
-                        )
-                    };
+                    }
 
                     cooked.items.push(item);
                 }
@@ -227,7 +231,7 @@ pub fn main() {
             && arg_value(&orig_args, "--force-warn", |val| val.contains("clippy::")).is_none();
         let in_primary_package = env::var("CARGO_PRIMARY_PACKAGE").is_ok();
 
-        let clippy_enabled = !cap_lints_allow && (!no_deps || in_primary_package);
+        let clippy_enabled = in_primary_package;
         if clippy_enabled {
             args.extend(clippy_args);
             rustc_driver::RunCompiler::new(&args, &mut ClippyCallbacks { clippy_args_var }).run()
@@ -257,7 +261,7 @@ impl<'a, 'v> Visitor<'v> for Visit<'a> {
                         .and_then(|attr| attr.ident())
                         .map(|ident| ident.to_string())
                         .as_deref()
-                        == Some("inline")
+                        == Some("cfg_attr")
                     {
                         self.items.push(parse_quote! {
                             #ident(composer, changed);
