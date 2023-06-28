@@ -1,9 +1,11 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use syn::{
     fold::{self, Fold},
-    parse_macro_input, parse_quote, Expr, FieldValue, FnArg, GenericParam, Item, ItemFn,
-    ReturnType, Stmt, Type, TypePath,
+    parse_macro_input, parse_quote,
+    punctuated::Punctuated,
+    token::Comma,
+    Expr, FieldValue, FnArg, GenericParam, Item, ItemFn, ReturnType, Stmt, Type, TypePath,
 };
 
 #[proc_macro_attribute]
@@ -107,12 +109,20 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    let mut constructor_fields = Punctuated::<_, Comma>::new();
+    constructor_fields.extend(input_pats.iter().map(|pat| pat.to_token_stream()));
+    constructor_fields.extend(struct_markers.clone());
+
+    let mut struct_pattern = Punctuated::<_, Comma>::new();
+    struct_pattern.extend(input_pats.iter().map(|pat| pat.to_token_stream()));
+    struct_pattern.push(quote!(..));
+
     let expanded = quote! {
         #[must_use]
         #vis fn #ident #generics_clause (#(#inputs),*) -> impl concoct::Composable<Output = #output_ty> {
             #[allow(non_camel_case_types)]
             struct #struct_ident <#(#generics),*> {
-                #(#struct_fields),*,
+                #(#struct_fields),*
             }
 
             impl #generics_clause concoct::Composable for #struct_ident <#(#generics),*> {
@@ -121,15 +131,14 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
                     compose!(());
 
-                    let Self { #(#input_pats),*, .. } = self;
+                    let Self { #struct_pattern } = self;
 
                     #group
                 }
             }
 
             #struct_ident {
-                #(#input_pats),*,
-                #(#struct_markers),*
+                #constructor_fields
             }
         }
     };
