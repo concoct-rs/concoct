@@ -10,6 +10,10 @@ pub trait Compose {
     fn start_replaceable_group(&mut self, type_id: TypeId);
 
     fn end_replaceable_group(&mut self);
+
+    fn is_skipping(&self) -> bool;
+
+    fn skip_to_group_end(&mut self);
 }
 
 pub trait Composable {

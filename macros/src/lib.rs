@@ -56,25 +56,31 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|(pat, ty)| parse_quote!(#pat: #ty))
         .collect();
 
-    let start_group = if output.is_none() {
+    let group = if output.is_some() {
         quote! {
-            composer.start_restart_group(std::any::TypeId::of::<#struct_ident>());
+            composer.start_replaceable_group(std::any::TypeId::of::<#struct_ident>());
+
+            let output = {
+                #(#stmts)*
+            };
+
+            composer.end_replaceable_group();
+
+            output
         }
     } else {
         quote! {
-            composer.start_replaceable_group(std::any::TypeId::of::<#struct_ident>());
-        }
-    };
+            composer.start_restart_group(std::any::TypeId::of::<#struct_ident>());
 
-    let end_group  = if output.is_none() {
-        quote! {
+            if changed == 0 && composer.is_skipping() {
+                composer.skip_to_group_end();
+            } else {
+                #(#stmts)*;
+            }
+
             composer.end_restart_group(move || {
                 Box::new(move |composer| #ident(#(#input_pats),*).compose(composer, changed | 1))
             });
-        }
-    } else {
-        quote! {
-            composer.end_replaceable_group();
         }
     };
 
@@ -92,17 +98,9 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
                     compose!(());
 
-                    #start_group
-
                     let Self { #(#input_pats),* } = self;
 
-                    let output = {
-                        #(#stmts)*
-                    };
-
-                    #end_group
-
-                    output
+                    #group
                 }
             }
 
