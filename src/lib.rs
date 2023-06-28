@@ -1,5 +1,7 @@
 use std::any::TypeId;
 
+extern crate self as concoct;
+
 pub use concoct_macros::composable;
 
 pub trait Compose {
@@ -14,6 +16,8 @@ pub trait Compose {
     fn is_skipping(&self) -> bool;
 
     fn skip_to_group_end(&mut self);
+
+    fn cache<T>(&mut self, is_invalid: bool, f: impl FnOnce() -> T) -> T;
 }
 
 pub trait Composable {
@@ -27,4 +31,15 @@ macro_rules! compose {
     ($composable:expr) => {
         $composable
     };
+}
+
+// TODO
+#[macro_export]
+macro_rules! current_composer {
+    () => {};
+}
+
+#[composable]
+pub fn remember() -> i32 {
+    composer.cache(false, || 0)
 }

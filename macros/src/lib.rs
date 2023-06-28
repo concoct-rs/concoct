@@ -21,18 +21,13 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // TODO this is here for replaceable groups, etc
     for stmt in &mut stmts {
         if let Stmt::Macro(stmt_macro) = stmt {
-            if stmt_macro
-                .mac
-                .path
-                .get_ident()
-                .map(ToString::to_string)
-                .as_deref()
-                == Some("compose")
-            {
-                let expr: Expr = stmt_macro.mac.parse_body().unwrap();
-                *stmt = parse_quote! {
-                    (#expr).compose(composer, 0);
-                };
+            if let Some(macro_ident) = stmt_macro.mac.path.get_ident().map(ToString::to_string) {
+                if macro_ident == "compose" {
+                    let expr: Expr = stmt_macro.mac.parse_body().unwrap();
+                    *stmt = parse_quote! {
+                        (#expr).compose(composer, 0);
+                    };
+                }
             }
         }
     }
