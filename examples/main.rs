@@ -1,4 +1,4 @@
-use concoct::{composable, Composable};
+use concoct::{composable, Composer};
 
 #[composable]
 fn app(count: i32) {
@@ -6,8 +6,8 @@ fn app(count: i32) {
 }
 
 fn main() {
-    let mut state = None;
-    app(0).compose(0, &mut state);
-    app(0).compose(0, &mut state);
-    app(1).compose(0, &mut state);
+    let mut composer = Composer::new();
+    composer.compose(app(0));
+    composer.compose(app(0));
+    composer.compose(app(1));
 }
