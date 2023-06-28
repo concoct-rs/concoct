@@ -6,6 +6,10 @@ pub trait Compose {
     fn start_restart_group(&mut self, type_id: TypeId);
 
     fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self)>);
+
+    fn start_replaceable_group(&mut self, type_id: TypeId);
+
+    fn end_replaceable_group(&mut self);
 }
 
 pub trait Composable {

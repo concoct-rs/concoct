@@ -1,15 +1,13 @@
 use concoct::{composable, compose};
 
 #[composable]
-fn counter(count: i32) {
-    dbg!(count);
+fn a(count: i32) -> i32 {
+    count
 }
 
 #[composable]
-fn app(x: i32, y: i32) {
-    compose!(counter(x));
-
-    compose!(counter(y));
+fn b(count: i32) {
+    dbg!(count);
 }
 
 fn main() {}
