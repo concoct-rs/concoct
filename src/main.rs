@@ -12,12 +12,14 @@ extern crate rustc_span;
 use quote::format_ident;
 use rustc_ast::{AttrKind, Attribute};
 use rustc_driver_impl::Compilation;
+use rustc_hir::def::Res;
 use rustc_hir::intravisit::{self, Visitor};
+use rustc_hir::TyKind;
 use rustc_interface::interface;
 use rustc_middle::ty::TyCtxt;
 use rustc_session::parse::ParseSess;
 use rustc_span::symbol::Symbol;
-use syn::parse_quote;
+use syn::{parse_quote, FnArg};
 
 use std::env;
 use std::ops::Deref;
@@ -115,12 +117,40 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
             for id in hir_krate.items() {
                 let item = hir_krate.item(id);
 
-                if let rustc_hir::ItemKind::Fn(_sig, _, body_id) = item.kind {
+                if let rustc_hir::ItemKind::Fn(sig, _, body_id) = item.kind {
                     let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
 
                     let attrs = hir_krate.attrs(id.hir_id());
                     if is_composable(attrs) {
                         let expr = tcx.hir().body(body_id);
+
+                        let inputs: Vec<FnArg> = expr
+                            .params
+                            .iter()
+                            .enumerate()
+                            .map(|(idx, param)| {
+                                let ident = format_ident!("{}", param.pat.simple_ident().unwrap().to_string());
+
+                                let ty = sig.decl.inputs[idx];
+                                if let TyKind::Path(qpath) = ty.kind {
+                                    if let rustc_hir::QPath::Resolved(_, path) = qpath {
+                                        let name = match path.res {
+                                            Res::PrimTy(prim) => prim.name(),
+                                            _ => todo!(),
+                                        };
+                                        let ty = format_ident!("{}", name.to_string());
+
+                                        parse_quote! {
+                                            #ident: #ty
+                                        }
+                                    } else {
+                                        todo!()
+                                    }
+                                } else {
+                                    todo!()
+                                }
+                            })
+                            .collect();
 
                         let mut visitor = Visit {
                             tcx,
@@ -156,7 +186,7 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
 
                         let impl_item = parse_quote! {
                             impl #struct_name {
-                                fn compose(&mut self) {
+                                fn compose(&mut self, #(#inputs),*) {
                                     if !self.is_done {
                                         #(#items)*;
                                         self.is_done = true;
