@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
+    fold::{self, Fold},
     parse_macro_input, parse_quote, Expr, FieldValue, FnArg, GenericParam, Item, ItemFn,
     ReturnType, Stmt, Type, TypePath,
 };
@@ -29,20 +30,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     let output_ty = output.clone().unwrap_or(parse_quote!(()));
 
-    let mut stmts = item.block.stmts;
-    // TODO this is here for replaceable groups, etc
-    for stmt in &mut stmts {
-        if let Stmt::Macro(stmt_macro) = stmt {
-            if let Some(macro_ident) = stmt_macro.mac.path.get_ident().map(ToString::to_string) {
-                if macro_ident == "compose" {
-                    let expr: Expr = stmt_macro.mac.parse_body().unwrap();
-                    *stmt = parse_quote! {
-                        (#expr).compose(composer, 0);
-                    };
-                }
-            }
-        }
-    }
+    let block = Folder.fold_block(*item.block);
 
     let mut input_pats = Vec::new();
     let mut input_types = Vec::new();
@@ -96,7 +84,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             composer.start_replaceable_group(#group_id);
 
             let output = {
-                #(#stmts)*
+                #block
             };
 
             composer.end_replaceable_group();
@@ -110,7 +98,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             if changed == 0 && composer.is_skipping() {
                 composer.skip_to_group_end();
             } else {
-                #(#stmts)*;
+                #block
             }
 
             composer.end_restart_group(move || {
@@ -147,4 +135,23 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+struct Folder;
+
+impl Fold for Folder {
+    fn fold_expr(&mut self, mut i: Expr) -> Expr {
+        if let Expr::Macro(expr_macro) = &i {
+            if let Some(macro_ident) = expr_macro.mac.path.get_ident().map(ToString::to_string) {
+                if macro_ident == "compose" {
+                    let expr: Expr = expr_macro.mac.parse_body().unwrap();
+                    i = parse_quote! {
+                        (#expr).compose(composer, 0)
+                    };
+                }
+            }
+        }
+
+        fold::fold_expr(self, i)
+    }
 }

@@ -6,9 +6,8 @@ fn a(count: i32) -> i32 {
 }
 
 #[composable]
-fn app(count: i32) {
-    compose!(remember(|| 0));
-
+fn app(x: i32) {
+    let count = compose!(remember(|| 0));
     dbg!(count);
 }
 
