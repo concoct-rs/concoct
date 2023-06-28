@@ -40,6 +40,6 @@ macro_rules! current_composer {
 }
 
 #[composable]
-pub fn remember<T: 'static>(value: T) -> i32 {
-    composer.cache(false, || 0)
+pub fn remember<T: 'static, F: FnOnce() -> T + 'static>(f: F) -> T {
+    composer.cache(false, f)
 }
