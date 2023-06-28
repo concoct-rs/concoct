@@ -7,6 +7,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemFn);
 
     let ident = item.sig.ident;
+    let vis = item.vis;
 
     let mut stmts = item.block.stmts;
     // TODO this is here for replaceable groups, etc
@@ -49,26 +50,28 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[must_use]
-        fn #ident(#(#struct_fields),*) -> impl concoct::Composable<Output = ()> {
+        #vis fn #ident(#(#struct_fields),*) -> impl concoct::Composable<Output = ()> {
+            #[allow(non_camel_case_types)]
+            struct #struct_ident {
+                #(#struct_fields),*
+            }
+
+            impl concoct::Composable for #struct_ident {
+                type Output = ();
+
+                fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
+                    compose!(());
+
+                    composer.start_restart_group(std::any::TypeId::of::<#struct_ident>());
+
+                    let Self { #(#input_pats),* } = self;
+
+                    #(#stmts)*
+                }
+            }
+
             #struct_ident {
                 #(#input_pats),*
-            }
-        }
-
-        #[allow(non_camel_case_types)]
-        struct #struct_ident {
-            #(#struct_fields),*
-        }
-
-        impl concoct::Composable for #struct_ident {
-            type Output = ();
-
-            fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
-                compose!(());
-
-                let Self { #(#input_pats),* } = self;
-
-                #(#stmts)*
             }
         }
     };

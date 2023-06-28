@@ -1,6 +1,11 @@
+use std::any::TypeId;
+
 pub use concoct_macros::composable;
 
-pub trait Compose {}
+pub trait Compose {
+    fn start_restart_group(&mut self, type_id: TypeId);
+}
+
 
 pub trait Composable {
     type Output;
