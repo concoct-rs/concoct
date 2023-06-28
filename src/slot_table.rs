@@ -1,18 +1,27 @@
 use std::{any::Any, mem};
 
+const Group_Fields_Size: usize = 5;
+
 pub trait Slot {
     fn any(&self) -> &dyn Any;
 
     fn any_eq(&self, other: &dyn Any) -> bool;
 }
 
+#[derive(Default)]
 pub struct SlotTable {
     slots: Box<[Option<*mut dyn Slot>]>,
     slots_len: usize,
+    groups: Vec<usize>,
+    groups_len: usize,
     is_writing: bool,
 }
 
 impl SlotTable {
+    pub fn is_empty(&self) -> bool {
+        self.groups_len == 0
+    }
+
     pub fn writer(&mut self) -> SlotWriter {
         assert!(!self.is_writing);
         self.is_writing = true;
@@ -24,7 +33,15 @@ impl SlotTable {
             slot_gap_len: self.slots.len() - self.slots_len,
             insert_count: 0,
             parent: -1,
+            group_gap_len: self.groups.len() / Group_Fields_Size - self.groups_len,
+            current_group_end: self.groups_len,
+            end_stack: Vec::new(),
         }
+    }
+
+    pub fn write(&mut self, f: impl FnOnce(&mut Self, &mut SlotWriter)) {
+        let mut writer = self.writer();
+        f(self, &mut writer);
     }
 }
 
@@ -35,9 +52,22 @@ pub struct SlotWriter {
     slot_gap_len: usize,
     insert_count: usize,
     parent: i32,
+    group_gap_len: usize,
+    current_group_end: usize,
+    end_stack: Vec<usize>,
 }
 
 impl SlotWriter {
+    /// Begin inserting at the current location. beginInsert() can be nested and must be called with
+    /// a balanced number of endInsert()
+    pub fn begin_insert(&mut self, table: &mut SlotTable) {
+        let count = self.insert_count;
+        self.insert_count += 1;
+        if count == 0 {
+            self.save_current_group_end(table)
+        }
+    }
+
     /// Set the value at the groups current data slot
     pub fn set(
         &mut self,
@@ -80,6 +110,10 @@ impl SlotWriter {
         } else {
             data_index + self.slot_gap_len
         }
+    }
+
+    fn capacity(&self, table: &SlotTable) -> usize {
+        table.groups.len() / Group_Fields_Size
     }
 
     /// Insert room into the slot table. This is performed by first moving the gap to [currentSlot]
@@ -148,6 +182,15 @@ impl SlotWriter {
 
             self.slot_gap_start = index;
         }
+    }
+
+    /// Save [currentGroupEnd] to [endStack].
+    fn save_current_group_end(&mut self, table: &mut SlotTable) {
+        // Record the end location as relative to the end of the slot table so when we pop it
+        // back off again all inserts and removes that happened while a child group was open
+        // are already reflected into its value.
+        self.end_stack
+            .push(self.capacity(table) - self.group_gap_len - self.current_group_end)
     }
 
     fn skip_inner(&mut self, table: &mut SlotTable) -> usize {
