@@ -1,7 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, parse_quote, Expr, FieldValue, FnArg, Item, ItemFn, ReturnType, Stmt, Type,
+    parse_macro_input, parse_quote, Expr, FieldValue, FnArg, GenericParam, Item, ItemFn,
+    ReturnType, Stmt, Type,
 };
 
 #[proc_macro_attribute]
@@ -10,6 +11,18 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let ident = item.sig.ident;
     let vis = item.vis;
+    let mut generics = Vec::new();
+    for param in &item.sig.generics.params {
+        match param {
+            GenericParam::Type(type_param) => {
+                generics.push(type_param.ident.clone());
+            }
+            _ => todo!(),
+        }
+        
+    }
+
+    let generics_clause = item.sig.generics;
 
     let output = match item.sig.output {
         ReturnType::Type(_, ty) => Some(*ty),
@@ -51,9 +64,10 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|(pat, ty)| parse_quote!(#pat: #ty))
         .collect();
 
+    let group_id = quote!(std::any::TypeId::of::<#struct_ident::<#(#generics,)*>>());
     let group = if output.is_some() {
         quote! {
-            composer.start_replaceable_group(std::any::TypeId::of::<#struct_ident>());
+            composer.start_replaceable_group(#group_id);
 
             let output = {
                 #(#stmts)*
@@ -65,7 +79,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     } else {
         quote! {
-            composer.start_restart_group(std::any::TypeId::of::<#struct_ident>());
+            composer.start_restart_group(#group_id);
 
             if changed == 0 && composer.is_skipping() {
                 composer.skip_to_group_end();
@@ -81,13 +95,13 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[must_use]
-        #vis fn #ident(#(#struct_fields),*) -> impl concoct::Composable<Output = #output_ty> {
+        #vis fn #ident #generics_clause (#(#struct_fields),*) -> impl concoct::Composable<Output = #output_ty> {
             #[allow(non_camel_case_types)]
-            struct #struct_ident {
+            struct #struct_ident <#(#generics),*> {
                 #(#struct_fields),*
             }
 
-            impl concoct::Composable for #struct_ident {
+            impl #generics_clause concoct::Composable for #struct_ident <#(#generics),*> {
                 type Output = #output_ty;
 
                 fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
