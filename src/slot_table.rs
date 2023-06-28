@@ -68,6 +68,18 @@ impl SlotWriter {
         }
     }
 
+    /// Ends inserting.
+    pub fn end_insert(&mut self, table: &SlotTable) {
+        assert!(self.insert_count > 0);
+
+        self.insert_count -= 1;
+        if self.insert_count == 0 {
+            //assert!(nodeCountStack.size == startStack.size);
+
+            self.restore_current_group_end(table);
+        }
+    }
+
     /// Set the value at the groups current data slot
     pub fn set(
         &mut self,
@@ -182,6 +194,13 @@ impl SlotWriter {
 
             self.slot_gap_start = index;
         }
+    }
+
+    /// Restore [currentGroupEnd] from [endStack].
+    fn restore_current_group_end(&mut self, table: &SlotTable) -> usize {
+        self.current_group_end =
+            (self.capacity(table) - self.group_gap_len) - self.end_stack.pop().unwrap();
+        self.current_group_end
     }
 
     /// Save [currentGroupEnd] to [endStack].
