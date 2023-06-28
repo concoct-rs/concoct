@@ -25,6 +25,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             {
                 let type_ident = format_ident!("{}type{}", ident, composable_types.len());
                 composable_types.push(quote! {
+                    #[allow(non_camel_case_types)]
                     type #type_ident = impl Default;
                 });
 
@@ -83,6 +84,8 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             type Output = ();
 
             fn compose(self, changed: u32, state: &mut Self::State) -> Self::Output {
+                compose!(());
+
                 let Self { #(#input_pats),* } = self;
                 let (inputs, #(#composable_type_idents),*) = state;
 

@@ -10,6 +10,8 @@ fn f(count: i32) {
 #[composable]
 fn app(count: i32) {
     compose!(f(count));
+
+    compose!(f(count));
 }
 
 fn main() {
