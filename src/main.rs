@@ -10,7 +10,7 @@ extern crate rustc_session;
 extern crate rustc_span;
 
 use quote::format_ident;
-use rustc_ast::AttrKind;
+use rustc_ast::{AttrKind, Attribute};
 use rustc_driver_impl::Compilation;
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_interface::interface;
@@ -79,6 +79,20 @@ impl rustc_driver::Callbacks for RustcCallbacks {
     }
 }
 
+fn is_composable(attrs: &[Attribute]) -> bool {
+    if attrs.len() > 0 {
+        if let AttrKind::Normal(attr) = &attrs[0].kind {
+            let segments = &attr.item.path.segments;
+            if segments[0].ident.to_string() == "concoct_rt"
+                && segments[1].ident.to_string() == "composable"
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 struct ClippyCallbacks {
     clippy_args_var: Option<String>,
 }
@@ -105,64 +119,60 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
                     let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
 
                     let attrs = hir_krate.attrs(id.hir_id());
-                    if attrs.len() > 0 {
-                        if let AttrKind::Normal(attr) = &attrs[0].kind {
-                            let segments = &attr.item.path.segments;
-                            if segments[0].ident.to_string() == "concoct_rt"
-                                && segments[1].ident.to_string() == "composable"
-                            {
-                                let expr = tcx.hir().body(body_id);
+                    if is_composable(attrs) {
+                        let expr = tcx.hir().body(body_id);
 
-                                let mut visitor = Visit {
-                                    tcx,
-                                    items: Vec::new(),
-                                };
-                                visitor.visit_expr(expr.value);
-                                let items = visitor.items;
+                        let mut visitor = Visit {
+                            tcx,
+                            items: Vec::new(),
+                            fields: Vec::new(),
+                            constructors: Vec::new(),
+                        };
+                        visitor.visit_expr(expr.value);
+                        let items = visitor.items;
+                        let fields = visitor.fields;
+                        let constructors = visitor.constructors;
 
-                                let name =
-                                    format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
-                                let struct_name = format_ident!("{}Composable", &name);
+                        let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
+                        let struct_name = format_ident!("{}Composable", &name);
 
-                                let fn_item = parse_quote! {
-                                    fn #name() -> #struct_name {
-                                        #struct_name {
-                                            is_done: false
-                                        }
-                                    }
-                                };
-                                cooked.items.push(fn_item);
-
-                                let struct_item = parse_quote! {
-                                    struct #struct_name {
-                                        is_done: bool
-                                    }
-                                };
-                                cooked.items.push(struct_item);
-
-                                let impl_item = parse_quote! {
-                                    impl #struct_name {
-                                        fn compose(&mut self) {
-                                            if !self.is_done {
-                                                #(#items)*;
-                                                self.is_done = true;
-                                            }
-                                        }
-                                    }
-                                };
-                                cooked.items.push(impl_item);
-
-                                continue;
+                        let fn_item = parse_quote! {
+                            fn #name() -> #struct_name {
+                                #struct_name {
+                                    is_done: false,
+                                    #(#constructors),*
+                                }
                             }
-                        }
+                        };
+                        cooked.items.push(fn_item);
+
+                        let struct_item = parse_quote! {
+                            struct #struct_name {
+                                is_done: bool,
+                                #(#fields),*
+                            }
+                        };
+                        cooked.items.push(struct_item);
+
+                        let impl_item = parse_quote! {
+                            impl #struct_name {
+                                fn compose(&mut self) {
+                                    if !self.is_done {
+                                        #(#items)*;
+                                        self.is_done = true;
+                                    }
+                                }
+                            }
+                        };
+                        cooked.items.push(impl_item);
+                    } else {
+                        let item = parse_quote!(
+                            fn #name() {
+
+                            }
+                        );
+                        cooked.items.push(item);
                     }
-
-                    let item = parse_quote!(
-                        fn #name() {
-
-                        }
-                    );
-                    cooked.items.push(item);
                 }
             }
         });
@@ -268,6 +278,8 @@ pub fn main() {
 struct Visit<'a> {
     tcx: TyCtxt<'a>,
     items: Vec<syn::Stmt>,
+    fields: Vec<syn::FieldValue>,
+    constructors: Vec<syn::FieldValue>,
 }
 
 impl<'a, 'v> Visitor<'v> for Visit<'a> {
@@ -280,15 +292,19 @@ impl<'a, 'v> Visitor<'v> for Visit<'a> {
                     let ident = format_ident!("{}", self.tcx.item_name(id).to_string());
 
                     let attrs = self.tcx.get_attrs_unchecked(id);
-                    if attrs
-                        .get(0)
-                        .and_then(|attr| attr.ident())
-                        .map(|ident| ident.to_string())
-                        .as_deref()
-                        == Some("cfg_attr")
-                    {
+                    if is_composable(attrs) {
+                        let field_name = format_ident!("composable{}", self.constructors.len());
+                        let field_type = format_ident!("{}Composable", ident);
+
+                        self.fields.push(parse_quote! {
+                            #field_name: #field_type
+                        });
+                        self.constructors.push(parse_quote! {
+                            #field_name: #ident()
+                        });
+
                         self.items.push(parse_quote! {
-                            #ident(composer, changed);
+                            self.#field_name.compose();
                         });
                     } else {
                         self.items.push(parse_quote! {
