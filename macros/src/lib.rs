@@ -5,7 +5,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::Comma,
-    Expr, FieldValue, FnArg, GenericParam, Item, ItemFn, ReturnType, Stmt, Type, TypePath,
+    Expr, FnArg, GenericParam, ItemFn, ReturnType, Type,
 };
 
 #[proc_macro_attribute]

@@ -7,17 +7,11 @@
 Cross-platform UI runtime and framework in Rust.
 
 ```rust
-use concoct::{composable, compose};
+use concoct::{composable, compose, remember};
 
 #[composable]
-fn counter(count: i32) {
+fn app() {
+    let count = compose!(remember(|| 0));
     dbg!(count);
-}
-
-#[composable]
-fn app(x: i32, y: i32) {
-    compose!(counter(x));
-
-    compose!(counter(y));
 }
 ```
