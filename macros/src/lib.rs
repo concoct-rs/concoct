@@ -57,13 +57,13 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let struct_ident = format_ident!("{}_composable", ident);
-    let  inputs: Vec<_> = input_pats
+    let inputs: Vec<_> = input_pats
         .iter()
         .zip(&input_types)
         .map(|(pat, ty)| quote!(#pat: #ty))
         .collect();
 
-        let  mut struct_fields = inputs.clone();
+    let mut struct_fields = inputs.clone();
 
     let input_generics: Vec<_> = input_types
         .iter()

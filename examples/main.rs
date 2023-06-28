@@ -1,4 +1,4 @@
-use concoct::{composable, compose};
+use concoct::{composable, compose, remember};
 
 #[composable]
 fn a(count: i32) -> i32 {
@@ -6,7 +6,9 @@ fn a(count: i32) -> i32 {
 }
 
 #[composable]
-fn b(count: i32) {
+fn app(count: i32) {
+    compose!(remember(|| 0));
+
     dbg!(count);
 }
 
