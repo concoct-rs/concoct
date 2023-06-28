@@ -30,7 +30,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[must_use]
-        fn #ident(#(#struct_fields),*) -> impl concoct::Composable<State = (#(#input_types),*), Output = ()> {
+        fn #ident(#(#struct_fields),*) -> impl concoct::Composable<State = Option<(#(#input_types),*)>, Output = ()> {
             #struct_ident {
                 #(#input_pats),*
             }
@@ -42,10 +42,10 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
 
         impl concoct::Composable for #struct_ident {
-            type State = (#(#input_types),*);
+            type State = Option<(#(#input_types),*)>;
             type Output = ();
 
-            fn compose(self, changed: u32, state: &mut Option<Self::State>) -> Self::Output {
+            fn compose(self, changed: u32, state: &mut Self::State) -> Self::Output {
                 let Self { #(#input_pats),* } = self;
                 if *state != Some((#(#input_pats),*)) {
                     *state = Some((#(#input_pats),*));

@@ -11,7 +11,7 @@ fn app(count: i32) {
 }
 
 fn main() {
-    let mut composer = Composer::new();
+    let mut composer = Composer::default();
     composer.compose(app(0));
     composer.compose(app(0));
     composer.compose(app(1));
