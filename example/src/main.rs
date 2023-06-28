@@ -5,10 +5,15 @@ use concoct::{composable, Composable};
 
 #[composable]
 fn a(count: i32) {
-    dbg!(count);
+    
+    compose!(Text::new("A"));
+
+    compose!(Text::new("A"));
+
+    compose!(Text::new("A"));
 }
 
 fn main() {
     let mut app = a();
-    app.compose(());
+    app.compose(0);
 }
