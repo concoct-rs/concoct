@@ -4,6 +4,8 @@
 use concoct::composable;
 
 #[composable]
-fn a() {}
+fn a() {
+    dbg!("test");
+}
 
 fn main() {}

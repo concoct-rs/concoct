@@ -104,12 +104,6 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
                 if let rustc_hir::ItemKind::Fn(_sig, _, body_id) = item.kind {
                     let name = format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
 
-                    let mut item = parse_quote!(
-                        fn #name() {
-
-                        }
-                    );
-
                     let attrs = hir_krate.attrs(id.hir_id());
                     if attrs.len() > 0 {
                         if let AttrKind::Normal(attr) = &attrs[0].kind {
@@ -128,16 +122,46 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
 
                                 let name =
                                     format_ident!("{}", tcx.hir().name(id.hir_id()).to_string());
+                                let struct_name = format_ident!("{}Composable", &name);
 
-                                item = parse_quote! {
-                                    fn #name(composer: &mut impl concoct::Compose, changed: u32) {
-                                        #(#items)*
+                                let fn_item = parse_quote! {
+                                    fn #name() -> #struct_name {
+                                        #struct_name {
+                                            is_done: false
+                                        }
                                     }
                                 };
+                                cooked.items.push(fn_item);
+
+                                let struct_item = parse_quote! {
+                                    struct #struct_name {
+                                        is_done: bool
+                                    }
+                                };
+                                cooked.items.push(struct_item);
+
+                                let impl_item = parse_quote! {
+                                    impl #struct_name {
+                                        fn compose(&mut self) {
+                                            if !self.is_done {
+                                                #(#items)*;
+                                                self.is_done = true;
+                                            }
+                                        }
+                                    }
+                                };
+                                cooked.items.push(impl_item);
+
+                                continue;
                             }
                         }
                     }
 
+                    let item = parse_quote!(
+                        fn #name() {
+
+                        }
+                    );
                     cooked.items.push(item);
                 }
             }
