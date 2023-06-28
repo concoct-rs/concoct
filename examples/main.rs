@@ -1,8 +1,13 @@
-use concoct::{composable, Composer};
+use concoct::{composable, compose, Composer};
+
+#[composable]
+fn f(count: i32) {
+    dbg!(count);
+}
 
 #[composable]
 fn app(count: i32) {
-    dbg!(count);
+    compose!(f(count));
 }
 
 fn main() {

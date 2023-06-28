@@ -20,3 +20,10 @@ impl<T> Composer<T> {
         composable.compose(0, &mut self.state)
     }
 }
+
+#[macro_export]
+macro_rules! compose {
+    ($composable:expr) => {
+        $composable
+    };
+}

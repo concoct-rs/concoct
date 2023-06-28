@@ -27,8 +27,9 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .zip(&input_types)
         .map(|(pat, ty)| parse_quote!(#pat: #ty))
         .collect();
-  
+
     let expanded = quote! {
+        #[must_use]
         fn #ident(#(#struct_fields),*) -> impl concoct::Composable<State = (#(#input_types),*), Output = ()> {
             #struct_ident {
                 #(#input_pats),*
