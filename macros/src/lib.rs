@@ -89,8 +89,8 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 let Self { #(#input_pats),* } = self;
                 let (inputs, #(#composable_type_idents),*) = state;
 
-                if *inputs != Some(#(#input_pats),*) {
-                    *inputs = Some(#(#input_pats),*);
+                if *inputs != Some((#(#input_pats),*)) {
+                    *inputs = Some((#(#input_pats),*));
 
                     #(#stmts)*
                 }
