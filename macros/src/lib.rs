@@ -67,6 +67,10 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     let Self { #(#input_pats),* } = self;
 
                     #(#stmts)*
+
+                    composer.end_restart_group(move || {
+                        Box::new(move |composer| #ident(#(#input_pats),*).compose(composer, changed | 1))
+                    });
                 }
             }
 
