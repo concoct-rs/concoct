@@ -12,24 +12,24 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let struct_ident = format_ident!("{}_composable", ident);
 
     let expanded = quote! {
-        fn #ident() -> impl concoct::Composable<Input = (), Output = ()> {
+        fn #ident() -> impl concoct::Composable<State = (), Output = ()> {
             #struct_ident {
-                is_done: false
+                
             }
         }
 
         #[allow(non_camel_case_types)]
         struct #struct_ident {
-            is_done: bool
+
         }
 
         impl concoct::Composable for #struct_ident {
-            type Input = ();
+            type State = ();
             type Output = ();
 
-            fn compose(&mut self, changed: u32, input: Self::Input) -> Self::Output {
-                if !self.is_done {
-                    self.is_done = true;
+            fn compose(self, changed: u32, state: &mut Option<Self::State>) -> Self::Output {
+                if state.is_none() {
+                    *state = Some(());
                     #block
                 }
             }

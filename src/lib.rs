@@ -1,8 +1,8 @@
 pub use concoct_macros::composable;
 
 pub trait Composable {
-    type Input;
+    type State;
     type Output;
 
-    fn compose(&mut self, changed: u32, input: Self::Input) -> Self::Output;
+    fn compose(self, changed: u32, state: &mut Option<Self::State>) -> Self::Output;
 }

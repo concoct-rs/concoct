@@ -6,7 +6,7 @@ fn app() {
 }
 
 fn main() {
-    let mut app = app();
-    app.compose(0, ());
-    app.compose(0, ());
+    let mut state = None;
+    app().compose(0, &mut state);
+    app().compose(0, &mut state);
 }
