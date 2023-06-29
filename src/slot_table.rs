@@ -11,6 +11,16 @@ pub trait Slot {
     fn any_eq(&self, other: &dyn Any) -> bool;
 }
 
+impl<T: PartialEq + 'static> Slot for T{
+    fn any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn any_eq(&self, other: &dyn Any) -> bool {
+        Some(self) == other.downcast_ref::<T>()
+    }
+}
+
 const NODE_COUNT_MASK: u32 = 0b0000_0011_1111_1111__1111_1111_1111_1111;
 
 #[derive(Clone, Copy)]
@@ -74,6 +84,7 @@ pub struct SlotTable {
     slots_len: usize,
     groups: Box<[Group]>,
     groups_len: usize,
+    reader_count: usize,
     is_writing: bool,
 }
 
@@ -82,8 +93,15 @@ impl SlotTable {
         self.groups_len == 0
     }
 
-    pub fn writer(&mut self) -> SlotWriter {
+    pub fn reader(&mut self) -> SlotReader {
         assert!(!self.is_writing);
+        self.reader_count += 1;
+        
+        SlotReader { empty_count: 0, current_slot: 0, current_slot_end: 0 }
+    }
+
+    pub fn writer(&mut self) -> SlotWriter {
+        assert!(!self.is_writing && self.reader_count == 0);
         self.is_writing = true;
 
         SlotWriter {
@@ -107,6 +125,24 @@ impl SlotTable {
         let mut writer = self.writer();
         f(self, &mut writer);
         writer.close(self);
+    }
+}
+
+pub struct SlotReader {
+    empty_count: usize,
+    current_slot: usize,
+    current_slot_end: usize,
+}
+
+impl SlotReader {
+    pub fn next(&mut self, table: &mut SlotTable) -> Option<&dyn Slot> {
+        if self.empty_count > 0 || self.current_slot >= self.current_slot_end {
+            None
+        } else {
+            let idx = self.current_slot;
+            self.current_slot += 1;
+            table.slots[idx].map(|ptr| unsafe { ptr.as_ref().unwrap() })
+        }
     }
 }
 

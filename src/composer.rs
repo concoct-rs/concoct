@@ -1,25 +1,61 @@
-use crate::{slot_table::{SlotTable, SlotWriter}, Compose};
+use crate::{
+    slot_table::{Slot, SlotReader, SlotTable, SlotWriter},
+    Compose,
+};
 
 pub struct Composer {
     slot_table: SlotTable,
     insert_table: SlotTable,
+    reader: SlotReader,
     writer: SlotWriter,
-    is_inserting: bool
+    is_inserting: bool,
 }
 
 impl Composer {
     pub fn new() -> Self {
+        let mut slot_table = SlotTable::default();
         let mut insert_table = SlotTable::default();
         Self {
-            slot_table: SlotTable::default(),
+            reader: slot_table.reader(),
             writer: insert_table.writer(),
+            slot_table,
             insert_table,
-            is_inserting: false
+            is_inserting: false,
         }
     }
 
-    fn next_slot(&mut self) {
-        todo!()
+    /// Determine if the current slot table value is equal to the given value, if true, the value
+    /// is scheduled to be skipped during [ControlledComposition.applyChanges] and [changes] return
+    /// false; otherwise [ControlledComposition.applyChanges] will update the slot table to [value].
+    /// In either case the composer's slot table is advanced.
+    pub fn changed<T>(&mut self, value: &T) -> bool
+    where
+        T: Clone + PartialEq + 'static,
+    {
+        if self.next_slot().and_then(|slot| slot.any().downcast_ref()) == Some(value) {
+            self.update_value(Some(Box::new(value.clone())));
+            true
+        } else {
+            false
+        }
+    }
+
+    fn update_value(&mut self, value: Option<Box<dyn Slot>>) {
+        if self.is_inserting {
+            self.writer.update(&mut self.insert_table, value);
+            // TODO
+        } else {
+            todo!()
+        }
+    }
+
+    fn next_slot(&mut self) -> Option<&dyn Slot> {
+        if self.is_inserting {
+            // validateNodeNotExpected()
+            None
+        } else {
+            self.reader.next(&mut self.slot_table)
+        }
     }
 }
 
