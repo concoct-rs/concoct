@@ -15,5 +15,5 @@ fn it_is_empty() {
         writer.end_insert(table);
     });
 
-     assert!(!table.is_empty());
+    assert!(!table.is_empty());
 }

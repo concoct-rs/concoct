@@ -127,11 +127,10 @@ pub struct SlotWriter {
 }
 
 impl SlotWriter {
-    pub fn close( self, table: &mut SlotTable) {
-       table.groups_len = self.group_gap_start;
-       table.slots_len = self.slot_gap_start;
+    pub fn close(&mut self, table: &mut SlotTable) {
+        table.groups_len = self.group_gap_start;
+        table.slots_len = self.slot_gap_start;
     }
-
 
     /// Begin inserting at the current location. beginInsert() can be nested and must be called with
     /// a balanced number of endInsert()
@@ -249,7 +248,7 @@ impl SlotWriter {
     }
 
     /// Move the gap in [slots] to [index] where [group] is expected to receive any new slots added.
-    fn move_slot_gap_to(&mut self, table: &mut SlotTable, index: usize, group: i32) {
+    fn move_slot_gap_to(&mut self, table: &mut SlotTable, index: usize, _group: i32) {
         if self.slot_gap_start != index {
             if index < self.slot_gap_start {
                 // Move the gap down to index by shifting the data up.
@@ -425,20 +424,20 @@ impl SlotWriter {
             // Here physical is used to mean an index of the actual first int of the group in the
             // array as opposed ot the logical address which is in groups of Group_Field_Size
             // integers. IntArray.copyInto expects physical indexes.
-            let groupPhysicalAddress = index * GROUP_FIELDS_SIZE;
-            let groupPhysicalGapLen = self.group_gap_len * GROUP_FIELDS_SIZE;
-            let groupPhysicalGapStart = self.slot_gap_start * GROUP_FIELDS_SIZE;
+            let group_physical_address = index * GROUP_FIELDS_SIZE;
+            let group_physical_gap_len = self.group_gap_len * GROUP_FIELDS_SIZE;
+            let group_physical_gap_start = self.slot_gap_start * GROUP_FIELDS_SIZE;
 
             if index < self.slot_gap_start {
                 table.groups.copy_within(
-                    groupPhysicalAddress..groupPhysicalGapStart,
-                    groupPhysicalAddress + groupPhysicalGapLen,
+                    group_physical_address..group_physical_gap_start,
+                    group_physical_address + group_physical_gap_len,
                 );
             } else {
                 table.groups.copy_within(
-                    groupPhysicalGapStart + groupPhysicalGapLen
-                        ..groupPhysicalAddress + groupPhysicalGapLen,
-                    groupPhysicalGapStart,
+                    group_physical_gap_start + group_physical_gap_len
+                        ..group_physical_address + group_physical_gap_len,
+                    group_physical_gap_start,
                 );
             }
         }

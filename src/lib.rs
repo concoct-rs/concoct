@@ -6,6 +6,9 @@ pub use concoct_macros::composable;
 
 pub mod slot_table;
 
+mod composer;
+pub use composer::Composer;
+
 pub trait Compose {
     fn start_restart_group(&mut self, type_id: TypeId);
 
