@@ -4,10 +4,10 @@ extern crate self as concoct;
 
 pub use concoct_macros::composable;
 
-pub mod slot_table;
-
 mod composer;
 pub use composer::Composer;
+
+pub mod slot_table;
 
 pub trait Compose {
     fn start_restart_group(&mut self, type_id: TypeId);

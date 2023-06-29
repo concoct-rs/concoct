@@ -60,15 +60,15 @@ impl Composer {
 }
 
 impl Compose for Composer {
-    fn start_restart_group(&mut self, type_id: std::any::TypeId) {
+    fn start_restart_group(&mut self, _type_id: std::any::TypeId) {
         todo!()
     }
 
-    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self)>) {
+    fn end_restart_group(&mut self, _f: impl FnOnce() -> Box<dyn FnMut(&mut Self)>) {
         todo!()
     }
 
-    fn start_replaceable_group(&mut self, type_id: std::any::TypeId) {
+    fn start_replaceable_group(&mut self, _type_id: std::any::TypeId) {
         todo!()
     }
 
@@ -84,7 +84,7 @@ impl Compose for Composer {
         todo!()
     }
 
-    fn cache<T>(&mut self, is_invalid: bool, f: impl FnOnce() -> T) -> T {
+    fn cache<T>(&mut self, _is_invalid: bool, _f: impl FnOnce() -> T) -> T {
         todo!()
     }
 }
