@@ -106,6 +106,7 @@ impl SlotTable {
     pub fn write(&mut self, f: impl FnOnce(&mut Self, &mut SlotWriter)) {
         let mut writer = self.writer();
         f(self, &mut writer);
+        writer.close(self);
     }
 }
 
@@ -126,6 +127,12 @@ pub struct SlotWriter {
 }
 
 impl SlotWriter {
+    pub fn close( self, table: &mut SlotTable) {
+       table.groups_len = self.group_gap_start;
+       table.slots_len = self.slot_gap_start;
+    }
+
+
     /// Begin inserting at the current location. beginInsert() can be nested and must be called with
     /// a balanced number of endInsert()
     pub fn begin_insert(&mut self, table: &mut SlotTable) {
