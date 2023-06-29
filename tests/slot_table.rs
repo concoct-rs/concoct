@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 use concoct::slot_table::SlotTable;
 
 #[test]
@@ -7,6 +9,8 @@ fn it_is_empty() {
 
     table.write(|table, writer| {
         writer.begin_insert(table);
+
+        writer.start_group(table, TypeId::of::<()>(), None);
 
         writer.end_insert(table);
     });

@@ -1,6 +1,9 @@
-use std::{any::Any, mem};
+use std::{
+    any::{Any, TypeId},
+    mem,
+};
 
-const Group_Fields_Size: usize = 5;
+const GROUP_FIELDS_SIZE: usize = 1;
 
 pub trait Slot {
     fn any(&self) -> &dyn Any;
@@ -8,11 +11,68 @@ pub trait Slot {
     fn any_eq(&self, other: &dyn Any) -> bool;
 }
 
+const NODE_COUNT_MASK: u32 = 0b0000_0011_1111_1111__1111_1111_1111_1111;
+
+#[derive(Clone, Copy)]
+pub struct Group {
+    id: TypeId,
+    mask: u32,
+    parent_anchor: usize,
+    size_offset: usize,
+    data_anchor: usize,
+}
+
+impl Group {
+    pub fn empty() -> Self {
+        Self {
+            id: TypeId::of::<()>(),
+            mask: 0,
+            parent_anchor: 0,
+            size_offset: 0,
+            data_anchor: 0,
+        }
+    }
+
+    pub fn new(
+        id: TypeId,
+        is_node: bool,
+        has_data_key: bool,
+        has_data: bool,
+        parent_anchor: usize,
+        data_anchor: usize,
+    ) -> Self {
+        const NODE_BIT_MASK: u32 = 0b0100_0000_0000_0000__0000_0000_0000_0000;
+        const OBJECT_KEY_MASK: u32 = 0b0010_0000_0000_0000__0000_0000_0000_0000;
+        const AUX_MASK: u32 = 0b0001_0000_0000_0000__0000_0000_0000_0000;
+
+        let node_bit = if is_node { NODE_BIT_MASK } else { 0 };
+        let data_key_bit = if has_data_key { OBJECT_KEY_MASK } else { 0 };
+        let data_bit = if has_data { AUX_MASK } else { 0 };
+
+        Self {
+            id,
+            mask: node_bit | data_key_bit | data_bit,
+            parent_anchor,
+            size_offset: 0,
+            data_anchor,
+        }
+    }
+
+    pub fn node_count(&self) -> u32 {
+        self.mask & NODE_COUNT_MASK
+    }
+
+    pub fn set_node_count(&mut self, value: u32) {
+        assert!(value < NODE_COUNT_MASK);
+        self.mask &= !NODE_COUNT_MASK | value
+    }
+}
+
 #[derive(Default)]
 pub struct SlotTable {
     slots: Box<[Option<*mut dyn Slot>]>,
     slots_len: usize,
-    groups: Vec<usize>,
+    groups: Box<[Group]>,
     groups_len: usize,
     is_writing: bool,
 }
@@ -33,9 +93,13 @@ impl SlotTable {
             slot_gap_len: self.slots.len() - self.slots_len,
             insert_count: 0,
             parent: -1,
-            group_gap_len: self.groups.len() / Group_Fields_Size - self.groups_len,
+            group_gap_start: self.groups_len,
+            group_gap_len: self.groups.len() / GROUP_FIELDS_SIZE - self.groups_len,
+            current_group: 0,
             current_group_end: self.groups_len,
             end_stack: Vec::new(),
+            node_count: 0,
+            node_count_stack: Vec::new(),
         }
     }
 
@@ -52,9 +116,13 @@ pub struct SlotWriter {
     slot_gap_len: usize,
     insert_count: usize,
     parent: i32,
+    group_gap_start: usize,
     group_gap_len: usize,
+    current_group: usize,
     current_group_end: usize,
     end_stack: Vec<usize>,
+    node_count: usize,
+    node_count_stack: Vec<usize>,
 }
 
 impl SlotWriter {
@@ -125,7 +193,7 @@ impl SlotWriter {
     }
 
     fn capacity(&self, table: &SlotTable) -> usize {
-        table.groups.len() / Group_Fields_Size
+        table.groups.len() / GROUP_FIELDS_SIZE
     }
 
     /// Insert room into the slot table. This is performed by first moving the gap to [currentSlot]
@@ -220,5 +288,166 @@ impl SlotWriter {
         self.current_slot += 1;
 
         self.data_index_to_data_address(idx)
+    }
+
+    pub fn start_group(
+        &mut self,
+        table: &mut SlotTable,
+        id: TypeId,
+        data_key: Option<Box<dyn Slot>>,
+    ) {
+        self.start_group_inner(table, id, data_key, false, None)
+    }
+
+    fn start_group_inner(
+        &mut self,
+        table: &mut SlotTable,
+        id: TypeId,
+        object_key: Option<Box<dyn Slot>>,
+        is_node: bool,
+        aux: Option<Box<dyn Slot>>,
+    ) {
+        self.node_count_stack.push(self.node_count);
+
+        self.current_group_end = if self.insert_count > 0 {
+            self.insert_groups(table, 1);
+
+            let has_aux = !is_node && aux.is_some();
+
+            table.groups[self.group_index_to_address(self.current_group)] = Group::new(
+                id,
+                is_node,
+                object_key.is_some(),
+                !is_node && aux.is_some(),
+                self.parent as usize,
+                self.current_slot,
+            );
+            self.current_slot_end = self.current_slot;
+
+            let data_slots_needed = (if is_node { 1 } else { 0 })
+                + (if object_key.is_some() { 1 } else { 0 })
+                + (if has_aux { 1 } else { 0 });
+
+            if data_slots_needed > 0 {
+                self.insert_slots(table, data_slots_needed, self.current_group as _);
+                let aux = aux.map(Box::into_raw);
+                if is_node {
+                    let idx = self.current_slot;
+                    self.current_slot += 1;
+                    table.slots[idx] = aux;
+                }
+                if let Some(key) = object_key {
+                    let idx = self.current_slot;
+                    self.current_slot += 1;
+                    table.slots[idx] = Some(Box::into_raw(key));
+                }
+                if has_aux {
+                    let idx = self.current_slot;
+                    self.current_slot += 1;
+                    table.slots[idx] = aux;
+                }
+            }
+
+            self.current_group_end + 1
+        } else {
+            todo!()
+        }
+    }
+
+    /// Insert [size] number of groups in front of [currentGroup]. These groups are implicitly a
+    /// child of [parent].
+    fn insert_groups(&mut self, table: &mut SlotTable, size: usize) {
+        if size == 0 {
+            return;
+        }
+
+        self.move_group_gap_to(table, self.current_group);
+
+        let old_capacity = table.groups.len() / GROUP_FIELDS_SIZE;
+        let old_size = old_capacity - self.group_gap_len;
+        if self.group_gap_len < size {
+            // Create a bigger gap
+            // Double the size of the array, but at least MinGrowthSize and >= size
+            const MIN_GROUP_GROWTH_SIZE: usize = 32;
+            let new_capacity = MIN_GROUP_GROWTH_SIZE
+                .max(old_capacity * 2)
+                .max(old_size * size);
+
+            let mut new_groups = vec![Group::empty(); new_capacity * GROUP_FIELDS_SIZE];
+            let new_gap_len = new_capacity - old_size;
+            let old_gap_end_address = self.group_gap_start + self.group_gap_len;
+            let new_gap_end_address = self.group_gap_start + new_gap_len;
+
+            // Copy the old arrays into the new arrays
+            let len = self.slot_gap_start * GROUP_FIELDS_SIZE;
+            new_groups[..len].copy_from_slice(&table.groups[0..len]);
+
+            let offset = new_gap_end_address * GROUP_FIELDS_SIZE;
+            let start = old_gap_end_address * GROUP_FIELDS_SIZE;
+            let end = old_capacity * GROUP_FIELDS_SIZE;
+            let len = end - start;
+            new_groups[offset..offset + len].copy_from_slice(&table.groups[start..end]);
+
+            // Update the gap and slots
+            table.groups = new_groups.into_boxed_slice();
+            self.group_gap_len = new_gap_len;
+        }
+
+        // Move the currentGroupEnd to account for inserted groups.
+
+        if self.current_group_end >= self.group_gap_start {
+            self.current_group_end += size
+        }
+
+        // Update the gap start and length
+        self.group_gap_start += size;
+        self.group_gap_len -= size;
+
+        // TODO
+    }
+
+    /**
+     * Move the gap in [groups] to [index].
+     */
+    fn move_group_gap_to(&mut self, table: &mut SlotTable, index: usize) {
+        if self.group_gap_start == index {
+            return;
+        }
+
+        if self.group_gap_len > 0 {
+            // Here physical is used to mean an index of the actual first int of the group in the
+            // array as opposed ot the logical address which is in groups of Group_Field_Size
+            // integers. IntArray.copyInto expects physical indexes.
+            let groupPhysicalAddress = index * GROUP_FIELDS_SIZE;
+            let groupPhysicalGapLen = self.group_gap_len * GROUP_FIELDS_SIZE;
+            let groupPhysicalGapStart = self.slot_gap_start * GROUP_FIELDS_SIZE;
+
+            if index < self.slot_gap_start {
+                table.groups.copy_within(
+                    groupPhysicalAddress..groupPhysicalGapStart,
+                    groupPhysicalAddress + groupPhysicalGapLen,
+                );
+            } else {
+                table.groups.copy_within(
+                    groupPhysicalGapStart + groupPhysicalGapLen
+                        ..groupPhysicalAddress + groupPhysicalGapLen,
+                    groupPhysicalGapStart,
+                );
+            }
+        }
+
+        // TODO
+        // Gap has moved so the anchor for the groups that moved have changed so the parent
+        // anchors that refer to these groups must be updated.
+
+        self.group_gap_start = index;
+    }
+
+    fn group_index_to_address(&self, index: usize) -> usize {
+        if index < self.group_gap_start {
+            index
+        } else {
+            index + self.group_gap_len
+        }
     }
 }
