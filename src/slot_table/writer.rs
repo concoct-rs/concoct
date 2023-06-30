@@ -39,9 +39,10 @@ impl SlotWriter {
         }
     }
 
-    pub fn close(&mut self, table: &mut SlotTable) {
+    pub fn close(mut self) -> SlotTable {
         self.table.groups_len = self.group_gap_start;
         self.table.slots_len = self.slot_gap_start;
+        self.table
     }
 
     /// Begin inserting at the current location. beginInsert() can be nested and must be called with

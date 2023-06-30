@@ -98,11 +98,17 @@ impl SlotTable {
         SlotReader::new(self)
     }
 
-
     pub fn into_writer(self) -> SlotWriter {
         SlotWriter::new(self)
     }
+}
 
-
- 
+impl Drop for SlotTable {
+    fn drop(&mut self) {
+        for slot in self.slots.into_iter().copied() {
+            if let Some(ptr) = slot {
+                drop(unsafe { Box::from_raw(ptr) });
+            }
+        }
+    }
 }
