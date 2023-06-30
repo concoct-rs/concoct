@@ -88,6 +88,8 @@ impl Composer {
         self.update_compound_hash_key_on_enter_group(id, object_key.as_deref(), data.as_deref());
     }
 
+    fn end(&mut self, _is_node: bool) {}
+
     fn update_compound_hash_key_on_enter_group(
         &mut self,
         id: TypeId,
@@ -118,12 +120,14 @@ impl Composer {
 }
 
 impl Compose for Composer {
-    fn start_restart_group(&mut self, _type_id: TypeId) {
-        todo!()
+    fn start_restart_group(&mut self, type_id: TypeId) {
+        self.start(type_id, None, GroupKind::Group, None);
+        // TODO add restart scope
     }
 
     fn end_restart_group(&mut self, _f: impl FnOnce() -> Box<dyn FnMut(&mut Self)>) {
-        todo!()
+        // TODO
+        self.end(false)
     }
 
     fn start_replaceable_group(&mut self, type_id: TypeId) {
@@ -131,11 +135,11 @@ impl Compose for Composer {
     }
 
     fn end_replaceable_group(&mut self) {
-        todo!()
+        self.end(false)
     }
 
     fn is_skipping(&self) -> bool {
-        todo!()
+        false
     }
 
     fn skip_to_group_end(&mut self) {
