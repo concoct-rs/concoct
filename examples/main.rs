@@ -1,4 +1,4 @@
-use concoct::{composable, compose, remember};
+use concoct::{composable, compose, remember, Composer};
 
 #[composable]
 fn app() {
@@ -6,4 +6,7 @@ fn app() {
     dbg!(count);
 }
 
-fn main() {}
+fn main() {
+    let mut composer = Composer::new();
+    composer.compose(app());
+}

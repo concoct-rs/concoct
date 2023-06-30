@@ -1,6 +1,5 @@
-use std::{any::TypeId, mem};
-
 use super::{Group, Slot, SlotTable, GROUP_FIELDS_SIZE};
+use std::{any::TypeId, mem};
 
 pub struct SlotWriter {
     table: SlotTable,
@@ -17,6 +16,12 @@ pub struct SlotWriter {
     end_stack: Vec<usize>,
     node_count: usize,
     node_count_stack: Vec<usize>,
+}
+
+impl Default for SlotWriter {
+    fn default() -> Self {
+        Self::new(SlotTable::default())
+    }
 }
 
 impl SlotWriter {
@@ -47,7 +52,7 @@ impl SlotWriter {
 
     /// Begin inserting at the current location. beginInsert() can be nested and must be called with
     /// a balanced number of endInsert()
-    pub fn begin_insert(&mut self, table: &mut SlotTable) {
+    pub fn begin_insert(&mut self, _table: &mut SlotTable) {
         let count = self.insert_count;
         self.insert_count += 1;
         if count == 0 {
@@ -56,7 +61,7 @@ impl SlotWriter {
     }
 
     /// Ends inserting.
-    pub fn end_insert(&mut self, table: &SlotTable) {
+    pub fn end_insert(&mut self, _table: &SlotTable) {
         assert!(self.insert_count > 0);
 
         self.insert_count -= 1;
@@ -82,7 +87,7 @@ impl SlotWriter {
 
     /// Skip the current slot without updating. If the slot table is inserting then and
     /// [Composer.Empty] slot is added and [skip] return [Composer.Empty].
-    pub fn skip(&mut self, table: &mut SlotTable) -> Option<&mut dyn Slot> {
+    pub fn skip(&mut self, _table: &mut SlotTable) -> Option<&mut dyn Slot> {
         let idx = self.skip_inner();
         self.table.slots[idx].map(|ptr| unsafe { ptr.as_mut().unwrap() })
     }

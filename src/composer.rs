@@ -1,6 +1,8 @@
+use std::mem;
+
 use crate::{
     slot_table::{Slot, SlotReader, SlotTable, SlotWriter},
-    Compose,
+    Composable, Compose,
 };
 
 pub struct Composer {
@@ -11,13 +13,21 @@ pub struct Composer {
 
 impl Composer {
     pub fn new() -> Self {
-        let mut slot_table = SlotTable::default();
-        let mut insert_table = SlotTable::default();
+        let slot_table = SlotTable::default();
+        let insert_table = SlotTable::default();
         Self {
             reader: slot_table.into_reader(),
             writer: insert_table.into_writer(),
             is_inserting: false,
         }
+    }
+
+    pub fn compose(&mut self, content: impl Composable) {
+        content.compose(self, 0);
+    }
+
+    pub fn apply_changes(&mut self) {
+        self.reader = mem::take(&mut self.writer).close().into_reader();
     }
 
     /// Determine if the current slot table value is equal to the given value, if true, the value
