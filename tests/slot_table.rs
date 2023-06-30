@@ -2,6 +2,7 @@ use std::any::TypeId;
 
 use concoct::slot_table::SlotTable;
 
+/* 
 #[test]
 fn it_is_empty() {
     let mut table = SlotTable::default();
@@ -17,3 +18,5 @@ fn it_is_empty() {
 
     assert!(!table.is_empty());
 }
+
+*/

@@ -4,8 +4,6 @@ use crate::{
 };
 
 pub struct Composer {
-    slot_table: SlotTable,
-    insert_table: SlotTable,
     reader: SlotReader,
     writer: SlotWriter,
     is_inserting: bool,
@@ -16,10 +14,8 @@ impl Composer {
         let mut slot_table = SlotTable::default();
         let mut insert_table = SlotTable::default();
         Self {
-            reader: slot_table.reader(),
-            writer: insert_table.writer(),
-            slot_table,
-            insert_table,
+            reader: slot_table.into_reader(),
+            writer: insert_table.into_writer(),
             is_inserting: false,
         }
     }
@@ -42,7 +38,7 @@ impl Composer {
 
     fn update_value(&mut self, value: Option<Box<dyn Slot>>) {
         if self.is_inserting {
-            self.writer.update(&mut self.insert_table, value);
+            self.writer.update(value);
             // TODO
         } else {
             todo!()
@@ -54,7 +50,7 @@ impl Composer {
             // validateNodeNotExpected()
             None
         } else {
-            self.reader.next(&mut self.slot_table)
+            self.reader.next()
         }
     }
 }

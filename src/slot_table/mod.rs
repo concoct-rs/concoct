@@ -87,8 +87,6 @@ pub struct SlotTable {
     slots_len: usize,
     groups: Box<[Group]>,
     groups_len: usize,
-    reader_count: usize,
-    is_writing: bool,
 }
 
 impl SlotTable {
@@ -96,41 +94,15 @@ impl SlotTable {
         self.groups_len == 0
     }
 
-    pub fn reader(&mut self) -> SlotReader {
-        assert!(!self.is_writing);
-        self.reader_count += 1;
-
-        SlotReader {
-            empty_count: 0,
-            current_slot: 0,
-            current_slot_end: 0,
-        }
+    pub fn into_reader(self) -> SlotReader {
+        SlotReader::new(self)
     }
 
-    pub fn writer(&mut self) -> SlotWriter {
-        assert!(!self.is_writing && self.reader_count == 0);
-        self.is_writing = true;
 
-        SlotWriter {
-            current_slot: 0,
-            current_slot_end: 0,
-            slot_gap_start: self.slots_len,
-            slot_gap_len: self.slots.len() - self.slots_len,
-            insert_count: 0,
-            parent: -1,
-            group_gap_start: self.groups_len,
-            group_gap_len: self.groups.len() / GROUP_FIELDS_SIZE - self.groups_len,
-            current_group: 0,
-            current_group_end: self.groups_len,
-            end_stack: Vec::new(),
-            node_count: 0,
-            node_count_stack: Vec::new(),
-        }
+    pub fn into_writer(self) -> SlotWriter {
+        SlotWriter::new(self)
     }
 
-    pub fn write(&mut self, f: impl FnOnce(&mut Self, &mut SlotWriter)) {
-        let mut writer = self.writer();
-        f(self, &mut writer);
-        writer.close(self);
-    }
+
+ 
 }
