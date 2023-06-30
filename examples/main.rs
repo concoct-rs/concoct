@@ -7,6 +7,6 @@ fn app() {
 }
 
 fn main() {
-    let mut composer = Composer::new();
-    composer.compose(app());
+    let _composer = Composer::new();
+    // composer.compose(app());
 }

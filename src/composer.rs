@@ -1,14 +1,27 @@
-use std::mem;
-
 use crate::{
     slot_table::{Slot, SlotReader, SlotTable, SlotWriter},
     Composable, Compose,
 };
+use std::{
+    any::TypeId,
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    mem,
+};
+
+struct ReuseKey;
+
+enum GroupKind {
+    Group,
+    Node,
+    ReusableNode,
+}
 
 pub struct Composer {
     reader: SlotReader,
     writer: SlotWriter,
     is_inserting: bool,
+    compound_key_hash: u64,
 }
 
 impl Composer {
@@ -19,6 +32,7 @@ impl Composer {
             reader: slot_table.into_reader(),
             writer: insert_table.into_writer(),
             is_inserting: false,
+            compound_key_hash: 0,
         }
     }
 
@@ -36,7 +50,7 @@ impl Composer {
     /// In either case the composer's slot table is advanced.
     pub fn changed<T>(&mut self, value: &T) -> bool
     where
-        T: Clone + PartialEq + 'static,
+        T: Clone + Hash + PartialEq + 'static,
     {
         if self.next_slot().and_then(|slot| slot.any().downcast_ref()) == Some(value) {
             self.update_value(Some(Box::new(value.clone())));
@@ -63,10 +77,48 @@ impl Composer {
             self.reader.next()
         }
     }
+
+    fn start(
+        &mut self,
+        id: TypeId,
+        object_key: Option<Box<dyn Slot>>,
+        _kind: GroupKind,
+        data: Option<Box<dyn Slot>>,
+    ) {
+        self.update_compound_hash_key_on_enter_group(id, object_key.as_deref(), data.as_deref());
+    }
+
+    fn update_compound_hash_key_on_enter_group(
+        &mut self,
+        id: TypeId,
+        data_key: Option<&dyn Slot>,
+        data: Option<&dyn Slot>,
+    ) {
+        if let Some(data_key) = data_key {
+            let mut hasher = DefaultHasher::new();
+            data_key.dyn_hash(&mut hasher);
+            self.update_compound_hash_key_on_enter_group_with_key_hash(hasher.finish());
+        } else {
+            // TODO && id == ReuseKey.type_id()
+            if let Some(data) = data {
+                let mut hasher = DefaultHasher::new();
+                data.dyn_hash(&mut hasher);
+                self.update_compound_hash_key_on_enter_group_with_key_hash(hasher.finish())
+            } else {
+                let mut hasher = DefaultHasher::new();
+                id.hash(&mut hasher);
+                self.update_compound_hash_key_on_enter_group_with_key_hash(hasher.finish());
+            }
+        }
+    }
+
+    fn update_compound_hash_key_on_enter_group_with_key_hash(&mut self, key_hash: u64) {
+        self.compound_key_hash = self.compound_key_hash.rotate_left(3) ^ key_hash;
+    }
 }
 
 impl Compose for Composer {
-    fn start_restart_group(&mut self, _type_id: std::any::TypeId) {
+    fn start_restart_group(&mut self, _type_id: TypeId) {
         todo!()
     }
 
@@ -74,8 +126,8 @@ impl Compose for Composer {
         todo!()
     }
 
-    fn start_replaceable_group(&mut self, _type_id: std::any::TypeId) {
-        todo!()
+    fn start_replaceable_group(&mut self, type_id: TypeId) {
+        self.start(type_id, None, GroupKind::Group, None)
     }
 
     fn end_replaceable_group(&mut self) {

@@ -1,4 +1,7 @@
-use std::any::{Any, TypeId};
+use std::{
+    any::{Any, TypeId},
+    hash::{Hash, Hasher},
+};
 
 mod reader;
 pub use reader::SlotReader;
@@ -12,15 +15,21 @@ pub trait Slot {
     fn any(&self) -> &dyn Any;
 
     fn any_eq(&self, other: &dyn Any) -> bool;
+
+    fn dyn_hash(&self, state: &mut dyn Hasher);
 }
 
-impl<T: PartialEq + 'static> Slot for T {
+impl<T: Hash + PartialEq + 'static> Slot for T {
     fn any(&self) -> &dyn Any {
         todo!()
     }
 
     fn any_eq(&self, other: &dyn Any) -> bool {
         Some(self) == other.downcast_ref::<T>()
+    }
+
+    fn dyn_hash(&self, mut state: &mut dyn Hasher) {
+        self.hash(&mut state)
     }
 }
 
