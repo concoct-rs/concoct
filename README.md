@@ -16,17 +16,28 @@ fn app() {
 }
 ```
 
+## Runtime
+The runtime uses an optimized [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) with groups.
+Composable function parameters are stored one after another in this gap buffer.
+This enables composables that use parameters from their parents to skip storing data twice.
+
+For example, composables pass arguments to children with a change list that specifies which values are known to be different.
+If a value is already known to have changed, the child composable will skip storing that parameter and run its function.
+However, if no parameters have changed, the composable will skip running its block.
+
 ## Compiler
 The compiler comes in the form of the `#[composable]` attribute macro.
 For example:
 ```rust
 #[composable]
 fn f() -> i32
-// will become:
+// Will become:
 fn f() -> impl Composable<Output = i32>
 ```
 
-## Remember
+### Remember
+A more advanced example of the compiler is the built-in `remember` composable function.
+This function will store a parameter inside a composable and ensure it never changes.
 ```rust
 #[composable]
 pub fn remember<T, F>(f: F) -> T
@@ -36,9 +47,9 @@ where
 {
     composer.cache(false, f)
 }
-```
 
-```rust
+// Will become:
+
 #[must_use]
 pub fn remember<T, F>(f: F) -> impl concoct::Composable<Output = T>
 where

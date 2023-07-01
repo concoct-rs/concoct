@@ -10,6 +10,9 @@ use std::{
 
 extern crate self as concoct;
 
+mod apply;
+pub use apply::Apply;
+
 pub use concoct_macros::composable;
 
 mod composer;
