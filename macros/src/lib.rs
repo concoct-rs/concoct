@@ -105,7 +105,7 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             composer.end_restart_group(move || {
-                Box::new(move |composer| #ident(#(#input_pats),*).compose(composer, changed | 1))
+                Box::new(move |composer, _force| #ident(#(#input_pats),*).compose(composer, changed | 1))
             });
         }
     };

@@ -1,6 +1,6 @@
 use crate::{
     slot_table::{Slot, SlotReader, SlotTable, SlotWriter},
-    Composable, Compose,
+    Composable, Compose, RecomposeScope,
 };
 use std::{
     any::TypeId,
@@ -23,6 +23,7 @@ pub struct Composer {
     writer: SlotWriter,
     is_inserting: bool,
     compound_key_hash: u64,
+    invalidate_stack: Vec<RecomposeScope<Self>>
 }
 
 impl Composer {
@@ -34,6 +35,7 @@ impl Composer {
             writer: insert_table.into_writer(),
             is_inserting: false,
             compound_key_hash: 0,
+            invalidate_stack: Vec::new()
         }
     }
 
@@ -126,8 +128,12 @@ impl Compose for Composer {
         // TODO add restart scope
     }
 
-    fn end_restart_group(&mut self, _f: impl FnOnce() -> Box<dyn FnMut(&mut Self)>) {
+    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self, u32)>) {
         // TODO
+        if let Some(mut scope) = self.invalidate_stack.pop() {
+            scope.update_scope(f());
+        }
+        
         self.end(false)
     }
 

@@ -5,6 +5,7 @@
 
 use std::{
     any::TypeId,
+    collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
 };
 
@@ -28,7 +29,7 @@ use slot_table::Slot;
 pub trait Compose {
     fn start_restart_group(&mut self, type_id: TypeId);
 
-    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self)>);
+    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self, u32)>);
 
     fn start_replaceable_group(&mut self, type_id: TypeId);
 
@@ -98,3 +99,70 @@ impl PartialEq for Key {
 }
 
 impl Eq for Key {}
+
+/// A RecomposeScope is created for a region of the composition that can be recomposed independently
+/// of the rest of the composition. The composer will position the slot table to the location
+/// stored in [anchor] and call [block] when recomposition is requested. It is created by
+/// [Composer.startRestartGroup] and is used to track how to restart the group.
+pub struct RecomposeScope<C> {
+    current_token: usize,
+    was_skipped: bool,
+    is_rereading: bool,
+    f: Option<Box<dyn FnMut(&mut C, u32)>>,
+    tracked_instances: Option<HashMap<Key, usize>>,
+}
+
+impl<C> RecomposeScope<C> {
+    /// Called when composition start composing into this scope. The [token] is a value that is
+    /// unique everytime this is called. This is currently the snapshot id but that shouldn't be relied on.
+    pub fn start(&mut self, token: usize) {
+        self.current_token = token;
+        self.was_skipped = false;
+    }
+
+    /// Restart the scope's composition
+    pub fn compose(&mut self, composer: &mut C) {
+        self.f.as_mut().unwrap()(composer, 1);
+    }
+
+    pub fn update_scope(&mut self, f: Box<dyn FnMut(&mut C, u32)>) {
+        self.f = Some(f)
+    }
+
+    /**
+     * Track instances that were read in scope.
+     * @return whether the value was already read in scope during current pass
+     */
+    pub fn record_read(&mut self, instance: Box<dyn Slot>) -> bool {
+        if self.is_rereading {
+            return false;
+        }
+
+        if self.tracked_instances.is_none() {
+            self.tracked_instances = Some(HashMap::new());
+        }
+
+        let token = self
+            .tracked_instances
+            .as_mut()
+            .unwrap()
+            .insert(Key { slot: instance }, self.current_token)
+            .unwrap();
+
+        if token == self.current_token {
+            return true;
+        }
+
+        // TODO derived
+        false
+    }
+
+    /**
+     * Determine if the scope should be considered invalid.
+     *
+     * @param instances The set of objects reported as invalidating this scope.
+     */
+     fn is_invalid_for(&mut self, instances: HashSet<Key>) -> bool {
+        todo!()
+    }
+}
