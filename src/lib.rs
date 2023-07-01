@@ -51,11 +51,15 @@ macro_rules! current_composer {
 }
 
 #[composable]
-pub fn remember<T: Clone + Hash + PartialEq + 'static, F: FnOnce() -> T + 'static>(f: F) -> T {
+pub fn remember<T, F>(f: F) -> T
+where
+    T: Clone + Hash + PartialEq + 'static,
+    F: FnOnce() -> T + 'static,
+{
     composer.cache(false, f)
 }
 
-pub struct Key {
+struct Key {
     slot: Box<dyn Slot>,
 }
 

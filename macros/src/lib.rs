@@ -24,7 +24,8 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    let generics_clause = item.sig.generics;
+    let generics_clause = item.sig.generics.params;
+    let where_clause = item.sig.generics.where_clause;
 
     let output = match item.sig.output {
         ReturnType::Type(_, ty) => Some(*ty),
@@ -119,13 +120,13 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[must_use]
-        #vis fn #ident #generics_clause (#(#inputs),*) -> impl concoct::Composable<Output = #output_ty> {
+        #vis fn #ident <#generics_clause> (#(#inputs),*) -> impl concoct::Composable<Output = #output_ty>  #where_clause {
             #[allow(non_camel_case_types)]
             struct #struct_ident <#(#generics),*> {
                 #(#struct_fields),*
             }
 
-            impl #generics_clause concoct::Composable for #struct_ident <#(#generics),*> {
+            impl <#generics_clause> concoct::Composable for #struct_ident <#(#generics),*> #where_clause {
                 type Output = #output_ty;
 
                 fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
