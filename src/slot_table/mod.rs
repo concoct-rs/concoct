@@ -34,6 +34,7 @@ impl<T: Hash + PartialEq + 'static> Slot for T {
 }
 
 const NODE_COUNT_MASK: u32 = 0b0000_0011_1111_1111__1111_1111_1111_1111;
+const NODE_BIT_MASK: u32 = 0b0100_0000_0000_0000__0000_0000_0000_0000;
 
 #[derive(Clone, Copy)]
 struct Group {
@@ -63,7 +64,6 @@ impl Group {
         parent_anchor: usize,
         data_anchor: usize,
     ) -> Self {
-        const NODE_BIT_MASK: u32 = 0b0100_0000_0000_0000__0000_0000_0000_0000;
         const OBJECT_KEY_MASK: u32 = 0b0010_0000_0000_0000__0000_0000_0000_0000;
         const AUX_MASK: u32 = 0b0001_0000_0000_0000__0000_0000_0000_0000;
 
@@ -78,6 +78,10 @@ impl Group {
             size_offset: 0,
             data_anchor,
         }
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.mask & NODE_BIT_MASK != 0
     }
 
     pub fn node_count(&self) -> u32 {
@@ -109,6 +113,12 @@ impl SlotTable {
 
     pub fn into_writer(self) -> SlotWriter {
         SlotWriter::new(self)
+    }
+
+    pub fn write(self, f: impl FnOnce(&mut SlotWriter)) -> Self {
+        let mut writer = self.into_writer();
+        f(&mut writer);
+        writer.close()
     }
 }
 

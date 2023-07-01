@@ -52,7 +52,7 @@ impl SlotWriter {
 
     /// Begin inserting at the current location. beginInsert() can be nested and must be called with
     /// a balanced number of endInsert()
-    pub fn begin_insert(&mut self, _table: &mut SlotTable) {
+    pub fn begin_insert(&mut self) {
         let count = self.insert_count;
         self.insert_count += 1;
         if count == 0 {
@@ -61,7 +61,7 @@ impl SlotWriter {
     }
 
     /// Ends inserting.
-    pub fn end_insert(&mut self, _table: &SlotTable) {
+    pub fn end_insert(&mut self) {
         assert!(self.insert_count > 0);
 
         self.insert_count -= 1;
@@ -213,7 +213,6 @@ impl SlotWriter {
 
     fn start_group_inner(
         &mut self,
-
         id: TypeId,
         object_key: Option<Box<dyn Slot>>,
         is_node: bool,
@@ -259,6 +258,10 @@ impl SlotWriter {
                     self.table.slots[idx] = aux;
                 }
             }
+
+            self.node_count = 0;
+            self.parent = self.current_group as _;
+            self.current_group += 1;
 
             self.current_group_end + 1
         } else {
@@ -361,5 +364,25 @@ impl SlotWriter {
         } else {
             index + self.group_gap_len
         }
+    }
+
+    /// End the current group. Must be called after the corresponding startGroup().
+    pub fn end_group(&mut self) -> usize {
+        let group_address = self.group_index_to_address(self.parent as usize);
+
+        let new_nodes = self.node_count;
+        let new_group_size = self.current_group - self.parent as usize;
+        let is_node = self.table.groups[group_address].is_node();
+
+        if self.insert_count > 0 {
+            let group = &mut self.table.groups[group_address];
+            group.size_offset = new_group_size;
+            group.set_node_count(self.node_count as _);
+            self.node_count =
+                self.node_count_stack.pop().unwrap() + if is_node { 1 } else { self.node_count };
+            // TODO parent
+        }
+
+        new_nodes
     }
 }
