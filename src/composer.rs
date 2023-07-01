@@ -146,7 +146,7 @@ impl Compose for Composer {
         todo!()
     }
 
-    fn cache<T>(&mut self, _is_invalid: bool, _f: impl FnOnce() -> T) -> T {
-        todo!()
+    fn cache<T>(&mut self, _is_invalid: bool, f: impl FnOnce() -> T) -> T {
+        f()
     }
 }
