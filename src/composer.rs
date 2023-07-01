@@ -47,22 +47,6 @@ impl Composer {
         self.reader = mem::take(&mut self.writer).close().into_reader();
     }
 
-    /// Determine if the current slot table value is equal to the given value, if true, the value
-    /// is scheduled to be skipped during [ControlledComposition.applyChanges] and [changes] return
-    /// false; otherwise [ControlledComposition.applyChanges] will update the slot table to [value].
-    /// In either case the composer's slot table is advanced.
-    pub fn changed<T>(&mut self, value: &T) -> bool
-    where
-        T: Clone + Hash + PartialEq + 'static,
-    {
-        if self.next_slot().and_then(|slot| slot.any().downcast_ref()) == Some(value) {
-            self.update_value(Some(Box::new(value.clone())));
-            true
-        } else {
-            false
-        }
-    }
-
     fn update_value(&mut self, value: Option<Box<dyn Slot>>) {
         if self.is_inserting {
             self.writer.update(value);
@@ -166,5 +150,16 @@ impl Compose for Composer {
         let value = f();
         self.update_value(Some(Box::new(value.clone())));
         value
+    }
+
+    fn changed<T>(&mut self, value: &T) -> bool
+        where
+            T: Clone + Hash + PartialEq + 'static {
+      if self.next_slot().and_then(|slot| slot.any().downcast_ref()) == Some(value) {
+            self.update_value(Some(Box::new(value.clone())));
+            true
+        } else {
+            false
+        }    
     }
 }

@@ -95,18 +95,54 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             output
         }
     } else {
-        quote! {
-            composer.start_restart_group(#group_id);
+        if inputs.is_empty() {
+            quote! {
+                composer.start_restart_group(#group_id);
 
-            if changed == 0 && composer.is_skipping() {
-                composer.skip_to_group_end();
-            } else {
-                #block
+                if changed == 0 && composer.is_skipping() {
+                    composer.skip_to_group_end();
+                } else {
+                    #block
+                }
+
+                composer.end_restart_group(move || {
+                    Box::new(move |composer, _force| #ident(#(#input_pats),*).compose(composer, changed | 1))
+                });
+            }
+        } else {
+            let checks = input_pats.iter().enumerate().map(|(idx, input)| {
+                let i: u32 = 0b111 << (idx * 3 + 1);
+                quote! {
+                    if changed & #i == 0 {
+                        dirty = changed | if composer.changed(&x) { 4 } else { 2 };
+                    }
+                }
+            });
+
+            let mut mask = 1u32;
+            let mut value = 0u32;
+            for idx in 0..input_pats.len() {
+                mask |= 0b101 << (idx * 3 + 1);
+                value |= 0b10 << (idx * 3);
             }
 
-            composer.end_restart_group(move || {
-                Box::new(move |composer, _force| #ident(#(#input_pats),*).compose(composer, changed | 1))
-            });
+            quote! {
+                composer.start_restart_group(#group_id);
+
+                let mut dirty = changed;
+
+                #(#checks)*
+
+                if dirty & #mask == #value  && composer.is_skipping() {
+                    composer.skip_to_group_end();
+                } else {
+                    #block
+                }
+
+                composer.end_restart_group(move || {
+                    Box::new(move |composer, _force| #ident(#(#input_pats),*).compose(composer, changed | 1))
+                });
+            }
         }
     };
 

@@ -47,6 +47,14 @@ pub trait Compose {
     fn cache<T>(&mut self, is_invalid: bool, f: impl FnOnce() -> T) -> T
     where
         T: Clone + Hash + PartialEq + 'static;
+
+    /// Determine if the current slot table value is equal to the given value, if true, the value
+    /// is scheduled to be skipped during [ControlledComposition.applyChanges] and [changes] return
+    /// false; otherwise [ControlledComposition.applyChanges] will update the slot table to [value].
+    /// In either case the composer's slot table is advanced.
+    fn changed<T>(&mut self, value: &T) -> bool
+    where
+        T: Clone + Hash + PartialEq + 'static;
 }
 
 pub trait Composable {
@@ -162,7 +170,7 @@ impl<C> RecomposeScope<C> {
      *
      * @param instances The set of objects reported as invalidating this scope.
      */
-     fn is_invalid_for(&mut self, instances: HashSet<Key>) -> bool {
+    fn is_invalid_for(&mut self, instances: HashSet<Key>) -> bool {
         todo!()
     }
 }
