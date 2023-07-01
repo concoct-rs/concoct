@@ -1,4 +1,7 @@
-use std::any::TypeId;
+use std::{
+    any::TypeId,
+    hash::{Hash, Hasher},
+};
 
 extern crate self as concoct;
 
@@ -6,6 +9,7 @@ pub use concoct_macros::composable;
 
 mod composer;
 pub use composer::Composer;
+use slot_table::Slot;
 
 pub mod slot_table;
 
@@ -48,3 +52,24 @@ macro_rules! current_composer {
 pub fn remember<T: 'static, F: FnOnce() -> T + 'static>(f: F) -> T {
     composer.cache(false, f)
 }
+
+pub struct Key {
+    slot: Box<dyn Slot>,
+}
+
+impl Hash for Key {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let addr = (&*self.slot) as *const dyn Slot;
+        addr.hash(state);
+
+        self.slot.dyn_hash(state);
+    }
+}
+
+impl PartialEq for Key {
+    fn eq(&self, other: &Self) -> bool {
+        self.slot.any_eq(other)
+    }
+}
+
+impl Eq for Key {}
