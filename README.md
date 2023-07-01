@@ -17,13 +17,48 @@ fn app() {
 ```
 
 ## Runtime
-The runtime uses an optimized [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) with groups.
-Composable function parameters are stored one after another in this gap buffer.
-This enables composables that use parameters from their parents to skip storing data twice.
+Composables are defined as:
+```rust
+pub trait Composable {
+    type Output;
 
-For example, composables pass arguments to children with a change list that specifies which values are known to be different.
+    fn compose(self, compose: &mut impl Compose, changed: u32) -> Self::Output;
+}
+```
+They can be created with the #[composable] attribute macro. Composable functions are only run in their parameters have changed.
+Changelists for these parameters are passed down from parent to child in the form of a bitfield `changed` to avoid extra diffing.
 If a value is already known to have changed, the child composable will skip storing that parameter and run its function.
 However, if no parameters have changed, the composable will skip running its block.
+
+To store parameters, the runtime uses an optimized [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) with groups.
+This enables composables that use parameters from their parents to skip storing data twice.
+
+
+
+
+For example consider the following composable function:
+```rust
+#[composable]
+fn button(label: String, count: i32)
+```
+
+This will typically store its `label` and `count` parameters right next to each other in the gap buffer as:
+```
+... | label: String | count: i32 | ...
+```
+
+However, if it's parent component already stored the label, this function will skip it:
+```rust
+#[composable]
+fn button_row(label: String) {
+    compose!(button(label, 2));
+    compose!(button(label, 3));
+}
+```
+```
+    button_row:     button #1:   button #2:
+... | label: String | count: i32 | count: i32 | ...
+```
 
 ## Compiler
 The compiler comes in the form of the `#[composable]` attribute macro.
