@@ -3,6 +3,8 @@ use std::{any::TypeId, mem};
 
 pub struct SlotWriter {
     table: SlotTable,
+
+    /// The location of the `slots` array that contains the data for the [parent] group.
     current_slot: usize,
     current_slot_end: usize,
     slot_gap_start: usize,

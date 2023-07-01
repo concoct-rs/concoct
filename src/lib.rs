@@ -9,9 +9,9 @@ pub use concoct_macros::composable;
 
 mod composer;
 pub use composer::Composer;
-use slot_table::Slot;
 
-pub mod slot_table;
+mod slot_table;
+use slot_table::Slot;
 
 pub trait Compose {
     fn start_restart_group(&mut self, type_id: TypeId);
@@ -26,7 +26,9 @@ pub trait Compose {
 
     fn skip_to_group_end(&mut self);
 
-    fn cache<T>(&mut self, is_invalid: bool, f: impl FnOnce() -> T) -> T;
+    fn cache<T>(&mut self, is_invalid: bool, f: impl FnOnce() -> T) -> T
+    where
+        T: Clone + Hash + PartialEq + 'static;
 }
 
 pub trait Composable {
@@ -49,7 +51,7 @@ macro_rules! current_composer {
 }
 
 #[composable]
-pub fn remember<T: 'static, F: FnOnce() -> T + 'static>(f: F) -> T {
+pub fn remember<T: Clone + Hash + PartialEq + 'static, F: FnOnce() -> T + 'static>(f: F) -> T {
     composer.cache(false, f)
 }
 

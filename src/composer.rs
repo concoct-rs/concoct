@@ -74,7 +74,7 @@ impl Composer {
             // validateNodeNotExpected()
             None
         } else {
-            self.reader.next()
+            self.reader.next_slot()
         }
     }
 
@@ -146,7 +146,18 @@ impl Compose for Composer {
         todo!()
     }
 
-    fn cache<T>(&mut self, _is_invalid: bool, f: impl FnOnce() -> T) -> T {
-        f()
+    fn cache<T>(&mut self, is_invalid: bool, f: impl FnOnce() -> T) -> T
+    where
+        T: Clone + Hash + PartialEq + 'static,
+    {
+        if let Some(slot) = self.next_slot() {
+            if !is_invalid {
+                return slot.any().downcast_ref::<T>().unwrap().clone();
+            }
+        }
+
+        let value = f();
+        self.update_value(Some(Box::new(value.clone())));
+        value
     }
 }
