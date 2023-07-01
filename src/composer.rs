@@ -112,7 +112,7 @@ impl Compose for Composer {
         // TODO add restart scope
     }
 
-    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self, u32)>) {
+    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnOnce(&mut Self, u32)>) {
         // TODO
         if let Some(mut scope) = self.invalidate_stack.pop() {
             scope.update_scope(f());

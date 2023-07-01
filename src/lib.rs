@@ -29,7 +29,7 @@ use slot_table::Slot;
 pub trait Compose {
     fn start_restart_group(&mut self, type_id: TypeId);
 
-    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnMut(&mut Self, u32)>);
+    fn end_restart_group(&mut self, f: impl FnOnce() -> Box<dyn FnOnce(&mut Self, u32)>);
 
     fn start_replaceable_group(&mut self, type_id: TypeId);
 
@@ -116,7 +116,7 @@ pub struct RecomposeScope<C> {
     current_token: usize,
     was_skipped: bool,
     is_rereading: bool,
-    f: Option<Box<dyn FnMut(&mut C, u32)>>,
+    f: Option<Box<dyn FnOnce(&mut C, u32)>>,
     tracked_instances: Option<HashMap<Key, usize>>,
 }
 
@@ -130,10 +130,10 @@ impl<C> RecomposeScope<C> {
 
     /// Restart the scope's composition
     pub fn compose(&mut self, composer: &mut C) {
-        self.f.as_mut().unwrap()(composer, 1);
+        self.f.take().unwrap()(composer, 1);
     }
 
-    pub fn update_scope(&mut self, f: Box<dyn FnMut(&mut C, u32)>) {
+    pub fn update_scope(&mut self, f: Box<dyn FnOnce(&mut C, u32)>) {
         self.f = Some(f)
     }
 
