@@ -17,6 +17,7 @@ enum GroupKind {
     ReusableNode,
 }
 
+#[doc(hidden)]
 pub struct Composer {
     reader: SlotReader,
     writer: SlotWriter,

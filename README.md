@@ -4,7 +4,7 @@
 [![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/concoct)
 [![CI](https://github.com/matthunz/concoct/actions/workflows/rust.yml/badge.svg)](https://github.com/matthunz/concoct/actions/workflows/rust.yml)
 
-Cross-platform UI runtime and framework in Rust.
+Generic UI compiler and runtime in rust.
 
 ```rust
 use concoct::{composable, compose, remember};

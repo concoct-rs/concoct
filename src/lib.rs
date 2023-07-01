@@ -1,3 +1,5 @@
+//! Generic UI compiler and runtime library.
+
 use std::{
     any::TypeId,
     hash::{Hash, Hasher},
@@ -8,6 +10,7 @@ extern crate self as concoct;
 pub use concoct_macros::composable;
 
 mod composer;
+#[doc(hidden)]
 pub use composer::Composer;
 
 mod slot_table;
