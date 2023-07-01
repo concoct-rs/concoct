@@ -1,7 +1,10 @@
 [package]
 name = "concoct-macros"
-version = "0.1.0"
+version = "0.2.0-alpha.1"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Generic UI compiler and runtime library"
+repository = "https://github.com/concoct-rs/concoct"
 
 [lib]
 proc-macro = true
