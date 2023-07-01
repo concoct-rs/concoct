@@ -2,15 +2,6 @@
 //!
 //! This crate provides positional memoization where programs are defined as a composition of [`composable`] functions.
 //! The results of these functions are cached based on the position of the function call.
-//! For example:
-//! ```no_run
-//! #[composable]
-//! fn f() -> i32
-//! 
-//! // will become:
-//! 
-//! fn f() -> impl Composable<Output = i32>
-//! ```
 
 use std::{
     any::TypeId,
