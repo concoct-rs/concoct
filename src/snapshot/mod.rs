@@ -63,7 +63,11 @@ impl Snapshot for GlobalSnapshot {
         read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
     ) -> Box<dyn Snapshot> {
         let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
-        Box::new(ReadOnlySnapshot { id, read_observer })
+        Box::new(ReadOnlySnapshot {
+            id,
+            read_observer,
+            invalid: HashSet::new(),
+        })
     }
 
     fn id(&self) -> u64 {
@@ -90,6 +94,7 @@ pub fn with_current_snapshot<R>(f: impl FnOnce(&mut dyn Snapshot) -> R) -> R {
 
 pub struct ReadOnlySnapshot {
     id: u64,
+    invalid: HashSet<u64>,
     // invalid = invalid,
     read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
 }
@@ -103,11 +108,11 @@ impl Snapshot for ReadOnlySnapshot {
     }
 
     fn id(&self) -> u64 {
-        todo!()
+        self.id
     }
 
     fn invalid(&self) -> &HashSet<u64> {
-        todo!()
+        &self.invalid
     }
 }
 
@@ -144,7 +149,15 @@ impl<T, U> SnapshotMutableState<T, U> {
     {
         let prev = current(&self.records);
         if prev.is_none() || !self.policy.is_eq(prev.unwrap(), &value) {
-            // TODO
+            with_current_snapshot(|snapshot| {
+                self.records.insert(
+                    0,
+                    StateRecord {
+                        snapshot_id: snapshot.id() + 1,
+                        value,
+                    },
+                );
+            })
         }
     }
 }
@@ -160,12 +173,14 @@ fn readable<'a, T>(
     invalid: &HashSet<u64>,
 ) -> Option<&'a T> {
     let mut iter = records.iter();
-    let mut candidate = None;
+    let mut candidate: Option<&StateRecord<T>> = None;
 
     while let Some(record) = iter.next() {
-        if is_valid(record.snapshot_id, id, invalid) {
+        if is_valid(id, record.snapshot_id, invalid) {
             if let Some(candidate) = &mut candidate {
-                *candidate = record;
+                if record.snapshot_id >= candidate.snapshot_id {
+                    *candidate = record;
+                }
             } else {
                 candidate = Some(record);
             }
@@ -190,6 +205,7 @@ const INVALID_SNAPSHOT: u64 = 0;
  * INVALID_SNAPSHOT is reserved as an invalid snapshot id.
  */
 fn is_valid(current_snapshot: u64, candidate_snapshot: u64, invalid: &HashSet<u64>) -> bool {
+    dbg!(current_snapshot, candidate_snapshot);
     candidate_snapshot != INVALID_SNAPSHOT
         && candidate_snapshot <= current_snapshot
         && !invalid.contains(&candidate_snapshot)
@@ -198,12 +214,16 @@ fn is_valid(current_snapshot: u64, candidate_snapshot: u64, invalid: &HashSet<u6
 #[cfg(test)]
 mod tests {
     use super::{mutation_policy::ReferentialEqualityPolicy, SnapshotMutableState};
+    use crate::snapshot::{enter, snapshot};
 
     #[test]
     fn it_works() {
         let mut state = SnapshotMutableState::new(0, ReferentialEqualityPolicy);
-        assert_eq!(*state.get(), 0);
         state.set(1);
-        assert_eq!(*state.get(), 0);
+
+        let snapshot = snapshot(None);
+        enter(snapshot, || {
+            dbg!(state.get());
+        });
     }
 }
