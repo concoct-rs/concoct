@@ -23,7 +23,7 @@ pub struct Composer {
     writer: SlotWriter,
     is_inserting: bool,
     compound_key_hash: u64,
-    invalidate_stack: Vec<RecomposeScope<Self>>
+    invalidate_stack: Vec<RecomposeScope<Self>>,
 }
 
 impl Composer {
@@ -35,7 +35,7 @@ impl Composer {
             writer: insert_table.into_writer(),
             is_inserting: false,
             compound_key_hash: 0,
-            invalidate_stack: Vec::new()
+            invalidate_stack: Vec::new(),
         }
     }
 
@@ -117,7 +117,7 @@ impl Compose for Composer {
         if let Some(mut scope) = self.invalidate_stack.pop() {
             scope.update_scope(f());
         }
-        
+
         self.end(false)
     }
 
@@ -153,13 +153,14 @@ impl Compose for Composer {
     }
 
     fn changed<T>(&mut self, value: &T) -> bool
-        where
-            T: Clone + Hash + PartialEq + 'static {
-      if self.next_slot().and_then(|slot| slot.any().downcast_ref()) == Some(value) {
+    where
+        T: Clone + Hash + PartialEq + 'static,
+    {
+        if self.next_slot().and_then(|slot| slot.any().downcast_ref()) == Some(value) {
             self.update_value(Some(Box::new(value.clone())));
             true
         } else {
             false
-        }    
+        }
     }
 }

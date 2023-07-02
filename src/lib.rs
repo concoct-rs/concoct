@@ -108,6 +108,10 @@ impl PartialEq for Key {
 
 impl Eq for Key {}
 
+pub struct Composition {
+    composer: Composer,
+}
+
 /// A RecomposeScope is created for a region of the composition that can be recomposed independently
 /// of the rest of the composition. The composer will position the slot table to the location
 /// stored in [anchor] and call [block] when recomposition is requested. It is created by
@@ -170,7 +174,12 @@ impl<C> RecomposeScope<C> {
      *
      * @param instances The set of objects reported as invalidating this scope.
      */
-    fn is_invalid_for(&mut self, instances: HashSet<Key>) -> bool {
+    fn is_invalid_for(&mut self, _instances: HashSet<Key>) -> bool {
         todo!()
     }
+}
+
+pub struct RecomposeScopeHandle<'a> {
+    composition: &'a mut Composition,
+    scope: RecomposeScope<Composer>,
 }

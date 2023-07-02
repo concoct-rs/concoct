@@ -14,12 +14,10 @@ pub trait Apply<N> {
     /// A call to [onBeginChanges] will always precede a call to [onEndChanges].
     fn on_end_changes(&mut self) {}
 
-
     /// Indicates that the applier is getting traversed "down" the tree. When this gets called,
     /// [node] is expected to be a child of [current], and after this operation, [node] is
     /// expected to be the new [current].
     fn down(&mut self, node: Self::NodeId);
-
 
     /// Indicates that the applier is getting traversed "up" the tree. After this operation
     /// completes, the [current] should return the "parent" of the [current] node at the beginning
@@ -39,10 +37,8 @@ pub trait Apply<N> {
     /// [insertTopDown] and when to use [insertBottomUp].
     fn insert_bottom_up(index: usize, instance: N);
 
-
     /// Indicates that the children of [current] from [index] to [index] + [count] should be removed.
     fn remove(&mut self, index: usize, count: usize);
-
 
     /// Indicates that [count] children of [current] should be moved from index [from] to index [to].
     /// The [to] index is relative to the position before the change, so, for example, to move an
