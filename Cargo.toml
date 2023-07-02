@@ -18,3 +18,5 @@ full = []
 [dependencies]
 # concoct-macros = "0.2.0-alpha.1"
 concoct-macros = { path = "macros" }
+slotmap = "1.0.6"
+tokio = { version = "1.29.1", features = ["full"] }
