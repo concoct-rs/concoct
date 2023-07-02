@@ -14,75 +14,67 @@ use self::mutation_policy::MutationPolicy;
 
 pub mod mutation_policy;
 
-pub trait Snapshot {
-    fn id(&self) -> u64;
+pub struct Snapshot {
+    id: u64,
+    invalid: HashSet<u64>,
+    kind: SnapKind,
+}
 
-    fn invalid(&self) -> &HashSet<u64>;
+impl Snapshot {
+    pub fn take(read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>) -> Self {
+        with_current_snapshot(|snapshot| snapshot.take_nested_snapshot(read_observer))
+    }
+
+    pub fn enter<R>(self, f: impl FnOnce() -> R) -> R {
+        let prev = swap_current(Some(self));
+        let output = f();
+        swap_current(prev);
+        output
+    }
 
     fn take_nested_snapshot(
         &mut self,
         read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
-    ) -> Box<dyn Snapshot>;
+    ) -> Self {
+        match self.kind {
+            SnapKind::Global => {
+                let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
+                Self {
+                    id,
+                    invalid: self.invalid.clone(),
+                    kind: SnapKind::ReadOnly,
+                }
+            }
+            SnapKind::ReadOnly => todo!(),
+        }
+    }
+}
+
+pub enum SnapKind {
+    Global,
+    ReadOnly,
 }
 
 lazy_static::lazy_static! {
-    static ref GLOBAL_SNAPSHOT: Mutex<GlobalSnapshot> = Mutex::new(GlobalSnapshot { id: 1, invalid: HashSet::new() });
+    static ref GLOBAL_SNAPSHOT: Mutex<Snapshot> = Mutex::new(Snapshot { id: 1, invalid: HashSet::new(), kind: SnapKind::Global });
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(2);
 
 thread_local! {
-    static THREAD_SNAPSHOT: RefCell<Option<Box<dyn Snapshot>>> = RefCell::new(None);
+    static THREAD_SNAPSHOT: RefCell<Option<Snapshot>> = RefCell::new(None);
 }
 
-pub fn snapshot(read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>) -> Box<dyn Snapshot> {
-    with_current_snapshot(|snapshot| snapshot.take_nested_snapshot(read_observer))
-}
-
-pub fn swap_current(snapshot: Option<Box<dyn Snapshot>>) -> Option<Box<dyn Snapshot>> {
+pub fn swap_current(snapshot: Option<Snapshot>) -> Option<Snapshot> {
     THREAD_SNAPSHOT
         .try_with(|current| mem::replace(&mut *current.borrow_mut(), snapshot))
         .unwrap()
 }
 
-pub fn enter<R>(snapshot: Box<dyn Snapshot>, f: impl FnOnce() -> R) -> R {
-    let prev = swap_current(Some(snapshot));
-    let output = f();
-    swap_current(prev);
-    output
-}
-
-pub struct GlobalSnapshot {
-    id: u64,
-    invalid: HashSet<u64>,
-}
-
-impl Snapshot for GlobalSnapshot {
-    fn take_nested_snapshot(
-        &mut self,
-        read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
-    ) -> Box<dyn Snapshot> {
-        let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
-        Box::new(ReadOnlySnapshot {
-            id,
-            read_observer,
-            invalid: HashSet::new(),
-        })
-    }
-
-    fn id(&self) -> u64 {
-        self.id
-    }
-
-    fn invalid(&self) -> &HashSet<u64> {
-        &self.invalid
-    }
-}
-
-pub fn with_current_snapshot<R>(f: impl FnOnce(&mut dyn Snapshot) -> R) -> R {
+pub fn with_current_snapshot<R>(f: impl FnOnce(&mut Snapshot) -> R) -> R {
     THREAD_SNAPSHOT
         .try_with(|thread_snapshot| {
-            if let Some(snapshot) = thread_snapshot.borrow_mut().as_deref_mut() {
+            if let Some(snapshot) = thread_snapshot.borrow_mut().as_mut() {
                 f(snapshot.borrow_mut())
             } else {
                 let mut snapshot = GLOBAL_SNAPSHOT.lock().unwrap();
@@ -92,45 +84,21 @@ pub fn with_current_snapshot<R>(f: impl FnOnce(&mut dyn Snapshot) -> R) -> R {
         .unwrap()
 }
 
-pub struct ReadOnlySnapshot {
-    id: u64,
-    invalid: HashSet<u64>,
-    // invalid = invalid,
-    read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
-}
-
-impl Snapshot for ReadOnlySnapshot {
-    fn take_nested_snapshot(
-        &mut self,
-        read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
-    ) -> Box<dyn Snapshot> {
-        todo!()
-    }
-
-    fn id(&self) -> u64 {
-        self.id
-    }
-
-    fn invalid(&self) -> &HashSet<u64> {
-        &self.invalid
-    }
-}
-
 pub struct StateRecord<T> {
     snapshot_id: u64,
     value: T,
 }
 
-pub struct SnapshotMutableState<T, U> {
+pub struct MutableState<T, U> {
     records: Vec<StateRecord<T>>,
     policy: U,
 }
 
-impl<T, U> SnapshotMutableState<T, U> {
+impl<T, U> MutableState<T, U> {
     pub fn new(value: T, policy: U) -> Self {
         Self {
             records: vec![StateRecord {
-                snapshot_id: with_current_snapshot(|snapshot| snapshot.id()),
+                snapshot_id: with_current_snapshot(|snapshot| snapshot.id),
                 value,
             }],
             policy,
@@ -139,7 +107,7 @@ impl<T, U> SnapshotMutableState<T, U> {
 
     /// The readable record is the valid record with the highest snapshot_id
     pub fn get(&mut self) -> &T {
-        with_current_snapshot(|snapshot| readable(&self.records, snapshot.id(), snapshot.invalid()))
+        with_current_snapshot(|snapshot| readable(&self.records, snapshot.id, &snapshot.invalid))
             .unwrap()
     }
 
@@ -153,7 +121,7 @@ impl<T, U> SnapshotMutableState<T, U> {
                 self.records.insert(
                     0,
                     StateRecord {
-                        snapshot_id: snapshot.id() + 1,
+                        snapshot_id: snapshot.id + 1,
                         value,
                     },
                 );
@@ -164,7 +132,7 @@ impl<T, U> SnapshotMutableState<T, U> {
 
 /// Returns the current record without notifying any read observers.
 pub fn current<T>(records: &[StateRecord<T>]) -> Option<&T> {
-    with_current_snapshot(|snapshot| readable(records, snapshot.id(), snapshot.invalid()))
+    with_current_snapshot(|snapshot| readable(records, snapshot.id, &snapshot.invalid))
 }
 
 fn readable<'a, T>(
@@ -205,7 +173,6 @@ const INVALID_SNAPSHOT: u64 = 0;
  * INVALID_SNAPSHOT is reserved as an invalid snapshot id.
  */
 fn is_valid(current_snapshot: u64, candidate_snapshot: u64, invalid: &HashSet<u64>) -> bool {
-    dbg!(current_snapshot, candidate_snapshot);
     candidate_snapshot != INVALID_SNAPSHOT
         && candidate_snapshot <= current_snapshot
         && !invalid.contains(&candidate_snapshot)
@@ -213,16 +180,15 @@ fn is_valid(current_snapshot: u64, candidate_snapshot: u64, invalid: &HashSet<u6
 
 #[cfg(test)]
 mod tests {
-    use super::{mutation_policy::ReferentialEqualityPolicy, SnapshotMutableState};
-    use crate::snapshot::{enter, snapshot};
+    use super::{mutation_policy::ReferentialEqualityPolicy, MutableState, Snapshot};
 
     #[test]
     fn it_works() {
-        let mut state = SnapshotMutableState::new(0, ReferentialEqualityPolicy);
+        let mut state = MutableState::new(0, ReferentialEqualityPolicy);
         state.set(1);
 
-        let snapshot = snapshot(None);
-        enter(snapshot, || {
+        let snapshot = Snapshot::take(None);
+        snapshot.enter(|| {
             dbg!(state.get());
         });
     }
