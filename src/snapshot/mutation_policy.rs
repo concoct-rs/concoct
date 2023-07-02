@@ -6,8 +6,7 @@
 pub trait MutationPolicy<T> {
     /// Determine if setting a state value's are equivalent and should be treated as equal.
     /// If [equivalent] returns `true` the new value is not considered a change.
-
-    fn is_eq(&mut self, a: T, b: T) -> bool;
+    fn is_eq(&mut self, a: &T, b: &T) -> bool;
 
     /// Merge conflicting changes in snapshots. This is only called if [current] and [applied] are
     /// not [equivalent]. If a valid merged value can be calculated then it should be returned.
@@ -28,7 +27,7 @@ impl<T> MutationPolicy<T> for ReferentialEqualityPolicy
 where
     T: PartialEq,
 {
-    fn is_eq(&mut self, a: T, b: T) -> bool {
+    fn is_eq(&mut self, a: &T, b: &T) -> bool {
         a == b
     }
 }
