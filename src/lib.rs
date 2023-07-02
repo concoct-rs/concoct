@@ -6,7 +6,7 @@
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
-    hash::{Hash, Hasher}, sync::atomic::AtomicBool,
+    hash::{Hash, Hasher},
 };
 
 extern crate self as concoct;
@@ -15,6 +15,7 @@ mod apply;
 pub use apply::Apply;
 
 pub mod snapshot;
+pub use snapshot::State;
 
 pub use concoct_macros::composable;
 
@@ -24,7 +25,6 @@ pub use composer::Composer;
 
 mod slot_table;
 use slot_table::Slot;
-use tokio::sync::mpsc;
 
 /// Composer is the interface that is targeted by the [`composable`] macro and used by code generation helpers.
 /// It is highly recommended that direct calls these be avoided as the runtime assumes that the calls are generated
