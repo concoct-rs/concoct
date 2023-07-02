@@ -33,7 +33,7 @@ pub use state::State;
 pub struct Snapshot {
     id: u64,
     invalid: HashSet<u64>,
-    kind: SnapKind,
+    kind: Kind,
 }
 
 impl Snapshot {
@@ -57,26 +57,26 @@ impl Snapshot {
         _read_observer: Option<Box<dyn FnMut(Box<dyn Any>)>>,
     ) -> Self {
         match self.kind {
-            SnapKind::Global => {
+            Kind::Global => {
                 let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
                 Self {
                     id,
                     invalid: self.invalid.clone(),
-                    kind: SnapKind::ReadOnly,
+                    kind: Kind::ReadOnly,
                 }
             }
-            SnapKind::ReadOnly => todo!(),
+            Kind::ReadOnly => todo!(),
         }
     }
 }
 
-pub enum SnapKind {
+enum Kind {
     Global,
     ReadOnly,
 }
 
 lazy_static::lazy_static! {
-    static ref GLOBAL_SNAPSHOT: Mutex<Snapshot> = Mutex::new(Snapshot { id: 1, invalid: HashSet::new(), kind: SnapKind::Global });
+    static ref GLOBAL_SNAPSHOT: Mutex<Snapshot> = Mutex::new(Snapshot { id: 1, invalid: HashSet::new(), kind: Kind::Global });
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(2);
@@ -85,13 +85,13 @@ thread_local! {
     static THREAD_SNAPSHOT: RefCell<Option<Snapshot>> = RefCell::new(None);
 }
 
-pub fn swap_current(snapshot: Option<Snapshot>) -> Option<Snapshot> {
+fn swap_current(snapshot: Option<Snapshot>) -> Option<Snapshot> {
     THREAD_SNAPSHOT
         .try_with(|current| mem::replace(&mut *current.borrow_mut(), snapshot))
         .unwrap()
 }
 
-pub fn with_current_snapshot<R>(f: impl FnOnce(&mut Snapshot) -> R) -> R {
+fn with_current_snapshot<R>(f: impl FnOnce(&mut Snapshot) -> R) -> R {
     THREAD_SNAPSHOT
         .try_with(|thread_snapshot| {
             if let Some(snapshot) = thread_snapshot.borrow_mut().as_mut() {
