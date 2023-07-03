@@ -6,7 +6,7 @@ fn app() {
     let count = compose!(remember(|| State::new(0)));
     count.update(|count| *count += 1);
 
-    if *count.get() != 2 {
+    if *count.get() == 0 {
         compose!(node(*count.get()));
     }
 }
@@ -36,8 +36,10 @@ impl Apply for Tree {
 async fn main() {
     let tree = Tree {};
     let mut composer = Composer::new(Box::new(tree));
+
     composer.compose(app());
+    dbg!(&composer);
 
     composer.recompose().await;
-    composer.recompose().await;
+    dbg!(&composer);
 }

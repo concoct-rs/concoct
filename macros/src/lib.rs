@@ -2,7 +2,6 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
     fold::{self, Fold},
-    parse::Parse,
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::Comma,

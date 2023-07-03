@@ -58,7 +58,7 @@ impl<T> State<T> {
         }
     }
 
-    pub fn update(&self, mut f: impl FnMut(&mut T) + Send  + 'static)
+    pub fn update(&self, mut f: impl FnMut(&mut T) + Send + 'static)
     where
         T: Send + 'static,
     {

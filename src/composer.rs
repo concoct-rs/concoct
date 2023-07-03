@@ -1,14 +1,14 @@
 //! # Composer
 //! The composer stores the data from the composition tree.
-//! 
+//!
 //! ```ignore
 //! #[composable]
 //! fn app() {
 //!     compose!(node(0));
 //! }
-//! 
+//!
 //! // Will be stored as:
-//! 
+//!
 //! Group {
 //!     len: 2,
 //!     kind: Restart,
@@ -22,7 +22,6 @@
 //! },
 //! ```
 
-
 use crate::{
     snapshot::{Scope, Snapshot},
     Apply, Composable, State,
@@ -32,6 +31,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt, iter,
     mem::MaybeUninit,
+    rc::Rc,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -39,6 +39,7 @@ pub enum SlotKind {
     RestartGroup,
     ReplaceGroup,
     Node,
+    Data,
 }
 
 impl PartialEq<Slot> for SlotKind {
@@ -69,8 +70,11 @@ pub enum Slot {
         len: usize,
         kind: GroupKind,
     },
+    Data {
+        value: Option<Box<dyn Any>>,
+    },
     Node {
-        data: Option<Box<dyn Any>>,
+        id: Rc<dyn Any>,
     },
 }
 
@@ -85,7 +89,8 @@ impl Slot {
                 GroupKind::Replace => SlotKind::ReplaceGroup,
                 GroupKind::Restart { f: _ } => SlotKind::RestartGroup,
             },
-            Self::Node { data: _ } => SlotKind::Node,
+            Self::Data { value: _ } => SlotKind::Data,
+            Self::Node { id: _ } => SlotKind::Node,
         }
     }
 }
@@ -104,17 +109,18 @@ impl fmt::Debug for Slot {
                 .field("len", len)
                 .field("kind", kind)
                 .finish(),
-            Self::Node { data } => f.debug_struct("Node").field("data", data).finish(),
+            Self::Data { value: data } => f.debug_struct("Data").field("data", data).finish(),
+            Self::Node { id: _ } => f.debug_struct("Node").finish(),
         }
     }
 }
 
 /// Composer for a UI tree that builds and rebuilds a depth-first traversal of the tree's nodes.
-/// 
+///
 /// See the [`module`](concoct::composer) docs for more.
 pub struct Composer {
     applier: Box<dyn Apply>,
-    node_ids: Vec<Box<dyn Any>>,
+    node_ids: Vec<Rc<dyn Any>>,
     tracked_states: HashSet<u64>,
     snapshot: Snapshot,
     slots: Box<[MaybeUninit<Slot>]>,
@@ -160,7 +166,7 @@ impl Composer {
 
     /// Compose the initial content.
     pub fn compose(&mut self, content: impl Composable) {
-        self.node_ids.push(self.applier.root());
+        self.node_ids.push(self.applier.root().into());
         content.compose(self, 0);
     }
 
@@ -222,7 +228,7 @@ impl Composer {
         if let Some(slot) = self.peek_mut() {
             let value = if !is_invalid {
                 match slot {
-                    Slot::Node { data } => {
+                    Slot::Data { value: data } => {
                         data.as_ref().unwrap().downcast_ref::<R>().unwrap().clone()
                     }
                     _ => todo!(),
@@ -230,7 +236,7 @@ impl Composer {
             } else {
                 let value = f();
                 let data = Box::new(value.clone());
-                *slot = Slot::Node { data: Some(data) };
+                *slot = Slot::Data { value: Some(data) };
                 value
             };
 
@@ -241,89 +247,111 @@ impl Composer {
         } else {
             let value = f();
             let data = Box::new(value.clone());
-            let slot = Slot::Node { data: Some(data) };
+            let slot = Slot::Data { value: Some(data) };
             self.insert(slot);
             value
         }
     }
 
-    /// Create or update a replacable group.
-    /// A replacable group is a group that cannot be moved and can only either inserted, removed, or replaced.
-    /// For example, this is the group created by most control flow constructs (such as an `if`).
     pub fn restart_group(
         &mut self,
         id: TypeId,
         mut f: impl FnMut(&mut Self) + Clone + Send + 'static,
     ) {
-        let idx = self.pos;
-        self.group(Slot::Group {
+        self.group(
             id,
-            len: 0,
-            kind: GroupKind::Restart { f: None },
-        });
+            GroupKind::Restart {
+                f: Some(Box::new(f.clone())),
+            },
+            |me, idx| {
+                let tracked = me.tracked_states.clone();
 
-        let tracked = self.tracked_states.clone();
+                let scope = Scope::default().enter(|| {
+                    f(me);
+                });
+
+                for state_id in &scope.state_ids {
+                    if me.tracked_states.insert(*state_id) {
+                        me.map.insert(*state_id, idx);
+                    }
+                }
+
+                me.tracked_states = tracked;
+            },
+        );
+    }
+
+    /// Create or update a replacable group.
+    /// A replacable group is a group that cannot be moved and can only either inserted, removed, or replaced.
+    /// For example, this is the group created by most control flow constructs (such as an `if`).
+    pub fn replaceable_group<R>(&mut self, id: TypeId, f: impl FnOnce(&mut Self) -> R) -> R {
+        self.group(id, GroupKind::Replace, |me, _idx| f(me))
+    }
+
+    fn group<R>(
+        &mut self,
+        id: TypeId,
+        kind: GroupKind,
+        f: impl FnOnce(&mut Self, usize) -> R,
+    ) -> R {
+        let idx = self.pos;
+        let last_len = self.start_group(id, GroupKind::Replace);
 
         let parent_child_count = self.child_count;
         self.child_count = 0;
 
-        let scope = Scope::default().enter(|| f(self));
+        let out = f(self, idx);
 
         let child_count = self.child_count;
         self.child_count += parent_child_count;
 
-        for state_id in &scope.state_ids {
-            if self.tracked_states.insert(*state_id) {
-                self.map.insert(*state_id, idx);
+        if let Slot::Group {
+            id: _,
+            len,
+            kind: this_kind,
+        } = self.get_mut(idx).unwrap()
+        {
+            *this_kind = kind;
+            *len = child_count;
+
+            if let Some(last_len) = last_len {
+                if child_count < last_len {
+                    self.remove(idx, idx + last_len - child_count);
+                }
             }
         }
 
-        let restart: Option<Box<dyn FnMut(&mut Self) + Send>> = if self.tracked_states.is_empty() {
-            None
-        } else {
-            Some(Box::new(f.clone()))
-        };
-        if let Slot::Group {
-            id: _,
-            len,
-            kind: GroupKind::Restart { f },
-        } = self.get_mut(idx).unwrap()
-        {
-            *len = child_count;
-            *f = restart;
-        } else {
-            todo!()
-        }
-
-        self.tracked_states = tracked;
+        out
     }
 
-    pub fn replaceable_group<R>(&mut self, id: TypeId, f: impl FnOnce(&mut Self) -> R) -> R {
-        let idx = self.pos;
-        self.group(Slot::Group {
-            id,
-            len: 0,
-            kind: GroupKind::Replace {},
-        });
-
-        let parent_child_count = self.child_count;
-        self.child_count = 0;
-
-        let output = f(self);
-
-        let child_count = self.child_count;
-        self.child_count += parent_child_count;
-
-        if let Slot::Group {
-            id: _,
-            len,
-            kind: _,
-        } = self.get_mut(idx).unwrap()
-        {
-            *len = child_count;
+    fn start_group(&mut self, id: TypeId, kind: GroupKind) -> Option<usize> {
+        if let Some(slot) = self.peek_mut() {
+            if let Slot::Group {
+                id: last_id,
+                len: last_len,
+                kind: last_kind,
+            } = slot
+            {
+                match last_kind {
+                    GroupKind::Replace => {
+                        *slot = Slot::Group { id, len: 0, kind };
+                        self.pos += 1;
+                        return None;
+                    }
+                    GroupKind::Restart { f: _ } => {
+                        if id == *last_id {
+                            *last_kind = kind;
+                            let len = *last_len;
+                            self.pos += 1;
+                            return Some(len);
+                        }
+                    }
+                }
+            }
         }
 
-        output
+        self.insert(Slot::Group { id, len: 0, kind });
+        None
     }
 
     /// Advance the cursor to the next group.
@@ -335,26 +363,6 @@ impl Composer {
         };
     }
 
-    fn group(&mut self, slot: Slot) {
-        if let Some(current_slot) = self.peek_mut() {
-            match current_slot {
-                Slot::Group {
-                    id: _,
-                    len: _,
-                    kind: GroupKind::Replace,
-                } => {
-                    *current_slot = slot;
-                    self.pos += 1;
-                }
-                _ => {
-                    self.insert(slot);
-                }
-            }
-        } else {
-            self.insert(slot);
-        }
-    }
-
     /// Create or update a node on the tree.
     pub fn node(&mut self, node: Box<dyn Any>) {
         if let Some(slot) = self.peek_mut() {
@@ -364,14 +372,14 @@ impl Composer {
                     len: _,
                     kind: GroupKind::Replace,
                 }
-                | Slot::Node { data: _ } => true,
+                | Slot::Data { value: _ } => true,
                 _ => false,
             };
 
             if is_replaceable {
                 let parent_id = self.node_ids.last().unwrap().clone();
-                self.applier.update(parent_id, node);
-                let slot = Slot::Node { data: None };
+                self.applier.update(&parent_id, node);
+                let slot = Slot::Data { value: None };
                 *self.peek_mut().unwrap() = slot;
 
                 self.pos += 1;
@@ -383,7 +391,7 @@ impl Composer {
 
         let parent_id = self.node_ids.last().unwrap();
         self.applier.insert(parent_id, node);
-        let slot = Slot::Node { data: None };
+        let slot = Slot::Data { value: None };
         self.insert(slot);
     }
 
@@ -450,6 +458,21 @@ impl Composer {
         self.pos += 1;
         self.gap_start += 1;
         self.child_count += 1;
+    }
+
+    fn remove(&mut self, start: usize, end: usize) {
+        let start_addr = self.get_address(start).unwrap();
+        let end_addr = self.get_address(end).unwrap();
+
+        for slot in &mut self.slots[start_addr..end_addr] {
+            let slot = unsafe { slot.assume_init_mut() };
+            if let Slot::Node { id } = slot {
+                self.applier.remove(&*id);
+            }
+        }
+
+        self.gap_start = start_addr;
+        self.gap_end = end_addr;
     }
 }
 
