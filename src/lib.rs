@@ -15,7 +15,7 @@ pub use snapshot::State;
 mod task;
 pub use task::{spawn, Task};
 
-mod composer;
+pub mod composer;
 pub use composer::Composer;
 
 pub trait Apply {

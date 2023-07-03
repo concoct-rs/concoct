@@ -9,6 +9,19 @@ use std::{
     mem::MaybeUninit,
 };
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SlotKind {
+    RestartGroup,
+    ReplaceGroup,
+    Node
+}
+
+impl PartialEq<Slot> for SlotKind {
+    fn eq(&self, other: &Slot) -> bool {
+        *self == other.kind()
+    }
+}
+
 pub enum GroupKind {
     Restart {
         f: Option<Box<dyn FnMut(&mut Composer) + Send>>,
@@ -34,6 +47,24 @@ pub enum Slot {
     Node {
         data: Option<Box<dyn Any>>,
     },
+}
+
+impl Slot {
+    pub fn kind(&self) -> SlotKind {
+        match self {
+            Self::Group { id: _, len: _, kind } => match kind {
+                GroupKind::Replace => SlotKind::ReplaceGroup,
+                GroupKind::Restart { f: _ } => SlotKind::RestartGroup
+            }
+            Self::Node { data: _ } => SlotKind::Node
+        }
+    }
+}
+
+impl PartialEq<SlotKind> for &Slot {
+    fn eq(&self, other: &SlotKind) -> bool {
+        other == *self
+    }
 }
 
 impl fmt::Debug for Slot {
@@ -65,6 +96,11 @@ pub struct Composer {
     map: HashMap<u64, usize>,
     contexts: HashMap<TypeId, Vec<State<Box<dyn Any + Send>>>>,
     child_count: usize,
+}
+
+impl Default for Composer {
+    fn default() -> Self {
+       Self::new(Box::new(())) }
 }
 
 impl Composer {

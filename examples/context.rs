@@ -9,6 +9,6 @@ fn app() {
 }
 
 fn main() {
-    let mut composer = Composer::new(Box::new(()));
+    let mut composer = Composer::default();
     composer.compose(app());
 }
