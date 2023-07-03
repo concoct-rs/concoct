@@ -69,6 +69,17 @@ impl<T> State<T> {
             _marker: PhantomData,
         }
     }
+
+    pub fn set(&mut self, value: T)
+    where
+        T: Send + Sync + 'static,
+    {
+        let mut shared = GLOBAL.modified.get_mut(&self.id).unwrap();
+        shared.records.push(Record {
+            snapshot_id: GLOBAL.id.load(Ordering::SeqCst) + 1,
+            value: Box::new(value),
+        })
+    }
 }
 
 pub struct StateRef<'a, T> {
@@ -97,11 +108,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::State;
+    use crate::{State, snapshot::GLOBAL};
 
     #[test]
     fn it_works() {
-        let state = State::new(0);
+        let mut state = State::new(0);
         assert_eq!(*state.get(), 0);
+
+        state.set(1);
+        assert_eq!(*state.get(), 0);
+
+        GLOBAL.advance();
+        assert_eq!(*state.get(), 1);
     }
 }
