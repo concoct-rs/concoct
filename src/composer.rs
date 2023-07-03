@@ -13,7 +13,7 @@ use std::{
 pub enum SlotKind {
     RestartGroup,
     ReplaceGroup,
-    Node
+    Node,
 }
 
 impl PartialEq<Slot> for SlotKind {
@@ -52,11 +52,15 @@ pub enum Slot {
 impl Slot {
     pub fn kind(&self) -> SlotKind {
         match self {
-            Self::Group { id: _, len: _, kind } => match kind {
+            Self::Group {
+                id: _,
+                len: _,
+                kind,
+            } => match kind {
                 GroupKind::Replace => SlotKind::ReplaceGroup,
-                GroupKind::Restart { f: _ } => SlotKind::RestartGroup
-            }
-            Self::Node { data: _ } => SlotKind::Node
+                GroupKind::Restart { f: _ } => SlotKind::RestartGroup,
+            },
+            Self::Node { data: _ } => SlotKind::Node,
         }
     }
 }
@@ -80,7 +84,6 @@ impl fmt::Debug for Slot {
     }
 }
 
-
 /// Composer for a UI tree.
 /// This builds and rebuilds a depth-first traversal of the tree's nodes.
 pub struct Composer {
@@ -100,7 +103,8 @@ pub struct Composer {
 
 impl Default for Composer {
     fn default() -> Self {
-       Self::new(Box::new(())) }
+        Self::new(Box::new(()))
+    }
 }
 
 impl Composer {
@@ -127,7 +131,6 @@ impl Composer {
             child_count: 0,
         }
     }
-
 
     /// Compose the initial content.
     pub fn compose(&mut self, content: impl Composable) {
@@ -184,7 +187,7 @@ impl Composer {
     /// Cache a value in the composition.
     /// During initial composition `f` is called to produce the value that is then stored in the slot table.
     /// During recomposition, if `is_invalid` is false the value is obtained from the slot table and `f` is not invoked.
-    /// If `is_invalid` is false a new value is produced by calling [block] and the slot table is updated to 
+    /// If `is_invalid` is false a new value is produced by calling [block] and the slot table is updated to
     /// contain the new value.
     pub fn cache<R>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R
     where
@@ -218,7 +221,7 @@ impl Composer {
         }
     }
 
-    /// Create or update a replacable group. 
+    /// Create or update a replacable group.
     /// A replacable group is a group that cannot be moved and can only either inserted, removed, or replaced.
     /// For example, this is the group created by most control flow constructs (such as an `if`).
     pub fn restart_group(
@@ -241,7 +244,7 @@ impl Composer {
         let scope = Scope::default().enter(|| f(self));
 
         let child_count = self.child_count;
-        self.child_count = parent_child_count;
+        self.child_count += parent_child_count;
 
         for state_id in &scope.state_ids {
             if self.tracked_states.insert(*state_id) {
@@ -283,7 +286,7 @@ impl Composer {
         let output = f(self);
 
         let child_count = self.child_count;
-        self.child_count = parent_child_count;
+        self.child_count += parent_child_count;
 
         if let Slot::Group {
             id: _,
@@ -295,6 +298,15 @@ impl Composer {
         }
 
         output
+    }
+
+    /// Advance the cursor to the next group.
+    pub fn skip_group(&mut self) {
+        if let Slot::Group { len, .. } = self.peek_mut().unwrap() {
+            self.pos += *len
+        } else {
+            todo!()
+        };
     }
 
     fn group(&mut self, slot: Slot) {
