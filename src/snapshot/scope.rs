@@ -2,8 +2,7 @@ use std::{cell::RefCell, collections::HashSet, mem};
 
 #[derive(Debug, Default)]
 pub struct Scope {
-    pub reads: HashSet<u64>,
-    pub writes: HashSet<u64>,
+    pub state_ids: HashSet<u64>,
 }
 
 impl Scope {

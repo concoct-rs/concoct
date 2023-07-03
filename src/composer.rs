@@ -102,7 +102,6 @@ impl<T, U> Composer<T, U> {
         } else {
             index
         };
-     
 
         if addr < self.slots.len() {
             Some(addr)
@@ -140,17 +139,15 @@ impl<T, U> Composer<T, U> {
         Vec::new()
     }
 
-    /*
-
     pub async fn recompose(&mut self) -> Vec<Operation<T, U>> {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
             let idx = *self.map.get(&id).unwrap();
-            let mut f = match &mut self.slots[idx] {
+            let mut f = match self.get_mut(idx).unwrap() {
                 Slot::RestartGroup { id: _, f } => f.take().unwrap(),
                 _ => todo!(),
             };
-            self.pos = idx;
+            self.pos = idx + 1;
 
             Scope::default().enter(|| {
                 f(self);
@@ -161,35 +158,58 @@ impl<T, U> Composer<T, U> {
         Vec::new()
     }
 
-
-    pub fn restart_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) + Send + 'static) {
+    pub fn restart_group(
+        &mut self,
+        id: TypeId,
+        mut f: impl FnMut(&mut Self) + Clone + Send + 'static,
+    ) {
+        let idx = self.pos;
+        self.group(Slot::RestartGroup { id, f: None });
 
         let tracked = self.tracked_states.clone();
-
         let scope = Scope::default().enter(|| f(self));
-        for state_id in &scope.reads {
+
+        for state_id in &scope.state_ids {
             if self.tracked_states.insert(*state_id) {
-                self.map.insert(*state_id, self.pos);
+                self.map.insert(*state_id, idx);
             }
         }
 
-        let f: Option<Box<dyn FnMut(&mut Self) + Send>> = if self.tracked_states.is_empty() {
+        let restart: Option<Box<dyn FnMut(&mut Self) + Send>> = if self.tracked_states.is_empty() {
             None
         } else {
-            Some(Box::new(f))
+            Some(Box::new(f.clone()))
         };
-        self.slots.push(Slot::RestartGroup { id, f });
-        self.pos += 1;
+        if let Slot::RestartGroup { id: _, f } = self.get_mut(idx).unwrap() {
+            *f = restart;
+        } else {
+            todo!()
+        }
 
         self.tracked_states = tracked;
     }
 
+    pub fn replaceable_group<R>(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) -> R) -> R {
+        self.group(Slot::ReplaceableGroup { id });
 
-    pub fn replaceable_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self)) {
-        self.slots.push(Slot::ReplaceableGroup { id });
-        f(self);
+        f(self)
     }
-      */
+
+    fn group(&mut self, slot: Slot<T, U>) {
+        if let Some(current_slot) = self.get_mut(self.pos) {
+            match current_slot {
+                Slot::ReplaceableGroup { id: _ } => {
+                    *current_slot = slot;
+                    self.pos += 1;
+                }
+                _ => {
+                    self.insert(slot);
+                }
+            }
+        } else {
+            self.insert(slot);
+        }
+    }
 
     pub fn insert(&mut self, slot: Slot<T, U>) {
         if self.pos != self.gap_start {}
@@ -205,15 +225,23 @@ mod tests {
     use crate::{composer::Slot, Composer, State};
     use std::any::Any;
 
-    #[test]
-    fn it_works() {
+    #[tokio::test]
+    async fn it_works() {
         let mut composer = Composer::<(), ()>::new();
 
         composer.compose(|composer| {
-            composer.cache(false, || 0);
+            composer.restart_group(().type_id(), |composer| {
+                let count = composer.replaceable_group(().type_id(), |composer| {
+                    composer.cache(false, || State::new(0))
+                });
+
+                dbg!(*count.get());
+
+                count.update(|count| *count += 1);
+            })
         });
 
-        let slots: Vec<_> = composer.slots().collect();
-        dbg!(&slots);
+        // dbg!(composer.slots().collect::<Vec<_>>());
+        composer.recompose().await;
     }
 }

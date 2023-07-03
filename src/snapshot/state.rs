@@ -17,6 +17,16 @@ pub struct State<T> {
     _marker: PhantomData<T>,
 }
 
+impl<T> Clone for State<T> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            value: self.value.clone(),
+            _marker: self._marker.clone(),
+        }
+    }
+}
+
 impl<T> State<T> {
     pub fn new(value: T) -> Self
     where
@@ -32,7 +42,7 @@ impl<T> State<T> {
     pub fn get(&self) -> Guard<T> {
         LOCAL_SCOPE
             .try_with(|scope| {
-                scope.borrow_mut().as_mut().unwrap().reads.insert(self.id);
+                scope.borrow_mut().as_mut().unwrap().state_ids.insert(self.id);
             })
             .unwrap();
 
@@ -49,7 +59,7 @@ impl<T> State<T> {
     {
         LOCAL_SCOPE
             .try_with(|scope| {
-                scope.borrow_mut().as_mut().unwrap().writes.insert(self.id);
+                scope.borrow_mut().as_mut().unwrap().state_ids.insert(self.id);
             })
             .unwrap();
 
