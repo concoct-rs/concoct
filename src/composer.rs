@@ -9,6 +9,9 @@ pub enum Slot {
         id: TypeId,
         f: Option<Box<dyn FnMut(&mut Composer)>>,
     },
+    ReplaceableGroup {
+        id: TypeId,
+    },
 }
 
 pub struct Composer {
@@ -32,7 +35,6 @@ impl Composer {
 
     pub fn compose(&mut self, content: impl FnOnce(&mut Self)) {
         content(self);
-
     }
 
     pub async fn recompose(&mut self) {
@@ -41,6 +43,7 @@ impl Composer {
             let idx = *self.map.get(&id).unwrap();
             let mut f = match &mut self.slots[idx] {
                 Slot::RestartGroup { id: _, f } => f.take().unwrap(),
+                _ => todo!(),
             };
             self.pos = idx;
 
@@ -52,7 +55,7 @@ impl Composer {
         self.tracked_states = HashSet::new();
     }
 
-    pub fn group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) + 'static) {
+    pub fn restart_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) + 'static) {
         let tracked = self.tracked_states.clone();
 
         let scope = Scope::default().enter(|| f(self));
@@ -72,20 +75,24 @@ impl Composer {
 
         self.tracked_states = tracked;
     }
+
+    pub fn replaceable_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self)) {
+        self.slots.push(Slot::ReplaceableGroup { id });
+        f(self);
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::any::Any;
-
     use crate::{Composer, State};
+    use std::any::Any;
 
     #[tokio::test]
     async fn it_works() {
         let mut composer = Composer::new();
 
         composer.compose(|composer| {
-            composer.group(().type_id(), |composer| {
+            composer.restart_group(().type_id(), |composer| {
                 let state = State::new(0);
                 dbg!(*state.get());
 

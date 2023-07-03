@@ -105,7 +105,9 @@ mod tests {
             state.update(|x| *x = 1);
             assert_eq!(*state.get(), 0);
 
-            snapshot.apply_pending();
+            for id in snapshot.apply_pending() {
+                
+            }
             assert_eq!(*state.get(), 1);
         });
     }
