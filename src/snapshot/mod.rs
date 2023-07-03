@@ -1,6 +1,7 @@
 use std::{
     any::Any,
     cell::RefCell,
+    iter,
     sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
@@ -12,7 +13,7 @@ mod state;
 pub use state::{Guard, State};
 
 mod task;
-pub use task::{Task, spawn};
+pub use task::{spawn, Task};
 
 pub struct Snapshot {
     rx: UnboundedReceiver<Operation>,
@@ -28,16 +29,20 @@ impl Snapshot {
         Self { rx }
     }
 
-    pub async fn apply(&mut self) {
+    pub async fn apply(&mut self) -> impl Iterator<Item = u64> + '_ {
         let mut first = self.rx.recv().await.unwrap();
         first.apply();
-        self.apply_pending();
+
+        iter::once(first.state_id).chain(self.apply_pending())
     }
 
-    pub fn apply_pending(&mut self) {
-        while let Ok(mut op) = self.rx.try_recv() {
-            op.apply();
-        }
+    pub fn apply_pending(&mut self) -> impl Iterator<Item = u64> + '_ {
+        iter::from_fn(|| {
+            self.rx.try_recv().ok().map(|mut op| {
+                op.apply();
+                op.state_id
+            })
+        })
     }
 }
 
@@ -72,6 +77,7 @@ thread_local! {
 }
 
 struct Operation {
+    state_id: u64,
     value: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
     f: Box<dyn FnMut(&mut dyn Any) + Send + Sync>,
 }

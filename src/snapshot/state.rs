@@ -3,7 +3,10 @@ use std::{
     any::Any,
     marker::PhantomData,
     ops::Deref,
-    sync::{Arc, Mutex, MutexGuard, atomic::{AtomicU64, Ordering}},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex, MutexGuard,
+    },
 };
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -58,6 +61,7 @@ impl<T> State<T> {
                     .unwrap()
                     .tx
                     .send(Operation {
+                        state_id: self.id,
                         value: self.value.clone(),
                         f: Box::new(move |any| f(any.downcast_mut().unwrap())),
                     })
