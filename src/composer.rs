@@ -49,6 +49,9 @@ impl fmt::Debug for Slot {
     }
 }
 
+
+/// Composer for a UI tree.
+/// This builds and rebuilds a depth-first traversal of the tree's nodes.
 pub struct Composer {
     applier: Box<dyn Apply>,
     node_ids: Vec<Box<dyn Any>>,
@@ -65,10 +68,12 @@ pub struct Composer {
 }
 
 impl Composer {
+    /// Create a new composer with the given `applier`.
     pub fn new(applier: Box<dyn Apply>) -> Self {
         Self::with_capacity(applier, 32)
     }
 
+    /// Create a new composer with the given `applier` and capacity.
     pub fn with_capacity(applier: Box<dyn Apply>, capacity: usize) -> Self {
         Self {
             applier,
@@ -87,12 +92,15 @@ impl Composer {
         }
     }
 
+
+    /// Compose the initial content.
     pub fn compose(&mut self, content: impl Composable) {
         self.node_ids.push(self.applier.root());
-
         content.compose(self, 0);
     }
 
+    /// Recompose the current content from `compose` when a state change is requested.
+    /// Updating [`State`] will trigger this method.
     pub async fn recompose(&mut self) {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
@@ -124,6 +132,7 @@ impl Composer {
         self.tracked_states = HashSet::new();
     }
 
+    /// Start a new iterator over the slots inside this composer.
     pub fn slots(&self) -> impl Iterator<Item = &Slot> {
         let mut pos = 0;
         iter::from_fn(move || {
@@ -136,6 +145,11 @@ impl Composer {
         })
     }
 
+    /// Cache a value in the composition.
+    /// During initial composition `f` is called to produce the value that is then stored in the slot table.
+    /// During recomposition, if `is_invalid` is false the value is obtained from the slot table and `f` is not invoked.
+    /// If `is_invalid` is false a new value is produced by calling [block] and the slot table is updated to 
+    /// contain the new value.
     pub fn cache<R>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R
     where
         R: Clone + 'static,
@@ -168,6 +182,9 @@ impl Composer {
         }
     }
 
+    /// Create or update a replacable group. 
+    /// A replacable group is a group that cannot be moved and can only either inserted, removed, or replaced.
+    /// For example, this is the group created by most control flow constructs (such as an `if`).
     pub fn restart_group(
         &mut self,
         id: TypeId,
@@ -264,6 +281,7 @@ impl Composer {
         }
     }
 
+    /// Create or update a node on the tree.
     pub fn node(&mut self, node: Box<dyn Any>) {
         if let Some(slot) = self.peek_mut() {
             let is_replaceable = match slot {
@@ -295,6 +313,7 @@ impl Composer {
         self.insert(slot);
     }
 
+    /// Provide a context with the given `value`.
     pub fn provide(&mut self, value: Box<dyn Send + Any>) {
         let id = value.as_ref().type_id();
         let state = State::new(value);
@@ -306,6 +325,7 @@ impl Composer {
         }
     }
 
+    /// Get the current context of type `T`.
     pub fn context<T: Clone + 'static>(&self) -> T {
         self.contexts
             .get(&TypeId::of::<T>())
