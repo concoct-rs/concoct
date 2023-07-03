@@ -1,12 +1,10 @@
-use crate::snapshot::LocalSnapshot;
+use crate::snapshot::{LocalSnapshot, LOCAL_SNAPSHOT};
 use pin_project_lite::pin_project;
 use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
-
-use super::LOCAL_SNAPSHOT;
 
 pin_project! {
     pub struct Task<F> {

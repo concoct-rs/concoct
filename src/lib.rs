@@ -6,7 +6,10 @@
 extern crate self as concoct;
 
 pub mod snapshot;
-pub use snapshot::{spawn, State};
+pub use snapshot::State;
+
+mod task;
+pub use task::{spawn, Task};
 
 pub use concoct_macros::composable;
 

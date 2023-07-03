@@ -12,9 +12,6 @@ pub use scope::Scope;
 mod state;
 pub use state::{Guard, State};
 
-mod task;
-pub use task::{spawn, Task};
-
 pub struct Snapshot {
     rx: UnboundedReceiver<Operation>,
 }
@@ -55,7 +52,7 @@ impl Drop for Snapshot {
 }
 
 #[derive(Clone)]
-struct LocalSnapshot {
+pub struct LocalSnapshot {
     tx: UnboundedSender<Operation>,
 }
 
@@ -73,7 +70,7 @@ impl LocalSnapshot {
 }
 
 thread_local! {
-    static LOCAL_SNAPSHOT: RefCell<Option<LocalSnapshot>> = RefCell::new(None);
+    pub(crate) static LOCAL_SNAPSHOT: RefCell<Option<LocalSnapshot>> = RefCell::new(None);
 }
 
 struct Operation {
