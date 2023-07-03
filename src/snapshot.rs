@@ -5,7 +5,7 @@ use std::{
     marker::PhantomData,
     mem,
     ops::Deref,
-    sync::{Arc, Mutex, MutexGuard, RwLock},
+    sync::{Arc, Mutex, MutexGuard},
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
@@ -34,30 +34,68 @@ thread_local! {
     static LOCAL_SCOPE: RefCell<Option<Scope>> = RefCell::new(None);
 }
 
-struct Operation {
-    value: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
-    f: Box<dyn FnMut(&mut dyn Any) + Send + Sync>,
+#[derive(Clone)]
+struct LocalSnapshot {
+    tx: UnboundedSender<Operation>,
 }
 
-static TX: RwLock<Option<UnboundedSender<Operation>>> = RwLock::new(None);
+impl LocalSnapshot {
+    pub fn enter(self, f: impl FnOnce()) {
+        LOCAL_SNAPSHOT
+            .try_with(|local| *local.borrow_mut() = Some(self))
+            .unwrap();
+
+        f();
+
+        LOCAL_SNAPSHOT
+            .try_with(|local| *local.borrow_mut() = None)
+            .unwrap();
+    }
+}
+
+thread_local! {
+    static LOCAL_SNAPSHOT: RefCell<Option<LocalSnapshot>> = RefCell::new(None);
+}
 
 pub struct Snapshot {
     rx: UnboundedReceiver<Operation>,
 }
 
 impl Snapshot {
-    pub fn take() -> Self {
+    pub fn enter() -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        *TX.write().unwrap() = Some(tx);
+        LOCAL_SNAPSHOT
+            .try_with(|local| *local.borrow_mut() = Some(LocalSnapshot { tx }))
+            .unwrap();
+
         Self { rx }
     }
 
     pub fn apply(&mut self) {
-        while let Ok(mut next) = self.rx.try_recv() {
-            let mut guard = next.value.lock().unwrap();
-            let value: &mut dyn Any = guard.as_mut();
-            (next.f)(&mut *value)
+        while let Ok(mut op) = self.rx.try_recv() {
+            op.apply();
         }
+    }
+}
+
+impl Drop for Snapshot {
+    fn drop(&mut self) {
+        LOCAL_SNAPSHOT
+            .try_with(|local| *local.borrow_mut() = None)
+            .unwrap();
+    }
+}
+
+struct Operation {
+    value: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    f: Box<dyn FnMut(&mut dyn Any) + Send + Sync>,
+}
+
+impl Operation {
+    fn apply(&mut self) {
+        let mut guard = self.value.lock().unwrap();
+        let value: &mut dyn Any = guard.as_mut();
+        (self.f)(&mut *value)
     }
 }
 
@@ -78,6 +116,7 @@ impl<T> State<T> {
             _marker: PhantomData,
         }
     }
+
     pub fn get(&self) -> Guard<T> {
         LOCAL_SCOPE
             .try_with(|scope| {
@@ -102,13 +141,18 @@ impl<T> State<T> {
             })
             .unwrap();
 
-        TX.read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .send(Operation {
-                value: self.value.clone(),
-                f: Box::new(move |any| f(any.downcast_mut().unwrap())),
+        LOCAL_SNAPSHOT
+            .try_with(|local| {
+                local
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .tx
+                    .send(Operation {
+                        value: self.value.clone(),
+                        f: Box::new(move |any| f(any.downcast_mut().unwrap())),
+                    })
+                    .unwrap()
             })
             .unwrap();
     }
@@ -129,22 +173,18 @@ impl<'a, T: 'static> Deref for Guard<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{snapshot::Snapshot, State};
-    use super::Scope;
+    use super::{Scope, Snapshot};
+    use crate::State;
 
     #[test]
     fn it_works() {
-        let mut snapshot = Snapshot::take();
+        let mut snapshot = Snapshot::enter();
 
         Scope::default().enter(|| {
             let state = State::new(0);
 
-            let scope = Scope::default().enter(|| {
-                assert_eq!(*state.get(), 0);
-
-                state.update(|count| *count += 1);
-            });
-            dbg!(scope);
+            state.update(|x| *x = 1);
+            assert_eq!(*state.get(), 0);
 
             snapshot.apply();
             assert_eq!(*state.get(), 1);
