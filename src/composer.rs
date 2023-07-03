@@ -87,84 +87,6 @@ impl Composer {
         }
     }
 
-    pub fn slots(&self) -> impl Iterator<Item = &Slot> {
-        let mut pos = 0;
-        iter::from_fn(move || {
-            if let Some(slot) = self.get(pos) {
-                pos += 1;
-                Some(slot)
-            } else {
-                None
-            }
-        })
-    }
-
-    /// Get the slot at `index`.
-    pub fn get(&self, index: usize) -> Option<&Slot> {
-        self.get_address(index)
-            .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
-    }
-
-    /// Get the slot at `index`.
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot> {
-        self.get_address(index)
-            .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
-    }
-
-    fn get_address(&self, index: usize) -> Option<usize> {
-        let addr = if index >= self.gap_start && index < self.gap_end {
-            self.gap_end
-        } else {
-            index
-        };
-
-        if addr < self.slots.len() {
-            Some(addr)
-        } else {
-            None
-        }
-    }
-
-    pub fn peek(&self) -> Option<&Slot> {
-        self.get(self.pos)
-    }
-
-    pub fn peek_mut(&mut self) -> Option<&mut Slot> {
-        self.get_mut(self.pos)
-    }
-
-    pub fn cache<R>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R
-    where
-        R: Clone + 'static,
-    {
-        if let Some(slot) = self.peek_mut() {
-            let value = if !is_invalid {
-                match slot {
-                    Slot::Node { data } => {
-                        data.as_ref().unwrap().downcast_ref::<R>().unwrap().clone()
-                    }
-                    _ => todo!(),
-                }
-            } else {
-                let value = f();
-                let data = Box::new(value.clone());
-                *slot = Slot::Node { data: Some(data) };
-                value
-            };
-
-            self.pos += 1;
-            self.child_count += 1;
-            
-            value
-        } else {
-            let value = f();
-            let data = Box::new(value.clone());
-            let slot = Slot::Node { data: Some(data) };
-            self.insert(slot);
-            value
-        }
-    }
-
     pub fn compose(&mut self, content: impl Composable) {
         self.node_ids.push(self.applier.root());
 
@@ -200,6 +122,50 @@ impl Composer {
         }
 
         self.tracked_states = HashSet::new();
+    }
+
+    pub fn slots(&self) -> impl Iterator<Item = &Slot> {
+        let mut pos = 0;
+        iter::from_fn(move || {
+            if let Some(slot) = self.get(pos) {
+                pos += 1;
+                Some(slot)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn cache<R>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R
+    where
+        R: Clone + 'static,
+    {
+        if let Some(slot) = self.peek_mut() {
+            let value = if !is_invalid {
+                match slot {
+                    Slot::Node { data } => {
+                        data.as_ref().unwrap().downcast_ref::<R>().unwrap().clone()
+                    }
+                    _ => todo!(),
+                }
+            } else {
+                let value = f();
+                let data = Box::new(value.clone());
+                *slot = Slot::Node { data: Some(data) };
+                value
+            };
+
+            self.pos += 1;
+            self.child_count += 1;
+
+            value
+        } else {
+            let value = f();
+            let data = Box::new(value.clone());
+            let slot = Slot::Node { data: Some(data) };
+            self.insert(slot);
+            value
+        }
     }
 
     pub fn restart_group(
@@ -278,39 +244,8 @@ impl Composer {
         output
     }
 
-    pub fn node(&mut self, node: Box<dyn Any>) {
-        if let Some(slot) = self.get_mut(self.pos) {
-            let is_replaceable = match slot {
-                Slot::Group {
-                    id: _,
-                    len: _,
-                    kind: GroupKind::Replace,
-                }
-                | Slot::Node { data: _ } => true,
-                _ => false,
-            };
-
-            if is_replaceable {
-                let parent_id = self.node_ids.last().unwrap().clone();
-                self.applier.update(parent_id, node);
-                let slot = Slot::Node { data: None };
-                *self.get_mut(self.pos).unwrap() = slot;
-
-                self.pos += 1;
-                self.child_count += 1;
-
-                return;
-            }
-        }
-
-        let parent_id = self.node_ids.last().unwrap();
-        self.applier.insert(parent_id, node);
-        let slot = Slot::Node { data: None };
-        self.insert(slot);
-    }
-
     fn group(&mut self, slot: Slot) {
-        if let Some(current_slot) = self.get_mut(self.pos) {
+        if let Some(current_slot) = self.peek_mut() {
             match current_slot {
                 Slot::Group {
                     id: _,
@@ -329,13 +264,35 @@ impl Composer {
         }
     }
 
-    pub fn insert(&mut self, slot: Slot) {
-        if self.pos != self.gap_start {}
+    pub fn node(&mut self, node: Box<dyn Any>) {
+        if let Some(slot) = self.peek_mut() {
+            let is_replaceable = match slot {
+                Slot::Group {
+                    id: _,
+                    len: _,
+                    kind: GroupKind::Replace,
+                }
+                | Slot::Node { data: _ } => true,
+                _ => false,
+            };
 
-        self.slots[self.pos] = MaybeUninit::new(slot);
-        self.pos += 1;
-        self.gap_start += 1;
-        self.child_count += 1;
+            if is_replaceable {
+                let parent_id = self.node_ids.last().unwrap().clone();
+                self.applier.update(parent_id, node);
+                let slot = Slot::Node { data: None };
+                *self.peek_mut().unwrap() = slot;
+
+                self.pos += 1;
+                self.child_count += 1;
+
+                return;
+            }
+        }
+
+        let parent_id = self.node_ids.last().unwrap();
+        self.applier.insert(parent_id, node);
+        let slot = Slot::Node { data: None };
+        self.insert(slot);
     }
 
     pub fn provide(&mut self, value: Box<dyn Send + Any>) {
@@ -359,6 +316,46 @@ impl Composer {
             .downcast_ref::<T>()
             .unwrap()
             .clone()
+    }
+
+    /// Get the slot at `index`.
+    fn get(&self, index: usize) -> Option<&Slot> {
+        self.get_address(index)
+            .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
+    }
+
+    /// Get the slot at `index`.
+    fn get_mut(&mut self, index: usize) -> Option<&mut Slot> {
+        self.get_address(index)
+            .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
+    }
+
+    fn get_address(&self, index: usize) -> Option<usize> {
+        let addr = if index >= self.gap_start && index < self.gap_end {
+            self.gap_end
+        } else {
+            index
+        };
+
+        if addr < self.slots.len() {
+            Some(addr)
+        } else {
+            None
+        }
+    }
+
+    fn peek_mut(&mut self) -> Option<&mut Slot> {
+        self.get_mut(self.pos)
+    }
+
+    /// Insert a slot into the current position.
+    fn insert(&mut self, slot: Slot) {
+        if self.pos != self.gap_start {}
+
+        self.slots[self.pos] = MaybeUninit::new(slot);
+        self.pos += 1;
+        self.gap_start += 1;
+        self.child_count += 1;
     }
 }
 
