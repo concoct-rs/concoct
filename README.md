@@ -24,13 +24,11 @@ fn counter(interval: Duration) {
         count
     }));
 
-    dbg!(*count.get());
+    text(*count.get());
 }
 
 #[composable]
 fn app() {
-    dbg!("Ran once!");
-
     compose!(counter(Duration::from_secs(1)));
     compose!(counter(Duration::from_secs(2)));
 }
@@ -44,7 +42,7 @@ Composables are defined as:
 pub trait Composable {
     type Output;
 
-    fn compose(self, compose: &mut impl Compose, changed: u32) -> Self::Output;
+    fn compose(self, composer: &mut Composer, changed: u32) -> Self::Output;
 }
 ```
 They can be created with the #[composable] attribute macro. Composable functions are only run in their parameters have changed.
@@ -99,7 +97,7 @@ This function will store a parameter inside a composable and ensure it never cha
 #[composable]
 pub fn remember<T, F>(f: F) -> T
 where
-    T: Clone + Hash + PartialEq + 'static,
+    T: Clone + 'static,
     F: FnOnce() -> T + 'static,
 {
     composer.cache(false, f)
@@ -110,7 +108,7 @@ where
 #[must_use]
 pub fn remember<T, F>(f: F) -> impl concoct::Composable<Output = T>
 where
-    T: Clone + Hash + PartialEq + 'static,
+    T: Clone + 'static,
     F: FnOnce() -> T + 'static,
 {
     #[allow(non_camel_case_types)]
@@ -120,24 +118,22 @@ where
     }
     impl<T, F> concoct::Composable for remember_composable<T, F>
     where
-        T: Clone + Hash + PartialEq + 'static,
+        T: Clone + 'static,
         F: FnOnce() -> T + 'static,
     {
         type Output = T;
         fn compose(
             self,
-            composer: &mut impl concoct::Compose,
+            composer: &mut concoct::Composer,
             changed: u32,
         ) -> Self::Output {
             ();
             let Self { f, .. } = self;
             composer
-                .start_replaceable_group(
+                .replaceable_group(
                     std::any::TypeId::of::<remember_composable<T, F>>(),
-                );
-            let output = { { composer.cache(false, f) } };
-            composer.end_replaceable_group();
-            output
+                    move |composer| { composer.cache(false, f) },
+                )
         }
     }
     remember_composable {
