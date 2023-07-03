@@ -1,11 +1,15 @@
+use pin_project_lite::pin_project;
 use std::{
     any::Any,
     cell::RefCell,
     collections::HashSet,
+    future::Future,
     marker::PhantomData,
     mem,
     ops::Deref,
+    pin::Pin,
     sync::{Arc, Mutex, MutexGuard},
+    task::{Context, Poll},
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
@@ -40,16 +44,15 @@ struct LocalSnapshot {
 }
 
 impl LocalSnapshot {
-    pub fn enter(self, f: impl FnOnce()) {
+    pub fn enter<R>(self, f: impl FnOnce() -> R) -> R {
         LOCAL_SNAPSHOT
             .try_with(|local| *local.borrow_mut() = Some(self))
             .unwrap();
-
-        f();
-
+        let output = f();
         LOCAL_SNAPSHOT
             .try_with(|local| *local.borrow_mut() = None)
             .unwrap();
+        output
     }
 }
 
@@ -168,6 +171,26 @@ impl<'a, T: 'static> Deref for Guard<'a, T> {
 
     fn deref(&self) -> &Self::Target {
         self.mutex.downcast_ref().unwrap()
+    }
+}
+
+pin_project! {
+    pub struct Task<F> {
+        local_snapshot: LocalSnapshot,
+        #[pin]
+        future: F
+    }
+}
+
+impl<F> Future for Task<F>
+where
+    F: Future,
+{
+    type Output = F::Output;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        let me = self.project();
+        me.local_snapshot.clone().enter(|| me.future.poll(cx))
     }
 }
 
