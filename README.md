@@ -28,7 +28,7 @@ fn counter() {
 
 #[composable]
 fn app() {
-    compose!(remember(|| { dbg!("Ran once!") }));
+    dbg!("Ran once!");
 
     compose!(counter());
     compose!(counter());
