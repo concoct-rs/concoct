@@ -24,6 +24,8 @@ pub trait Apply {
     fn root(&mut self) -> Self::NodeId;
 
     fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn Any>) -> Self::NodeId;
+
+    fn update(&mut self, node_id: Self::NodeId, node: Box<dyn Any>);
 }
 
 impl Apply for () {
@@ -32,6 +34,10 @@ impl Apply for () {
     fn root(&mut self) -> Self::NodeId {}
 
     fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn Any>) -> Self::NodeId {}
+
+    fn update(&mut self, node_id: Self::NodeId, node: Box<dyn Any>) {
+        
+    }
 }
 
 pub trait Composable<A, T> {

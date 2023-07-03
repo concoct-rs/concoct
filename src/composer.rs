@@ -1,6 +1,6 @@
 use crate::{
     snapshot::{Scope, Snapshot},
-    Composable, Apply,
+    Apply, Composable,
 };
 use std::{
     any::{Any, TypeId},
@@ -201,13 +201,31 @@ impl<A, T> Composer<A, T> {
         f(self)
     }
 
-    pub fn create_node(&mut self, node: Box<dyn Any>)
+    pub fn node(&mut self, node: Box<dyn Any>)
     where
         A: Apply<NodeId = T>,
         T: Clone,
     {
+        if let Some(slot) = self.get_mut(self.pos) {
+            let is_replaceable = match slot {
+                Slot::ReplaceableGroup { id: _ } | Slot::Node { data: _ } => true,
+                _ => false,
+            };
+
+            if is_replaceable {
+                let parent_id = self.node_ids.last().unwrap().clone();
+                self.applier.update(parent_id, node);
+                let slot = Slot::Node { data: Box::new(()) };
+                *self.get_mut(self.pos).unwrap() = slot;
+                self.pos += 1;
+                return;
+            }
+        }
+
         let parent_id = self.node_ids.last().unwrap().clone();
         self.applier.insert(parent_id, node);
+        let slot = Slot::Node { data: Box::new(()) };
+        self.insert(slot);
     }
 
     fn group(&mut self, slot: Slot<A, T>) {
