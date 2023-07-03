@@ -1,28 +1,33 @@
-use crate::snapshot::{Scope, Snapshot};
+use crate::{
+    snapshot::{Scope, Snapshot},
+    Operation,
+};
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
+    marker::PhantomData,
 };
 
-pub enum Slot {
+pub enum Slot<T, U> {
     RestartGroup {
         id: TypeId,
-        f: Option<Box<dyn FnMut(&mut Composer)>>,
+        f: Option<Box<dyn FnMut(&mut Composer<T, U>) + Send>>,
     },
     ReplaceableGroup {
         id: TypeId,
     },
 }
 
-pub struct Composer {
+pub struct Composer<T, U> {
     tracked_states: HashSet<u64>,
     snapshot: Snapshot,
-    slots: Vec<Slot>,
+    slots: Vec<Slot<T, U>>,
     pos: usize,
     map: HashMap<u64, usize>,
+    _marker: PhantomData<(T, U)>,
 }
 
-impl Composer {
+impl<T, U> Composer<T, U> {
     pub fn new() -> Self {
         Self {
             tracked_states: HashSet::new(),
@@ -30,14 +35,16 @@ impl Composer {
             map: HashMap::new(),
             slots: Vec::new(),
             pos: 0,
+            _marker: PhantomData,
         }
     }
 
-    pub fn compose(&mut self, content: impl FnOnce(&mut Self)) {
+    pub fn compose(&mut self, content: impl FnOnce(&mut Self)) -> Vec<Operation<T, U>> {
         content(self);
+        Vec::new()
     }
 
-    pub async fn recompose(&mut self) {
+    pub async fn recompose(&mut self) -> Vec<Operation<T, U>> {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
             let idx = *self.map.get(&id).unwrap();
@@ -53,9 +60,10 @@ impl Composer {
         }
 
         self.tracked_states = HashSet::new();
+        Vec::new()
     }
 
-    pub fn restart_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) + 'static) {
+    pub fn restart_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) + Send + 'static) {
         let tracked = self.tracked_states.clone();
 
         let scope = Scope::default().enter(|| f(self));
@@ -65,7 +73,7 @@ impl Composer {
             }
         }
 
-        let f: Option<Box<dyn FnMut(&mut Composer)>> = if self.tracked_states.is_empty() {
+        let f: Option<Box<dyn FnMut(&mut Self) + Send>> = if self.tracked_states.is_empty() {
             None
         } else {
             Some(Box::new(f))
@@ -89,7 +97,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let mut composer = Composer::new();
+        let mut composer = Composer::<(), ()>::new();
 
         composer.compose(|composer| {
             composer.restart_group(().type_id(), |_composer| {

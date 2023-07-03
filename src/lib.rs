@@ -16,6 +16,8 @@ mod composer;
 #[doc(hidden)]
 pub use composer::Composer;
 
+pub mod composition;
+
 /// Composer is the interface that is targeted by the [`composable`] macro and used by code generation helpers.
 /// It is highly recommended that direct calls these be avoided as the runtime assumes that the calls are generated
 /// by the compiler and contain only a minimum amount of state validation.
@@ -78,4 +80,8 @@ where
     F: FnOnce() -> T + 'static,
 {
     composer.cache(false, f)
+}
+
+pub enum Operation<T, U> {
+    Insert { parent_id: T, node: U },
 }
