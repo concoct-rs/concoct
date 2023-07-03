@@ -80,6 +80,32 @@ impl<T, U> Composer<T, U> {
         })
     }
 
+    /// Get the slot at `index`.
+    pub fn get(&self, index: usize) -> Option<&Slot<T, U>> {
+        self.get_address(index)
+            .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
+    }
+
+    /// Get the slot at `index`.
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot<T, U>> {
+        self.get_address(index)
+            .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
+    }
+
+    fn get_address(&self, index: usize) -> Option<usize> {
+        let addr = if index >= self.gap_start && index < self.gap_end {
+            self.gap_end
+        } else {
+            index
+        };
+
+        if addr < self.slots.len() {
+            Some(addr)
+        } else {
+            None
+        }
+    }
+
     pub fn compose(&mut self, content: impl FnOnce(&mut Self)) -> Vec<Operation<T, U>> {
         content(self);
         Vec::new()
