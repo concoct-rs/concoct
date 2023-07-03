@@ -23,7 +23,7 @@ fn counter() {
 
 #[composable]
 fn app() {
-    dbg!("Ran once!") ;
+    dbg!("Ran once!");
 
     compose!(counter());
     compose!(counter());
@@ -31,7 +31,7 @@ fn app() {
 
 #[tokio::main]
 async fn main() {
-    let mut composer = Composer::<(), ()>::new();
+    let mut composer = Composer::new(());
     composer.compose(app());
 
     loop {

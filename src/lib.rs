@@ -5,22 +5,39 @@
 
 extern crate self as concoct;
 
+use std::any::Any;
+
+pub use concoct_macros::composable;
+
 pub mod snapshot;
 pub use snapshot::State;
 
 mod task;
 pub use task::{spawn, Task};
 
-pub use concoct_macros::composable;
-
 mod composer;
-#[doc(hidden)]
 pub use composer::Composer;
 
-pub trait Composable<T, U> {
+pub trait Apply {
+    type NodeId: Clone;
+
+    fn root(&mut self) -> Self::NodeId;
+
+    fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn Any>) -> Self::NodeId;
+}
+
+impl Apply for () {
+    type NodeId = ();
+
+    fn root(&mut self) -> Self::NodeId {}
+
+    fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn Any>) -> Self::NodeId {}
+}
+
+pub trait Composable<A, T> {
     type Output;
 
-    fn compose(self, compose: &mut Composer<T, U>, changed: u32) -> Self::Output;
+    fn compose(self, compose: &mut Composer<A, T>, changed: u32) -> Self::Output;
 }
 
 #[macro_export]
@@ -45,8 +62,4 @@ where
     F: FnOnce() -> T + 'static,
 {
     composer.cache(false, f)
-}
-
-pub enum Operation<T, U> {
-    Insert { parent_id: T, node: U },
 }

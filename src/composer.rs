@@ -1,19 +1,18 @@
 use crate::{
     snapshot::{Scope, Snapshot},
-    Composable, Operation,
+    Composable, Apply,
 };
 use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
     fmt, iter,
-    marker::PhantomData,
     mem::MaybeUninit,
 };
 
-pub enum Slot<T, U> {
+pub enum Slot<A, T> {
     RestartGroup {
         id: TypeId,
-        f: Option<Box<dyn FnMut(&mut Composer<T, U>) + Send>>,
+        f: Option<Box<dyn FnMut(&mut Composer<A, T>) + Send>>,
     },
     ReplaceableGroup {
         id: TypeId,
@@ -23,8 +22,8 @@ pub enum Slot<T, U> {
     },
 }
 
-impl<T, U> fmt::Debug for Slot<T, U> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<A, T> fmt::Debug for Slot<A, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::RestartGroup { id, f: _ } => {
                 f.debug_struct("RestartGroup").field("id", id).finish()
@@ -37,25 +36,28 @@ impl<T, U> fmt::Debug for Slot<T, U> {
     }
 }
 
-pub struct Composer<T, U> {
+pub struct Composer<A, T> {
+    applier: A,
+    node_ids: Vec<T>,
     tracked_states: HashSet<u64>,
     snapshot: Snapshot,
-    slots: Box<[MaybeUninit<Slot<T, U>>]>,
+    slots: Box<[MaybeUninit<Slot<A, T>>]>,
     gap_start: usize,
     gap_end: usize,
     capacity: usize,
     pos: usize,
     map: HashMap<u64, usize>,
-    _marker: PhantomData<(T, U)>,
 }
 
-impl<T, U> Composer<T, U> {
-    pub fn new() -> Self {
-        Self::with_capacity(32)
+impl<A, T> Composer<A, T> {
+    pub fn new(applier: A) -> Self {
+        Self::with_capacity(applier, 32)
     }
 
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(applier: A, capacity: usize) -> Self {
         Self {
+            applier,
+            node_ids: Vec::new(),
             tracked_states: HashSet::new(),
             snapshot: Snapshot::enter(),
             map: HashMap::new(),
@@ -65,11 +67,10 @@ impl<T, U> Composer<T, U> {
             gap_end: capacity,
             capacity: capacity,
             pos: 0,
-            _marker: PhantomData,
         }
     }
 
-    pub fn slots(&self) -> impl Iterator<Item = &Slot<T, U>> {
+    pub fn slots(&self) -> impl Iterator<Item = &Slot<A, T>> {
         let mut pos = 0;
         iter::from_fn(move || {
             if let Some(slot) = self.get(pos) {
@@ -82,13 +83,13 @@ impl<T, U> Composer<T, U> {
     }
 
     /// Get the slot at `index`.
-    pub fn get(&self, index: usize) -> Option<&Slot<T, U>> {
+    pub fn get(&self, index: usize) -> Option<&Slot<A, T>> {
         self.get_address(index)
             .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
     }
 
     /// Get the slot at `index`.
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot<T, U>> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot<A, T>> {
         self.get_address(index)
             .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
     }
@@ -131,12 +132,16 @@ impl<T, U> Composer<T, U> {
         }
     }
 
-    pub fn compose(&mut self, content: impl Composable<T, U>) -> Vec<Operation<T, U>> {
+    pub fn compose(&mut self, content: impl Composable<A, T>)
+    where
+        A: Apply<NodeId = T>,
+    {
+        self.node_ids.push(self.applier.root());
+
         content.compose(self, 0);
-        Vec::new()
     }
 
-    pub async fn recompose(&mut self) -> Vec<Operation<T, U>> {
+    pub async fn recompose(&mut self) {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
             let idx = *self.map.get(&id).unwrap();
@@ -157,7 +162,6 @@ impl<T, U> Composer<T, U> {
         }
 
         self.tracked_states = HashSet::new();
-        Vec::new()
     }
 
     pub fn restart_group(
@@ -197,7 +201,16 @@ impl<T, U> Composer<T, U> {
         f(self)
     }
 
-    fn group(&mut self, slot: Slot<T, U>) {
+    pub fn create_node(&mut self, node: Box<dyn Any>)
+    where
+        A: Apply<NodeId = T>,
+        T: Clone,
+    {
+        let parent_id = self.node_ids.last().unwrap().clone();
+        self.applier.insert(parent_id, node);
+    }
+
+    fn group(&mut self, slot: Slot<A, T>) {
         if let Some(current_slot) = self.get_mut(self.pos) {
             match current_slot {
                 Slot::ReplaceableGroup { id: _ } => {
@@ -213,7 +226,7 @@ impl<T, U> Composer<T, U> {
         }
     }
 
-    pub fn insert(&mut self, slot: Slot<T, U>) {
+    pub fn insert(&mut self, slot: Slot<A, T>) {
         if self.pos != self.gap_start {}
 
         self.slots[self.pos] = MaybeUninit::new(slot);
