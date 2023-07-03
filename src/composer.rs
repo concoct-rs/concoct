@@ -3,7 +3,7 @@ use crate::{
     Operation,
 };
 use std::{
-    any::TypeId,
+    any::{Any, TypeId},
     collections::{HashMap, HashSet},
     fmt, iter,
     marker::PhantomData,
@@ -18,6 +18,9 @@ pub enum Slot<T, U> {
     ReplaceableGroup {
         id: TypeId,
     },
+    Node {
+        data: Box<dyn Any>,
+    },
 }
 
 impl<T, U> fmt::Debug for Slot<T, U> {
@@ -29,6 +32,7 @@ impl<T, U> fmt::Debug for Slot<T, U> {
             Self::ReplaceableGroup { id } => {
                 f.debug_struct("ReplaceableGroup").field("id", id).finish()
             }
+            Self::Node { data } => f.debug_struct("Node").finish(),
         }
     }
 }
@@ -54,7 +58,7 @@ impl<T, U> Composer<T, U> {
             slots: Vec::from_iter(iter::repeat_with(|| MaybeUninit::uninit()).take(10))
                 .into_boxed_slice(),
             gap_start: 0,
-            gap_end: 10 - 1,
+            gap_end: 10,
             gap_size: 10,
             pos: 0,
             _marker: PhantomData,
@@ -98,11 +102,36 @@ impl<T, U> Composer<T, U> {
         } else {
             index
         };
+     
 
         if addr < self.slots.len() {
             Some(addr)
         } else {
             None
+        }
+    }
+
+    pub fn cache<R: Clone + 'static>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R {
+        if let Some(slot) = self.get_mut(self.pos) {
+            if !is_invalid {
+                let data = match slot {
+                    Slot::Node { data } => data.downcast_ref::<R>().unwrap().clone(),
+                    _ => todo!(),
+                };
+                self.pos += 1;
+                data
+            } else {
+                let value = f();
+                let data = Box::new(value.clone());
+                *slot = Slot::Node { data };
+                value
+            }
+        } else {
+            let value = f();
+            let data = Box::new(value.clone());
+            let slot = Slot::Node { data };
+            self.insert(slot);
+            value
         }
     }
 
@@ -181,7 +210,7 @@ mod tests {
         let mut composer = Composer::<(), ()>::new();
 
         composer.compose(|composer| {
-            composer.insert(Slot::ReplaceableGroup { id: ().type_id() });
+            composer.cache(false, || 0);
         });
 
         let slots: Vec<_> = composer.slots().collect();
