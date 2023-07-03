@@ -6,7 +6,9 @@ fn app() {
     let count = compose!(remember(|| State::new(0)));
     count.update(|count| *count += 1);
 
-    compose!(node(*count.get()));
+    if *count.get() != 2 {
+        compose!(node(*count.get()));
+    }
 }
 
 pub struct Tree {}
@@ -36,5 +38,6 @@ async fn main() {
     let mut composer = Composer::new(Box::new(tree));
     composer.compose(app());
 
+    composer.recompose().await;
     composer.recompose().await;
 }

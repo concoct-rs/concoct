@@ -34,7 +34,12 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     let output_ty = output.clone().unwrap_or(parse_quote!(()));
 
-    let block = Folder.fold_block(*item.block);
+    let block = Folder {
+        is_nested: false,
+        is_replaceable: false,
+        pos: 0,
+    }
+    .fold_block(*item.block);
 
     let mut input_pats = Vec::new();
     let mut input_types = Vec::new();
@@ -176,12 +181,17 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-struct Folder;
+struct Folder {
+    is_nested: bool,
+    is_replaceable: bool,
+    pos: usize,
+}
 
 impl Fold for Folder {
     fn fold_stmt(&mut self, mut i: syn::Stmt) -> syn::Stmt {
         if let Stmt::Macro(stmt_macro) = &i {
             if let Some(expr) = get_compose_macro(&stmt_macro.mac) {
+                self.is_replaceable = true;
                 i = parse_quote! {
                     (#expr).compose(composer, 0);
                 };
@@ -192,15 +202,50 @@ impl Fold for Folder {
     }
 
     fn fold_expr(&mut self, mut i: Expr) -> Expr {
-        if let Expr::Macro(expr_macro) = &i {
-            if let Some(expr) = get_compose_macro(&expr_macro.mac) {
-                i = parse_quote! {
-                    (#expr).compose(composer, 0)
-                };
+        match &mut i {
+            Expr::Macro(expr_macro) => {
+                self.is_replaceable = true;
+                if let Some(expr) = get_compose_macro(&expr_macro.mac) {
+                    i = parse_quote! {
+                        (#expr).compose(composer, 0)
+                    };
+                }
             }
+            Expr::If(expr_if) => {
+                let old = self.is_nested;
+                self.is_nested = true;
+
+                *expr_if = fold::fold_expr_if(self, expr_if.clone());
+                self.is_nested = old;
+            }
+            _ => {}
         }
 
         fold::fold_expr(self, i)
+    }
+
+    fn fold_block(&mut self, i: syn::Block) -> syn::Block {
+        if self.is_nested {
+            let old = self.is_replaceable;
+            self.is_replaceable = false;
+
+            let mut block = fold::fold_block(self, i);
+            if self.is_replaceable {
+                let ident = format_ident!("Group{}", self.pos);
+                self.pos += 1;
+
+                block = parse_quote!({
+                    struct #ident;
+                    composer.replaceable_group(std::any::TypeId::of::<#ident>(), |composer| #block)
+                });
+            }
+
+            self.is_replaceable = old;
+
+            block
+        } else {
+            fold::fold_block(self, i)
+        }
     }
 }
 
