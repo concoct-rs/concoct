@@ -33,6 +33,12 @@ fn app() {
     compose!(counter());
     compose!(counter());
 }
+
+// Output:
+// "Ran once!"
+// 0 0
+// 1 1
+// ...
 ```
 
 ## Runtime
