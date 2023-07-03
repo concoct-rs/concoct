@@ -24,13 +24,11 @@ fn counter(interval: Duration) {
         count
     }));
 
-    dbg!(*count.get());
+    text(*count.get());
 }
 
 #[composable]
 fn app() {
-    dbg!("Ran once!");
-
     compose!(counter(Duration::from_secs(1)));
     compose!(counter(Duration::from_secs(2)));
 }
@@ -44,7 +42,7 @@ Composables are defined as:
 pub trait Composable {
     type Output;
 
-    fn compose(self, compose: &mut impl Compose, changed: u32) -> Self::Output;
+    fn compose(self, composer: &mut Composer, changed: u32) -> Self::Output;
 }
 ```
 They can be created with the #[composable] attribute macro. Composable functions are only run in their parameters have changed.
