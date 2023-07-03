@@ -3,7 +3,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 #[composable]
-fn app() {
+fn counter() {
     let count = compose!(remember(|| {
         let count = State::new(0);
 
@@ -19,6 +19,14 @@ fn app() {
     }));
 
     dbg!(*count.get());
+}
+
+#[composable]
+fn app() {
+    compose!(remember(|| { dbg!("Ran once!") }));
+
+    compose!(counter());
+    compose!(counter());
 }
 
 #[tokio::main]

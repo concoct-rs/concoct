@@ -8,7 +8,7 @@ Generic UI compiler and runtime in rust.
 
 ```rust
 #[composable]
-fn app() {
+fn counter() {
     let count = compose!(remember(|| {
         let count = State::new(0);
 
@@ -23,7 +23,15 @@ fn app() {
         count
     }));
 
-    compose!(Text::new(*count.get()));
+    dbg!(*count.get());
+}
+
+#[composable]
+fn app() {
+    compose!(remember(|| { dbg!("Ran once!") }));
+
+    compose!(counter());
+    compose!(counter());
 }
 ```
 

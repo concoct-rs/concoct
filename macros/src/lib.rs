@@ -2,10 +2,11 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
     fold::{self, Fold},
+    parse::Parse,
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     token::Comma,
-    Expr, FnArg, GenericParam, ItemFn, ReturnType, Type,
+    Expr, FnArg, GenericParam, ItemFn, Macro, ReturnType, Stmt, Type,
 };
 
 #[proc_macro_attribute]
@@ -178,18 +179,36 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 struct Folder;
 
 impl Fold for Folder {
+    fn fold_stmt(&mut self, mut i: syn::Stmt) -> syn::Stmt {
+        if let Stmt::Macro(stmt_macro) = &i {
+            if let Some(expr) = get_compose_macro(&stmt_macro.mac) {
+                i = parse_quote! {
+                    (#expr).compose(composer, 0);
+                };
+            }
+        }
+
+        fold::fold_stmt(self, i)
+    }
+
     fn fold_expr(&mut self, mut i: Expr) -> Expr {
         if let Expr::Macro(expr_macro) = &i {
-            if let Some(macro_ident) = expr_macro.mac.path.get_ident().map(ToString::to_string) {
-                if macro_ident == "compose" {
-                    let expr: Expr = expr_macro.mac.parse_body().unwrap();
-                    i = parse_quote! {
-                        (#expr).compose(composer, 0)
-                    };
-                }
+            if let Some(expr) = get_compose_macro(&expr_macro.mac) {
+                i = parse_quote! {
+                    (#expr).compose(composer, 0)
+                };
             }
         }
 
         fold::fold_expr(self, i)
+    }
+}
+
+fn get_compose_macro(mac: &Macro) -> Option<Expr> {
+    if mac.path.get_ident().map(ToString::to_string).as_deref() == Some("compose") {
+        let body = mac.parse_body().unwrap();
+        Some(body)
+    } else {
+        None
     }
 }
