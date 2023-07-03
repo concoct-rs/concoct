@@ -143,15 +143,20 @@ impl<T, U> Composer<T, U> {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
             let idx = *self.map.get(&id).unwrap();
-            let mut f = match self.get_mut(idx).unwrap() {
+            let mut restart = match self.get_mut(idx).unwrap() {
                 Slot::RestartGroup { id: _, f } => f.take().unwrap(),
                 _ => todo!(),
             };
             self.pos = idx + 1;
 
             Scope::default().enter(|| {
-                f(self);
+                restart(self);
             });
+
+            match self.get_mut(idx).unwrap() {
+                Slot::RestartGroup { id: _, f } => *f = Some(restart),
+                _ => todo!(),
+            };
         }
 
         self.tracked_states = HashSet::new();

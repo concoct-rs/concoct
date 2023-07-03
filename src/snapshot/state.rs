@@ -42,7 +42,12 @@ impl<T> State<T> {
     pub fn get(&self) -> Guard<T> {
         LOCAL_SCOPE
             .try_with(|scope| {
-                scope.borrow_mut().as_mut().unwrap().state_ids.insert(self.id);
+                scope
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .state_ids
+                    .insert(self.id);
             })
             .unwrap();
 
@@ -58,8 +63,10 @@ impl<T> State<T> {
         T: Send + Sync + 'static,
     {
         LOCAL_SCOPE
-            .try_with(|scope| {
-                scope.borrow_mut().as_mut().unwrap().state_ids.insert(self.id);
+            .try_with(|local_scope| {
+                if let Some(scope) = local_scope.borrow_mut().as_mut() {
+                    scope.state_ids.insert(self.id);
+                }
             })
             .unwrap();
 

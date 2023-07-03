@@ -1,10 +1,22 @@
-use concoct::{composable, compose, remember, State, Composer};
+use concoct::{composable, compose, remember, Composer, State};
+use std::time::Duration;
+use tokio::time::sleep;
 
 #[composable]
 fn app() {
-    let count = compose!(remember(|| State::new(0)));
-    
-    count.update(|count| *count += 1);
+    let count = compose!(remember(|| {
+        let count = State::new(0);
+
+        let timer_count = count.clone();
+        concoct::spawn(async move {
+            loop {
+                sleep(Duration::from_secs(1)).await;
+                timer_count.update(|count| *count += 1);
+            }
+        });
+
+        count
+    }));
 
     dbg!(*count.get());
 }
@@ -13,6 +25,8 @@ fn app() {
 async fn main() {
     let mut composer = Composer::<(), ()>::new();
     composer.compose(app());
-    
-    composer.recompose().await;
+
+    loop {
+        composer.recompose().await;
+    }
 }
