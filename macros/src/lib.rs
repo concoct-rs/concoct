@@ -84,29 +84,21 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let group_id = quote!(std::any::TypeId::of::<#struct_ident::<#(#generics,)*>>());
     let group = if output.is_some() {
         quote! {
-            composer.start_replaceable_group(#group_id);
-
-            let output = {
-                #block
-            };
-
-            composer.end_replaceable_group();
-
-            output
+            composer.replaceable_group(#group_id, move |composer| #block)
         }
     } else {
         if inputs.is_empty() {
             quote! {
-                composer.start_restart_group(#group_id);
+                composer.restart_group(#group_id, move |composer| {
+                    /*
+                    if changed == 0 && composer.is_skipping() {
+                        composer.skip_to_group_end();
+                    } else {
+                        #block
+                    }
+                     */
 
-                if changed == 0 && composer.is_skipping() {
-                    composer.skip_to_group_end();
-                } else {
-                    #block
-                }
-
-                composer.end_restart_group(move || {
-                    Box::new(move |composer, _force| #ident(#(#input_pats),*).compose(composer, changed | 1))
+                     #block
                 });
             }
         } else {
@@ -156,16 +148,16 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[must_use]
-        #vis fn #ident <#generics_clause> (#(#inputs),*) -> impl concoct::Composable<Output = #output_ty>  #where_clause {
+        #vis fn #ident <A, B, #generics_clause> (#(#inputs),*) -> impl concoct::Composable<A, B, Output = #output_ty>  #where_clause {
             #[allow(non_camel_case_types)]
             struct #struct_ident <#(#generics),*> {
                 #(#struct_fields),*
             }
 
-            impl <#generics_clause> concoct::Composable for #struct_ident <#(#generics),*> #where_clause {
+            impl <A, B, #generics_clause> concoct::Composable<A, B> for #struct_ident <#(#generics),*> #where_clause {
                 type Output = #output_ty;
 
-                fn compose(self, composer: &mut impl concoct::Compose, changed: u32) -> Self::Output {
+                fn compose(self, composer: &mut concoct::Composer<A, B>, changed: u32) -> Self::Output {
                     compose!(());
 
                     let Self { #struct_pattern } = self;

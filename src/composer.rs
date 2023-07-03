@@ -1,6 +1,6 @@
 use crate::{
     snapshot::{Scope, Snapshot},
-    Operation,
+    Operation, Composable,
 };
 use std::{
     any::{Any, TypeId},
@@ -134,8 +134,8 @@ impl<T, U> Composer<T, U> {
         }
     }
 
-    pub fn compose(&mut self, content: impl FnOnce(&mut Self)) -> Vec<Operation<T, U>> {
-        content(self);
+    pub fn compose(&mut self, content: impl Composable<T, U>) -> Vec<Operation<T, U>> {
+        content.compose(self, 0);
         Vec::new()
     }
 
@@ -189,7 +189,7 @@ impl<T, U> Composer<T, U> {
         self.tracked_states = tracked;
     }
 
-    pub fn replaceable_group<R>(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) -> R) -> R {
+    pub fn replaceable_group<R>(&mut self, id: TypeId, f: impl FnOnce(&mut Self) -> R) -> R {
         self.group(Slot::ReplaceableGroup { id });
 
         f(self)
@@ -220,28 +220,3 @@ impl<T, U> Composer<T, U> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::{composer::Slot, Composer, State};
-    use std::any::Any;
-
-    #[tokio::test]
-    async fn it_works() {
-        let mut composer = Composer::<(), ()>::new();
-
-        composer.compose(|composer| {
-            composer.restart_group(().type_id(), |composer| {
-                let count = composer.replaceable_group(().type_id(), |composer| {
-                    composer.cache(false, || State::new(0))
-                });
-
-                dbg!(*count.get());
-
-                count.update(|count| *count += 1);
-            })
-        });
-
-        // dbg!(composer.slots().collect::<Vec<_>>());
-        composer.recompose().await;
-    }
-}

@@ -1,6 +1,18 @@
-use concoct::{composable, compose};
+use concoct::{composable, compose, remember, State, Composer};
 
 #[composable]
-fn app(x: String) {}
+fn app() {
+    let count = compose!(remember(|| State::new(0)));
+    
+    count.update(|count| *count += 1);
 
-fn main() {}
+    dbg!(*count.get());
+}
+
+#[tokio::main]
+async fn main() {
+    let mut composer = Composer::<(), ()>::new();
+    composer.compose(app());
+    
+    composer.recompose().await;
+}
