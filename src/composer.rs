@@ -92,7 +92,7 @@ mod tests {
         let mut composer = Composer::new();
 
         composer.compose(|composer| {
-            composer.restart_group(().type_id(), |composer| {
+            composer.restart_group(().type_id(), |_composer| {
                 let state = State::new(0);
                 dbg!(*state.get());
 
