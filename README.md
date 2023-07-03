@@ -7,10 +7,6 @@
 Generic UI compiler and runtime in rust.
 
 ```rust
-use concoct::{composable, compose, remember, Composer, State};
-use std::time::Duration;
-use tokio::time::sleep;
-
 #[composable]
 fn app() {
     let count = compose!(remember(|| {
@@ -27,17 +23,7 @@ fn app() {
         count
     }));
 
-    dbg!(*count.get());
-}
-
-#[tokio::main]
-async fn main() {
-    let mut composer = Composer::<(), ()>::new();
-    composer.compose(app());
-
-    loop {
-        composer.recompose().await;
-    }
+    compose!(Text::new(*count.get()));
 }
 ```
 
