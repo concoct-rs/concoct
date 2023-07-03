@@ -1,7 +1,8 @@
-use dashmap::{mapref::one::Ref, DashMap};
+use dashmap::{mapref::one::Ref, DashMap, DashSet};
 use lazy_static::lazy_static;
 use std::{
     any::Any,
+    collections::{HashMap, HashSet},
     marker::PhantomData,
     ops::Deref,
     sync::atomic::{AtomicU64, Ordering},
@@ -12,21 +13,51 @@ static NEXT_STATE_ID: AtomicU64 = AtomicU64::new(0);
 
 struct GlobalSnapshot {
     id: AtomicU64,
-    modified: DashMap<u64, Shared>,
-}
-
-impl GlobalSnapshot {
-    pub fn advance(&self) {
-        let id = NEXT_STATE_ID.fetch_add(1, Ordering::SeqCst);
-        self.id.store(id, Ordering::SeqCst);
-    }
+    states: DashMap<u64, Shared>,
+    modified: DashSet<u64>,
 }
 
 lazy_static! {
     static ref GLOBAL: GlobalSnapshot = GlobalSnapshot {
         id: AtomicU64::new(NEXT_SNAPSHOT_ID.fetch_add(1, Ordering::SeqCst)),
-        modified: DashMap::new()
+        states: DashMap::new(),
+        modified: DashSet::new()
     };
+}
+
+pub fn advance() {
+    let id = NEXT_STATE_ID.fetch_add(1, Ordering::SeqCst);
+    GLOBAL.id.store(id, Ordering::SeqCst);
+}
+
+thread_local! {
+    static LOCAL_SNAPSHOTS: Vec<Snapshot> = Vec::new();
+}
+
+pub struct Snapshot {
+    states: HashMap<u64, Shared>,
+    modified: HashSet<u64>,
+}
+
+impl Snapshot {
+    pub fn new() -> Self {
+        Self {
+            states: HashMap::new(),
+            modified: HashSet::new(),
+        }
+    }
+
+    pub fn apply(self) {
+        for (state_id, shared) in self.states.into_iter() {
+            GLOBAL.states.insert(state_id, shared);
+        }
+
+        for state_id in self.modified {
+            GLOBAL.modified.insert(state_id);
+        }
+
+        advance();
+    }
 }
 
 struct Record {
@@ -55,7 +86,7 @@ impl<T> State<T> {
                 value: Box::new(value),
             }],
         };
-        GLOBAL.modified.insert(id, shared);
+        GLOBAL.states.insert(id, shared);
 
         Self {
             id,
@@ -65,7 +96,7 @@ impl<T> State<T> {
 
     pub fn get(&self) -> StateRef<T> {
         StateRef {
-            shared: GLOBAL.modified.get(&self.id).unwrap(),
+            shared: GLOBAL.states.get(&self.id).unwrap(),
             _marker: PhantomData,
         }
     }
@@ -74,7 +105,7 @@ impl<T> State<T> {
     where
         T: Send + Sync + 'static,
     {
-        let mut shared = GLOBAL.modified.get_mut(&self.id).unwrap();
+        let mut shared = GLOBAL.states.get_mut(&self.id).unwrap();
         shared.records.push(Record {
             snapshot_id: GLOBAL.id.load(Ordering::SeqCst) + 1,
             value: Box::new(value),
@@ -108,7 +139,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{State, snapshot::GLOBAL};
+    use crate::{
+        snapshot::{advance, Snapshot, GLOBAL},
+        State,
+    };
 
     #[test]
     fn it_works() {
@@ -118,7 +152,7 @@ mod tests {
         state.set(1);
         assert_eq!(*state.get(), 0);
 
-        GLOBAL.advance();
+        advance();
         assert_eq!(*state.get(), 1);
     }
 }
