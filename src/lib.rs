@@ -33,11 +33,9 @@ impl Apply for () {
 
     fn root(&mut self) -> Self::NodeId {}
 
-    fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn Any>) -> Self::NodeId {}
+    fn insert(&mut self, _parent_id: Self::NodeId, _node: Box<dyn Any>) -> Self::NodeId {}
 
-    fn update(&mut self, node_id: Self::NodeId, node: Box<dyn Any>) {
-        
-    }
+    fn update(&mut self, _node_id: Self::NodeId, _node: Box<dyn Any>) {}
 }
 
 pub trait Composable<A, T> {
@@ -68,4 +66,12 @@ where
     F: FnOnce() -> T + 'static,
 {
     composer.cache(false, f)
+}
+
+#[composable]
+pub fn node<T>(node: T)
+where
+    T: Clone + Send + 'static,
+{
+    composer.node(Box::new(node.clone()))
 }

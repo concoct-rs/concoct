@@ -1,11 +1,10 @@
-use concoct::{composable, compose, remember, Apply, Composer, State};
+use concoct::{composable, compose, node, remember, Apply, Composer, State};
 
 #[composable]
 fn app() {
     let count = compose!(remember(|| State::new(0)));
 
-    // TODO
-    composer.node(Box::new(*count.get()));
+    compose!(node(*count.get()));
 
     count.update(|count| *count += 1);
 }
@@ -17,11 +16,11 @@ impl Apply for Tree {
 
     fn root(&mut self) -> Self::NodeId {}
 
-    fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn std::any::Any>) -> Self::NodeId {
+    fn insert(&mut self, _parent_id: Self::NodeId, _node: Box<dyn std::any::Any>) -> Self::NodeId {
         dbg!("insert!");
     }
 
-    fn update(&mut self, node_id: Self::NodeId, node: Box<dyn std::any::Any>) {
+    fn update(&mut self, _node_id: Self::NodeId, _node: Box<dyn std::any::Any>) {
         dbg!("update!");
     }
 }

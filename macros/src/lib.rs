@@ -120,21 +120,26 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             quote! {
-                composer.start_restart_group(#group_id);
+                composer.restart_group(#group_id, move |composer| {
+                    /*
+                        let mut dirty = changed;
 
-                let mut dirty = changed;
+                        #(#checks)*
 
-                #(#checks)*
+                        if dirty & #mask == #value  && composer.is_skipping() {
+                            composer.skip_to_group_end();
+                        } else {
+                            #block
+                        }
+                     */
 
-                if dirty & #mask == #value  && composer.is_skipping() {
-                    composer.skip_to_group_end();
-                } else {
                     #block
-                }
-
-                composer.end_restart_group(move || {
-                    Box::new(move |composer, _force| #ident(#(#input_pats),*).compose(composer, changed | 1))
                 });
+
+
+
+
+
             }
         }
     };
