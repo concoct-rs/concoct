@@ -5,7 +5,9 @@ use crate::{
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
+    fmt, iter,
     marker::PhantomData,
+    mem::MaybeUninit,
 };
 
 pub enum Slot<T, U> {
@@ -18,10 +20,26 @@ pub enum Slot<T, U> {
     },
 }
 
+impl<T, U> fmt::Debug for Slot<T, U> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RestartGroup { id, f: _ } => {
+                f.debug_struct("RestartGroup").field("id", id).finish()
+            }
+            Self::ReplaceableGroup { id } => {
+                f.debug_struct("ReplaceableGroup").field("id", id).finish()
+            }
+        }
+    }
+}
+
 pub struct Composer<T, U> {
     tracked_states: HashSet<u64>,
     snapshot: Snapshot,
-    slots: Vec<Slot<T, U>>,
+    slots: Box<[MaybeUninit<Slot<T, U>>]>,
+    gap_start: usize,
+    gap_end: usize,
+    gap_size: usize,
     pos: usize,
     map: HashMap<u64, usize>,
     _marker: PhantomData<(T, U)>,
@@ -33,16 +51,41 @@ impl<T, U> Composer<T, U> {
             tracked_states: HashSet::new(),
             snapshot: Snapshot::enter(),
             map: HashMap::new(),
-            slots: Vec::new(),
+            slots: Vec::from_iter(iter::repeat_with(|| MaybeUninit::uninit()).take(10))
+                .into_boxed_slice(),
+            gap_start: 0,
+            gap_end: 10 - 1,
+            gap_size: 10,
             pos: 0,
             _marker: PhantomData,
         }
+    }
+
+    pub fn slots(&self) -> impl Iterator<Item = &Slot<T, U>> {
+        let mut pos = 0;
+        iter::from_fn(move || loop {
+            if pos < self.gap_start {
+                let slot = unsafe { self.slots[pos].assume_init_ref() };
+                pos += 1;
+                break Some(slot);
+            } else if pos == self.gap_start {
+                pos = self.gap_end;
+            } else if pos < self.slots.len() - 1 {
+                let slot = unsafe { self.slots[pos].assume_init_ref() };
+                pos += 1;
+                break Some(slot);
+            } else {
+                break None;
+            }
+        })
     }
 
     pub fn compose(&mut self, content: impl FnOnce(&mut Self)) -> Vec<Operation<T, U>> {
         content(self);
         Vec::new()
     }
+
+    /*
 
     pub async fn recompose(&mut self) -> Vec<Operation<T, U>> {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
@@ -63,7 +106,9 @@ impl<T, U> Composer<T, U> {
         Vec::new()
     }
 
+
     pub fn restart_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self) + Send + 'static) {
+
         let tracked = self.tracked_states.clone();
 
         let scope = Scope::default().enter(|| f(self));
@@ -84,30 +129,36 @@ impl<T, U> Composer<T, U> {
         self.tracked_states = tracked;
     }
 
+
     pub fn replaceable_group(&mut self, id: TypeId, mut f: impl FnMut(&mut Self)) {
         self.slots.push(Slot::ReplaceableGroup { id });
         f(self);
+    }
+      */
+
+    pub fn insert(&mut self, slot: Slot<T, U>) {
+        if self.pos != self.gap_start {}
+
+        self.slots[self.pos] = MaybeUninit::new(slot);
+        self.pos += 1;
+        self.gap_start += 1;
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Composer, State};
+    use crate::{composer::Slot, Composer, State};
     use std::any::Any;
 
-    #[tokio::test]
-    async fn it_works() {
+    #[test]
+    fn it_works() {
         let mut composer = Composer::<(), ()>::new();
 
         composer.compose(|composer| {
-            composer.restart_group(().type_id(), |_composer| {
-                let state = State::new(0);
-                dbg!(*state.get());
-
-                state.update(|n| *n += 1);
-            })
+            composer.insert(Slot::ReplaceableGroup { id: ().type_id() });
         });
 
-        composer.recompose().await;
+        let slots: Vec<_> = composer.slots().collect();
+        dbg!(&slots);
     }
 }

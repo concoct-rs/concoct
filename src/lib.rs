@@ -16,7 +16,7 @@ mod composer;
 #[doc(hidden)]
 pub use composer::Composer;
 
-pub mod composition;
+
 
 /// Composer is the interface that is targeted by the [`composable`] macro and used by code generation helpers.
 /// It is highly recommended that direct calls these be avoided as the runtime assumes that the calls are generated
