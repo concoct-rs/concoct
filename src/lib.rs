@@ -15,7 +15,6 @@ mod apply;
 pub use apply::Apply;
 
 pub mod snapshot;
-pub use snapshot::State;
 
 pub use concoct_macros::composable;
 
