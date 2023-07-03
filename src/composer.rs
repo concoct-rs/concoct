@@ -9,29 +9,32 @@ use std::{
     mem::MaybeUninit,
 };
 
-pub enum Slot {
-    RestartGroup {
-        id: TypeId,
+pub enum GroupKind {
+    Restart {
         f: Option<Box<dyn FnMut(&mut Composer) + Send>>,
     },
-    ReplaceableGroup {
-        id: TypeId,
-    },
-    Node {
-        data: Box<dyn Any>,
-    },
+    Replace,
+}
+
+impl fmt::Debug for GroupKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Restart { f: _ } => f.debug_struct("Restart").finish(),
+            Self::Replace {} => f.debug_struct("Replace").finish(),
+        }
+    }
+}
+
+pub enum Slot {
+    Group { id: TypeId, kind: GroupKind },
+    Node { data: Option<Box<dyn Any>> },
 }
 
 impl fmt::Debug for Slot {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RestartGroup { id, f: _ } => {
-                f.debug_struct("RestartGroup").field("id", id).finish()
-            }
-            Self::ReplaceableGroup { id } => {
-                f.debug_struct("ReplaceableGroup").field("id", id).finish()
-            }
-            Self::Node { data: _ } => f.debug_struct("Node").finish(),
+            Self::Group { id: _, kind } => f.debug_struct("Group").field("kind", kind).finish(),
+            Self::Node { data } => f.debug_struct("Node").field("data", data).finish(),
         }
     }
 }
@@ -110,25 +113,39 @@ impl Composer {
         }
     }
 
-    pub fn cache<R: Clone + 'static>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R {
-        if let Some(slot) = self.get_mut(self.pos) {
-            if !is_invalid {
-                let data = match slot {
-                    Slot::Node { data } => data.downcast_ref::<R>().unwrap().clone(),
+    pub fn peek(&self) -> Option<&Slot> {
+        self.get(self.pos)
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut Slot> {
+        self.get_mut(self.pos)
+    }
+
+    pub fn cache<R>(&mut self, is_invalid: bool, f: impl FnOnce() -> R) -> R
+    where
+        R: Clone + 'static,
+    {
+        if let Some(slot) = self.peek_mut() {
+            let value = if !is_invalid {
+                match slot {
+                    Slot::Node { data } => {
+                        data.as_ref().unwrap().downcast_ref::<R>().unwrap().clone()
+                    }
                     _ => todo!(),
-                };
-                self.pos += 1;
-                data
+                }
             } else {
                 let value = f();
                 let data = Box::new(value.clone());
-                *slot = Slot::Node { data };
+                *slot = Slot::Node { data: Some(data) };
                 value
-            }
+            };
+
+            self.pos += 1;
+            value
         } else {
             let value = f();
             let data = Box::new(value.clone());
-            let slot = Slot::Node { data };
+            let slot = Slot::Node { data: Some(data) };
             self.insert(slot);
             value
         }
@@ -144,18 +161,24 @@ impl Composer {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
             let idx = *self.map.get(&id).unwrap();
-            let mut restart = match self.get_mut(idx).unwrap() {
-                Slot::RestartGroup { id: _, f } => f.take().unwrap(),
-                _ => todo!(),
-            };
             self.pos = idx + 1;
 
+            let mut restart = match self.get_mut(idx).unwrap() {
+                Slot::Group {
+                    id,
+                    kind: GroupKind::Restart { f },
+                } => f.take().unwrap(),
+                _ => todo!(),
+            };
             Scope::default().enter(|| {
                 restart(self);
             });
 
             match self.get_mut(idx).unwrap() {
-                Slot::RestartGroup { id: _, f } => *f = Some(restart),
+                Slot::Group {
+                    id,
+                    kind: GroupKind::Restart { f },
+                } => *f = Some(restart),
                 _ => todo!(),
             };
         }
@@ -169,7 +192,10 @@ impl Composer {
         mut f: impl FnMut(&mut Self) + Clone + Send + 'static,
     ) {
         let idx = self.pos;
-        self.group(Slot::RestartGroup { id, f: None });
+        self.group(Slot::Group {
+            id,
+            kind: GroupKind::Restart { f: None },
+        });
 
         let tracked = self.tracked_states.clone();
         let scope = Scope::default().enter(|| f(self));
@@ -185,7 +211,11 @@ impl Composer {
         } else {
             Some(Box::new(f.clone()))
         };
-        if let Slot::RestartGroup { id: _, f } = self.get_mut(idx).unwrap() {
+        if let Slot::Group {
+            id: _,
+            kind: GroupKind::Restart { f },
+        } = self.get_mut(idx).unwrap()
+        {
             *f = restart;
         } else {
             todo!()
@@ -195,7 +225,10 @@ impl Composer {
     }
 
     pub fn replaceable_group<R>(&mut self, id: TypeId, f: impl FnOnce(&mut Self) -> R) -> R {
-        self.group(Slot::ReplaceableGroup { id });
+        self.group(Slot::Group {
+            id,
+            kind: GroupKind::Replace {},
+        });
 
         f(self)
     }
@@ -203,14 +236,18 @@ impl Composer {
     pub fn node(&mut self, node: Box<dyn Any>) {
         if let Some(slot) = self.get_mut(self.pos) {
             let is_replaceable = match slot {
-                Slot::ReplaceableGroup { id: _ } | Slot::Node { data: _ } => true,
+                Slot::Group {
+                    id: _,
+                    kind: GroupKind::Replace,
+                }
+                | Slot::Node { data: _ } => true,
                 _ => false,
             };
 
             if is_replaceable {
                 let parent_id = self.node_ids.last().unwrap().clone();
                 self.applier.update(parent_id, node);
-                let slot = Slot::Node { data: Box::new(()) };
+                let slot = Slot::Node { data: None };
                 *self.get_mut(self.pos).unwrap() = slot;
                 self.pos += 1;
                 return;
@@ -219,14 +256,17 @@ impl Composer {
 
         let parent_id = self.node_ids.last().unwrap();
         self.applier.insert(parent_id, node);
-        let slot = Slot::Node { data: Box::new(()) };
+        let slot = Slot::Node { data: None };
         self.insert(slot);
     }
 
     fn group(&mut self, slot: Slot) {
         if let Some(current_slot) = self.get_mut(self.pos) {
             match current_slot {
-                Slot::ReplaceableGroup { id: _ } => {
+                Slot::Group {
+                    id: _,
+                    kind: GroupKind::Replace,
+                } => {
                     *current_slot = slot;
                     self.pos += 1;
                 }
@@ -268,5 +308,36 @@ impl Composer {
             .downcast_ref::<T>()
             .unwrap()
             .clone()
+    }
+}
+
+impl fmt::Debug for Composer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let slots: Vec<_> = self.slots().collect();
+        f.debug_struct("Composer").field("slots", &slots).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{composable, compose, node, remember, Composer, State};
+
+    #[composable]
+    fn app() {
+        let count = compose!(remember(|| State::new(0)));
+
+        if *count.get() == 0 {
+            compose!(node(()));
+        }
+    }
+
+    #[tokio::test]
+    async fn it_works() {
+        let mut composer = Composer::new(Box::new(()));
+        composer.compose(app());
+
+        composer.recompose();
+
+        dbg!(composer);
     }
 }
