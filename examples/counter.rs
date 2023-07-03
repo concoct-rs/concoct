@@ -3,14 +3,14 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 #[composable]
-fn counter() {
-    let count = compose!(remember(|| {
+fn counter(interval: Duration) {
+    let count = compose!(remember(move || {
         let count = State::new(0);
 
         let timer_count = count.clone();
         concoct::spawn(async move {
             loop {
-                sleep(Duration::from_secs(1)).await;
+                sleep(interval).await;
                 timer_count.update(|count| *count += 1);
             }
         });
@@ -25,8 +25,8 @@ fn counter() {
 fn app() {
     dbg!("Ran once!");
 
-    compose!(counter());
-    compose!(counter());
+    compose!(counter(Duration::from_secs(1)));
+    compose!(counter(Duration::from_secs(2)));
 }
 
 #[tokio::main]
