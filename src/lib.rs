@@ -30,11 +30,11 @@ pub trait Apply {
 
 impl Apply for () {
     fn root(&mut self) -> Box<dyn Any> {
-        todo!()
+        Box::new(())
     }
 
     fn insert(&mut self, _parent_id: &dyn Any, _node: Box<dyn Any>) -> Box<dyn Any> {
-        todo!()
+        Box::new(())
     }
 
     fn update(&mut self, _node_id: &dyn Any, _node: Box<dyn Any>) {}
