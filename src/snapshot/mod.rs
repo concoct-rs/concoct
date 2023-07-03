@@ -12,7 +12,7 @@ mod state;
 pub use state::{Guard, State};
 
 mod task;
-pub use task::Task;
+pub use task::{Task, spawn};
 
 pub struct Snapshot {
     rx: UnboundedReceiver<Operation>,
@@ -28,7 +28,13 @@ impl Snapshot {
         Self { rx }
     }
 
-    pub fn apply(&mut self) {
+    pub async fn apply(&mut self) {
+        let mut first = self.rx.recv().await.unwrap();
+        first.apply();
+        self.apply_pending();
+    }
+
+    pub fn apply_pending(&mut self) {
         while let Ok(mut op) = self.rx.try_recv() {
             op.apply();
         }
@@ -93,7 +99,7 @@ mod tests {
             state.update(|x| *x = 1);
             assert_eq!(*state.get(), 0);
 
-            snapshot.apply();
+            snapshot.apply_pending();
             assert_eq!(*state.get(), 1);
         });
     }

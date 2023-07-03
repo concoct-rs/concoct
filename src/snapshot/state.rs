@@ -3,8 +3,10 @@ use std::{
     any::Any,
     marker::PhantomData,
     ops::Deref,
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{Arc, Mutex, MutexGuard, atomic::{AtomicU64, Ordering}},
 };
+
+static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 pub struct State<T> {
     id: u64,
@@ -18,7 +20,7 @@ impl<T> State<T> {
         T: Send + Sync + 'static,
     {
         Self {
-            id: 0,
+            id: NEXT_ID.fetch_add(1, Ordering::SeqCst),
             value: Arc::new(Mutex::new(Box::new(value))),
             _marker: PhantomData,
         }
