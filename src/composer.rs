@@ -1,6 +1,6 @@
 use crate::{
     snapshot::{Scope, Snapshot},
-    Operation, Composable,
+    Composable, Operation,
 };
 use std::{
     any::{Any, TypeId},
@@ -32,7 +32,7 @@ impl<T, U> fmt::Debug for Slot<T, U> {
             Self::ReplaceableGroup { id } => {
                 f.debug_struct("ReplaceableGroup").field("id", id).finish()
             }
-            Self::Node { data } => f.debug_struct("Node").finish(),
+            Self::Node { data: _ } => f.debug_struct("Node").finish(),
         }
     }
 }
@@ -43,7 +43,7 @@ pub struct Composer<T, U> {
     slots: Box<[MaybeUninit<Slot<T, U>>]>,
     gap_start: usize,
     gap_end: usize,
-    gap_size: usize,
+    capacity: usize,
     pos: usize,
     map: HashMap<u64, usize>,
     _marker: PhantomData<(T, U)>,
@@ -51,15 +51,19 @@ pub struct Composer<T, U> {
 
 impl<T, U> Composer<T, U> {
     pub fn new() -> Self {
+        Self::with_capacity(32)
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
         Self {
             tracked_states: HashSet::new(),
             snapshot: Snapshot::enter(),
             map: HashMap::new(),
-            slots: Vec::from_iter(iter::repeat_with(|| MaybeUninit::uninit()).take(10))
+            slots: Vec::from_iter(iter::repeat_with(|| MaybeUninit::uninit()).take(capacity))
                 .into_boxed_slice(),
             gap_start: 0,
-            gap_end: 10,
-            gap_size: 10,
+            gap_end: capacity,
+            capacity: capacity,
             pos: 0,
             _marker: PhantomData,
         }
@@ -67,19 +71,12 @@ impl<T, U> Composer<T, U> {
 
     pub fn slots(&self) -> impl Iterator<Item = &Slot<T, U>> {
         let mut pos = 0;
-        iter::from_fn(move || loop {
-            if pos < self.gap_start {
-                let slot = unsafe { self.slots[pos].assume_init_ref() };
+        iter::from_fn(move || {
+            if let Some(slot) = self.get(pos) {
                 pos += 1;
-                break Some(slot);
-            } else if pos == self.gap_start {
-                pos = self.gap_end;
-            } else if pos < self.slots.len() - 1 {
-                let slot = unsafe { self.slots[pos].assume_init_ref() };
-                pos += 1;
-                break Some(slot);
+                Some(slot)
             } else {
-                break None;
+                None
             }
         })
     }
@@ -224,4 +221,3 @@ impl<T, U> Composer<T, U> {
         self.gap_start += 1;
     }
 }
-

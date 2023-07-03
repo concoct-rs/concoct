@@ -3,8 +3,6 @@
 //! This crate provides positional memoization where programs are defined as a composition of [`composable`] functions.
 //! The results of these functions are cached based on the position of the function call.
 
-use std::{any::TypeId, hash::Hash};
-
 extern crate self as concoct;
 
 pub mod snapshot;
@@ -15,9 +13,6 @@ pub use concoct_macros::composable;
 mod composer;
 #[doc(hidden)]
 pub use composer::Composer;
-
-
-
 
 pub trait Composable<T, U> {
     type Output;
