@@ -79,3 +79,19 @@ where
 {
     composer.node(Box::new(node.clone()))
 }
+
+#[composable]
+pub fn provide<T>(context: T)
+where
+    T: Clone + Send + 'static,
+{
+    composer.provide(Box::new(context.clone()))
+}
+
+#[composable]
+pub fn context<T>() -> T
+where
+    T: Clone + 'static,
+{
+    composer.context()
+}

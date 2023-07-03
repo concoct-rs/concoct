@@ -75,8 +75,8 @@ thread_local! {
 
 struct Operation {
     state_id: u64,
-    value: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
-    f: Box<dyn FnMut(&mut dyn Any) + Send + Sync>,
+    value: Arc<Mutex<Box<dyn Any + Send>>>,
+    f: Box<dyn FnMut(&mut dyn Any) + Send>,
 }
 
 impl Operation {

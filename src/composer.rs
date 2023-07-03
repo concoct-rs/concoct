@@ -1,6 +1,6 @@
 use crate::{
     snapshot::{Scope, Snapshot},
-    Apply, Composable,
+    Apply, Composable, State,
 };
 use std::{
     any::{Any, TypeId},
@@ -47,6 +47,7 @@ pub struct Composer {
     capacity: usize,
     pos: usize,
     map: HashMap<u64, usize>,
+    contexts: HashMap<TypeId, Vec<State<Box<dyn Any + Send>>>>,
 }
 
 impl Composer {
@@ -67,6 +68,7 @@ impl Composer {
             gap_end: capacity,
             capacity: capacity,
             pos: 0,
+            contexts: HashMap::new(),
         }
     }
 
@@ -243,5 +245,28 @@ impl Composer {
         self.slots[self.pos] = MaybeUninit::new(slot);
         self.pos += 1;
         self.gap_start += 1;
+    }
+
+    pub fn provide(&mut self, value: Box<dyn Send + Any>) {
+        let id = value.as_ref().type_id();
+        let state = State::new(value);
+
+        if let Some(values) = self.contexts.get_mut(&id) {
+            values.push(state);
+        } else {
+            self.contexts.insert(id, vec![state]);
+        }
+    }
+
+    pub fn context<T: Clone + 'static>(&self) -> T {
+        self.contexts
+            .get(&TypeId::of::<T>())
+            .unwrap()
+            .last()
+            .unwrap()
+            .get()
+            .downcast_ref::<T>()
+            .unwrap()
+            .clone()
     }
 }

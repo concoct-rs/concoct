@@ -13,7 +13,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 pub struct State<T> {
     id: u64,
-    value: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    value: Arc<Mutex<Box<dyn Any + Send>>>,
     _marker: PhantomData<T>,
 }
 
@@ -30,7 +30,7 @@ impl<T> Clone for State<T> {
 impl<T> State<T> {
     pub fn new(value: T) -> Self
     where
-        T: Send + Sync + 'static,
+        T: Send + 'static,
     {
         Self {
             id: NEXT_ID.fetch_add(1, Ordering::SeqCst),
@@ -58,9 +58,9 @@ impl<T> State<T> {
         }
     }
 
-    pub fn update(&self, mut f: impl FnMut(&mut T) + Send + Sync + 'static)
+    pub fn update(&self, mut f: impl FnMut(&mut T) + Send  + 'static)
     where
-        T: Send + Sync + 'static,
+        T: Send + 'static,
     {
         LOCAL_SCOPE
             .try_with(|local_scope| {
@@ -89,7 +89,7 @@ impl<T> State<T> {
 }
 
 pub struct Guard<'a, T> {
-    mutex: MutexGuard<'a, Box<dyn Any + Send + Sync>>,
+    mutex: MutexGuard<'a, Box<dyn Any + Send>>,
     _marker: PhantomData<T>,
 }
 
