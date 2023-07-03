@@ -135,11 +135,6 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                     #block
                 });
-
-
-
-
-
             }
         }
     };
@@ -154,16 +149,16 @@ pub fn composable(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[must_use]
-        #vis fn #ident <A: concoct::Apply, #generics_clause> (#(#inputs),*) -> impl concoct::Composable<A, A::NodeId, Output = #output_ty>  #where_clause {
+        #vis fn #ident <#generics_clause> (#(#inputs),*) -> impl concoct::Composable<Output = #output_ty>  #where_clause {
             #[allow(non_camel_case_types)]
             struct #struct_ident <#(#generics),*> {
                 #(#struct_fields),*
             }
 
-            impl<A: concoct::Apply, #generics_clause> concoct::Composable<A, A::NodeId> for #struct_ident <#(#generics),*> #where_clause {
+            impl<#generics_clause> concoct::Composable<> for #struct_ident <#(#generics),*> #where_clause {
                 type Output = #output_ty;
 
-                fn compose(self, composer: &mut concoct::Composer<A, A::NodeId>, changed: u32) -> Self::Output {
+                fn compose(self, composer: &mut concoct::Composer, changed: u32) -> Self::Output {
                     compose!(());
 
                     let Self { #struct_pattern } = self;

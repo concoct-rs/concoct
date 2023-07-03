@@ -31,7 +31,7 @@ fn app() {
 
 #[tokio::main]
 async fn main() {
-    let mut composer = Composer::new(());
+    let mut composer = Composer::new(Box::new(()));
     composer.compose(app());
 
     loop {

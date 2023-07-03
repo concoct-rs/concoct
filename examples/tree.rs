@@ -12,22 +12,28 @@ fn app() {
 pub struct Tree {}
 
 impl Apply for Tree {
-    type NodeId = ();
-
-    fn root(&mut self) -> Self::NodeId {}
-
-    fn insert(&mut self, _parent_id: Self::NodeId, _node: Box<dyn std::any::Any>) -> Self::NodeId {
-        dbg!("insert!");
+    fn root(&mut self) -> Box<dyn std::any::Any> {
+        Box::new(())
     }
 
-    fn update(&mut self, _node_id: Self::NodeId, _node: Box<dyn std::any::Any>) {
+    fn insert(
+        &mut self,
+        _parent_id: &dyn std::any::Any,
+        _node: Box<dyn std::any::Any>,
+    ) -> Box<dyn std::any::Any> {
+        dbg!("insert!");
+        Box::new(())
+    }
+
+    fn update(&mut self, _node_id: &dyn std::any::Any, _node: Box<dyn std::any::Any>) {
         dbg!("update!");
     }
 }
 
 #[tokio::main]
 async fn main() {
-    let mut composer = Composer::new(Tree {});
+    let tree = Tree {};
+    let mut composer = Composer::new(Box::new(tree));
     composer.compose(app());
 
     composer.recompose().await;

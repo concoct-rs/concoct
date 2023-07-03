@@ -9,10 +9,10 @@ use std::{
     mem::MaybeUninit,
 };
 
-pub enum Slot<A, T> {
+pub enum Slot {
     RestartGroup {
         id: TypeId,
-        f: Option<Box<dyn FnMut(&mut Composer<A, T>) + Send>>,
+        f: Option<Box<dyn FnMut(&mut Composer) + Send>>,
     },
     ReplaceableGroup {
         id: TypeId,
@@ -22,7 +22,7 @@ pub enum Slot<A, T> {
     },
 }
 
-impl<A, T> fmt::Debug for Slot<A, T> {
+impl fmt::Debug for Slot {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::RestartGroup { id, f: _ } => {
@@ -36,12 +36,12 @@ impl<A, T> fmt::Debug for Slot<A, T> {
     }
 }
 
-pub struct Composer<A, T> {
-    applier: A,
-    node_ids: Vec<T>,
+pub struct Composer {
+    applier: Box<dyn Apply>,
+    node_ids: Vec<Box<dyn Any>>,
     tracked_states: HashSet<u64>,
     snapshot: Snapshot,
-    slots: Box<[MaybeUninit<Slot<A, T>>]>,
+    slots: Box<[MaybeUninit<Slot>]>,
     gap_start: usize,
     gap_end: usize,
     capacity: usize,
@@ -49,12 +49,12 @@ pub struct Composer<A, T> {
     map: HashMap<u64, usize>,
 }
 
-impl<A, T> Composer<A, T> {
-    pub fn new(applier: A) -> Self {
+impl Composer {
+    pub fn new(applier: Box<dyn Apply>) -> Self {
         Self::with_capacity(applier, 32)
     }
 
-    pub fn with_capacity(applier: A, capacity: usize) -> Self {
+    pub fn with_capacity(applier: Box<dyn Apply>, capacity: usize) -> Self {
         Self {
             applier,
             node_ids: Vec::new(),
@@ -70,7 +70,7 @@ impl<A, T> Composer<A, T> {
         }
     }
 
-    pub fn slots(&self) -> impl Iterator<Item = &Slot<A, T>> {
+    pub fn slots(&self) -> impl Iterator<Item = &Slot> {
         let mut pos = 0;
         iter::from_fn(move || {
             if let Some(slot) = self.get(pos) {
@@ -83,13 +83,13 @@ impl<A, T> Composer<A, T> {
     }
 
     /// Get the slot at `index`.
-    pub fn get(&self, index: usize) -> Option<&Slot<A, T>> {
+    pub fn get(&self, index: usize) -> Option<&Slot> {
         self.get_address(index)
             .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
     }
 
     /// Get the slot at `index`.
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot<A, T>> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot> {
         self.get_address(index)
             .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
     }
@@ -132,10 +132,7 @@ impl<A, T> Composer<A, T> {
         }
     }
 
-    pub fn compose(&mut self, content: impl Composable<A, T>)
-    where
-        A: Apply<NodeId = T>,
-    {
+    pub fn compose(&mut self, content: impl Composable) {
         self.node_ids.push(self.applier.root());
 
         content.compose(self, 0);
@@ -201,11 +198,7 @@ impl<A, T> Composer<A, T> {
         f(self)
     }
 
-    pub fn node(&mut self, node: Box<dyn Any>)
-    where
-        A: Apply<NodeId = T>,
-        T: Clone,
-    {
+    pub fn node(&mut self, node: Box<dyn Any>) {
         if let Some(slot) = self.get_mut(self.pos) {
             let is_replaceable = match slot {
                 Slot::ReplaceableGroup { id: _ } | Slot::Node { data: _ } => true,
@@ -222,13 +215,13 @@ impl<A, T> Composer<A, T> {
             }
         }
 
-        let parent_id = self.node_ids.last().unwrap().clone();
+        let parent_id = self.node_ids.last().unwrap();
         self.applier.insert(parent_id, node);
         let slot = Slot::Node { data: Box::new(()) };
         self.insert(slot);
     }
 
-    fn group(&mut self, slot: Slot<A, T>) {
+    fn group(&mut self, slot: Slot) {
         if let Some(current_slot) = self.get_mut(self.pos) {
             match current_slot {
                 Slot::ReplaceableGroup { id: _ } => {
@@ -244,7 +237,7 @@ impl<A, T> Composer<A, T> {
         }
     }
 
-    pub fn insert(&mut self, slot: Slot<A, T>) {
+    pub fn insert(&mut self, slot: Slot) {
         if self.pos != self.gap_start {}
 
         self.slots[self.pos] = MaybeUninit::new(slot);

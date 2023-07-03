@@ -19,29 +19,31 @@ mod composer;
 pub use composer::Composer;
 
 pub trait Apply {
-    type NodeId: Clone;
+    fn root(&mut self) -> Box<dyn Any>;
 
-    fn root(&mut self) -> Self::NodeId;
+    fn insert(&mut self, parent_id: &dyn Any, node: Box<dyn Any>) -> Box<dyn Any>;
 
-    fn insert(&mut self, parent_id: Self::NodeId, node: Box<dyn Any>) -> Self::NodeId;
-
-    fn update(&mut self, node_id: Self::NodeId, node: Box<dyn Any>);
+    fn update(&mut self, node_id: &dyn Any, node: Box<dyn Any>);
 }
 
 impl Apply for () {
-    type NodeId = ();
+    fn root(&mut self) -> Box<dyn Any> {
+        todo!()
+    }
 
-    fn root(&mut self) -> Self::NodeId {}
+    fn insert(&mut self, _parent_id: &dyn Any, _node: Box<dyn Any>) -> Box<dyn Any> {
+        todo!()
+    }
 
-    fn insert(&mut self, _parent_id: Self::NodeId, _node: Box<dyn Any>) -> Self::NodeId {}
-
-    fn update(&mut self, _node_id: Self::NodeId, _node: Box<dyn Any>) {}
+    fn update(&mut self, _node_id: &dyn Any, _node: Box<dyn Any>) {
+        todo!()
+    }
 }
 
-pub trait Composable<A, T> {
+pub trait Composable {
     type Output;
 
-    fn compose(self, compose: &mut Composer<A, T>, changed: u32) -> Self::Output;
+    fn compose(self, compose: &mut Composer, changed: u32) -> Self::Output;
 }
 
 #[macro_export]
