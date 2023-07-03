@@ -1,3 +1,28 @@
+//! # Composer
+//! The composer stores the data from the composition tree.
+//! 
+//! ```ignore
+//! #[composable]
+//! fn app() {
+//!     compose!(node(0));
+//! }
+//! 
+//! // Will be stored as:
+//! 
+//! Group {
+//!     len: 2,
+//!     kind: Restart,
+//! },
+//! Group {
+//!     len: 1,
+//!     kind: Restart,
+//! },
+//! Node {
+//!     data: None,
+//! },
+//! ```
+
+
 use crate::{
     snapshot::{Scope, Snapshot},
     Apply, Composable, State,
@@ -84,8 +109,9 @@ impl fmt::Debug for Slot {
     }
 }
 
-/// Composer for a UI tree.
-/// This builds and rebuilds a depth-first traversal of the tree's nodes.
+/// Composer for a UI tree that builds and rebuilds a depth-first traversal of the tree's nodes.
+/// 
+/// See the [`module`](concoct::composer) docs for more.
 pub struct Composer {
     applier: Box<dyn Apply>,
     node_ids: Vec<Box<dyn Any>>,

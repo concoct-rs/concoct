@@ -34,6 +34,7 @@ fn app() {
     compose!(counter(Duration::from_secs(1)));
     compose!(counter(Duration::from_secs(2)));
 }
+
 // ...
 ```
 
