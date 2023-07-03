@@ -24,6 +24,8 @@ pub trait Apply {
     fn insert(&mut self, parent_id: &dyn Any, node: Box<dyn Any>) -> Box<dyn Any>;
 
     fn update(&mut self, node_id: &dyn Any, node: Box<dyn Any>);
+
+    fn remove(&mut self, node_id: &dyn Any);
 }
 
 impl Apply for () {
@@ -35,9 +37,9 @@ impl Apply for () {
         todo!()
     }
 
-    fn update(&mut self, _node_id: &dyn Any, _node: Box<dyn Any>) {
-        todo!()
-    }
+    fn update(&mut self, _node_id: &dyn Any, _node: Box<dyn Any>) {}
+
+    fn remove(&mut self, _node_id: &dyn Any) {}
 }
 
 pub trait Composable {

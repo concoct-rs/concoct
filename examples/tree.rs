@@ -1,32 +1,32 @@
 use concoct::{composable, compose, node, remember, Apply, Composer, State};
+use std::any::Any;
 
 #[composable]
 fn app() {
     let count = compose!(remember(|| State::new(0)));
+    count.update(|count| *count += 1);
 
     compose!(node(*count.get()));
-
-    count.update(|count| *count += 1);
 }
 
 pub struct Tree {}
 
 impl Apply for Tree {
-    fn root(&mut self) -> Box<dyn std::any::Any> {
+    fn root(&mut self) -> Box<dyn Any> {
         Box::new(())
     }
 
-    fn insert(
-        &mut self,
-        _parent_id: &dyn std::any::Any,
-        _node: Box<dyn std::any::Any>,
-    ) -> Box<dyn std::any::Any> {
-        dbg!("insert!");
+    fn insert(&mut self, parent_id: &dyn Any, _node: Box<dyn Any>) -> Box<dyn Any> {
+        println!("insert: {:?}", parent_id);
         Box::new(())
     }
 
-    fn update(&mut self, _node_id: &dyn std::any::Any, _node: Box<dyn std::any::Any>) {
-        dbg!("update!");
+    fn update(&mut self, node_id: &dyn Any, _node: Box<dyn Any>) {
+        println!("update: {:?}", node_id);
+    }
+
+    fn remove(&mut self, node_id: &dyn Any) {
+        println!("remove: {:?}", node_id);
     }
 }
 
