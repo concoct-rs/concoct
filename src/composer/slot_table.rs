@@ -3,7 +3,7 @@ use std::{
     mem::{self, MaybeUninit},
 };
 
-use super::{Slot, SlotKind};
+use super::slot::{Slot, SlotKind};
 
 // TODO this exists to split borrows
 pub struct SlotTable {
