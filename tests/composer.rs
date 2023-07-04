@@ -8,7 +8,8 @@ fn it_inserts_a_group() {
     let mut composer = Composer::default();
     composer.compose(app());
 
-    assert!(composer.slots().eq([SlotKind::RestartGroup]));
+    let slots: Vec<_> = composer.slots().map(|slot| slot.kind()).collect();
+    assert_eq!(slots, [SlotKind::RestartGroup]);
 }
 
 #[test]
@@ -21,9 +22,13 @@ fn it_composes_remember() {
     let mut composer = Composer::default();
     composer.compose(app());
 
-    assert!(composer.slots().eq([
-        SlotKind::RestartGroup,
-        SlotKind::ReplaceGroup,
-        SlotKind::Node
-    ]));
+    let slots: Vec<_> = composer.slots().map(|slot| slot.kind()).collect();
+    assert_eq!(
+        slots,
+        [
+            SlotKind::RestartGroup,
+            SlotKind::ReplaceGroup,
+            SlotKind::Data
+        ]
+    );
 }

@@ -34,7 +34,7 @@ use std::{
     rc::Rc,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SlotKind {
     RestartGroup,
     ReplaceGroup,
@@ -42,11 +42,6 @@ pub enum SlotKind {
     Data,
 }
 
-impl PartialEq<Slot> for SlotKind {
-    fn eq(&self, other: &Slot) -> bool {
-        *self == other.kind()
-    }
-}
 
 pub enum GroupKind {
     Restart {
@@ -92,12 +87,6 @@ impl Slot {
             Self::Data { value: _ } => SlotKind::Data,
             Self::Node { id: _ } => SlotKind::Node,
         }
-    }
-}
-
-impl PartialEq<SlotKind> for &Slot {
-    fn eq(&self, other: &SlotKind) -> bool {
-        other == *self
     }
 }
 
