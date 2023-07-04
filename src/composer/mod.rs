@@ -30,9 +30,11 @@ use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
     fmt, iter,
-    mem::{self, MaybeUninit},
+    mem::MaybeUninit,
     rc::Rc,
 };
+
+use self::slot_table::SlotTable;
 
 pub mod slot_table;
 
@@ -113,11 +115,7 @@ pub struct Composer {
     node_ids: Vec<Rc<dyn Any>>,
     tracked_states: HashSet<u64>,
     snapshot: Snapshot,
-    slots: Box<[MaybeUninit<Slot>]>,
-    gap_start: usize,
-    gap_end: usize,
-    capacity: usize,
-    pos: usize,
+    pub slot_table: SlotTable,
     map: HashMap<u64, usize>,
     contexts: HashMap<TypeId, Vec<State<Box<dyn Any + Send>>>>,
     child_count: usize,
@@ -147,11 +145,7 @@ impl Composer {
             tracked_states: HashSet::new(),
             snapshot: Snapshot::enter(),
             map: HashMap::new(),
-            slots: new_slots(capacity),
-            gap_start: 0,
-            gap_end: capacity,
-            capacity: capacity,
-            pos: 0,
+            slot_table: SlotTable::with_capacity(capacity),
             contexts: HashMap::new(),
             child_count: 0,
         }
@@ -169,9 +163,9 @@ impl Composer {
         let ids: Vec<_> = self.snapshot.apply().await.collect();
         for id in ids {
             let idx = *self.map.get(&id).unwrap();
-            self.pos = idx + 1;
+            self.slot_table.pos = idx + 1;
 
-            let mut restart = match self.get_mut(idx).unwrap() {
+            let mut restart = match self.slot_table.get_mut(idx).unwrap() {
                 Slot::Group {
                     id: _,
                     len: _,
@@ -183,7 +177,7 @@ impl Composer {
                 restart(self);
             });
 
-            match self.get_mut(idx).unwrap() {
+            match self.slot_table.get_mut(idx).unwrap() {
                 Slot::Group {
                     id: _,
                     len: _,
@@ -196,23 +190,6 @@ impl Composer {
         self.tracked_states = HashSet::new();
     }
 
-    /// Start a new iterator over the slots inside this composer.
-    pub fn slots(&self) -> impl Iterator<Item = &Slot> {
-        let mut pos = 0;
-        iter::from_fn(move || {
-            if let Some(slot) = self.get(pos) {
-                pos += 1;
-                Some(slot)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn slot_kinds(&self) -> impl Iterator<Item = SlotKind> + '_ {
-        self.slots().map(|slot| slot.kind())
-    }
-
     /// Cache a value in the composition.
     /// During initial composition `f` is called to produce the value that is then stored in the slot table.
     /// During recomposition, if `is_invalid` is false the value is obtained from the slot table and `f` is not invoked.
@@ -222,7 +199,7 @@ impl Composer {
     where
         R: Clone + 'static,
     {
-        if let Some(slot) = self.peek_mut() {
+        if let Some(slot) = self.slot_table.peek_mut() {
             let value = if !is_invalid {
                 match slot {
                     Slot::Data { value: data } => {
@@ -237,7 +214,7 @@ impl Composer {
                 value
             };
 
-            self.pos += 1;
+            self.slot_table.pos += 1;
             self.child_count += 1;
 
             value
@@ -245,7 +222,7 @@ impl Composer {
             let value = f();
             let data = Box::new(value.clone());
             let slot = Slot::Data { value: Some(data) };
-            self.insert(slot);
+            self.slot_table.insert(slot);
             value
         }
     }
@@ -291,7 +268,7 @@ impl Composer {
         kind: GroupKind,
         f: impl FnOnce(&mut Self, usize) -> R,
     ) -> R {
-        let idx = self.pos;
+        let idx = self.slot_table.pos;
         let last_len = self.start_group(id, GroupKind::Replace);
 
         let parent_child_count = self.child_count;
@@ -306,14 +283,14 @@ impl Composer {
             id: _,
             len,
             kind: this_kind,
-        } = self.get_mut(idx).unwrap()
+        } = self.slot_table.get_mut(idx).unwrap()
         {
             *this_kind = kind;
             *len = child_count;
 
             if let Some(last_len) = last_len {
                 if child_count < last_len {
-                    self.remove(idx, idx + last_len - child_count);
+                    // self.remove(idx, idx + last_len - child_count);
                 }
             }
         }
@@ -322,7 +299,7 @@ impl Composer {
     }
 
     fn start_group(&mut self, id: TypeId, kind: GroupKind) -> Option<usize> {
-        if let Some(slot) = self.peek_mut() {
+        if let Some(slot) = self.slot_table.peek_mut() {
             if let Slot::Group {
                 id: last_id,
                 len: last_len,
@@ -332,14 +309,14 @@ impl Composer {
                 match last_kind {
                     GroupKind::Replace => {
                         *slot = Slot::Group { id, len: 0, kind };
-                        self.pos += 1;
+                        self.slot_table.pos += 1;
                         return None;
                     }
                     GroupKind::Restart { f: _ } => {
                         if id == *last_id {
                             *last_kind = kind;
                             let len = *last_len;
-                            self.pos += 1;
+                            self.slot_table.pos += 1;
                             return Some(len);
                         }
                     }
@@ -347,14 +324,14 @@ impl Composer {
             }
         }
 
-        self.insert(Slot::Group { id, len: 0, kind });
+        self.slot_table.insert(Slot::Group { id, len: 0, kind });
         None
     }
 
     /// Advance the cursor to the next group.
     pub fn skip_group(&mut self) {
-        if let Slot::Group { len, .. } = self.peek_mut().unwrap() {
-            self.pos += *len
+        if let Slot::Group { len, .. } = self.slot_table.peek_mut().unwrap() {
+            self.slot_table.pos += *len
         } else {
             todo!()
         };
@@ -362,7 +339,7 @@ impl Composer {
 
     /// Create or update a node on the tree.
     pub fn node(&mut self, node: Box<dyn Any>) {
-        if let Some(slot) = self.peek_mut() {
+        if let Some(slot) = self.slot_table.peek_mut() {
             let is_replaceable = match slot {
                 Slot::Group {
                     id: _,
@@ -377,9 +354,9 @@ impl Composer {
                 let parent_id = self.node_ids.last().unwrap().clone();
                 self.applier.update(&parent_id, node);
                 let slot = Slot::Data { value: None };
-                *self.peek_mut().unwrap() = slot;
+                *self.slot_table.peek_mut().unwrap() = slot;
 
-                self.pos += 1;
+                self.slot_table.pos += 1;
                 self.child_count += 1;
 
                 return;
@@ -389,7 +366,7 @@ impl Composer {
         let parent_id = self.node_ids.last().unwrap();
         self.applier.insert(parent_id, node);
         let slot = Slot::Data { value: None };
-        self.insert(slot);
+        self.slot_table.insert(slot);
     }
 
     /// Provide a context with the given `value`.
@@ -404,80 +381,7 @@ impl Composer {
         }
     }
 
-    /// Get the current context of type `T`.
-    pub fn context<T: Clone + 'static>(&self) -> T {
-        self.contexts
-            .get(&TypeId::of::<T>())
-            .unwrap()
-            .last()
-            .unwrap()
-            .get()
-            .downcast_ref::<T>()
-            .unwrap()
-            .clone()
-    }
-
-    /// Get the slot at `index`.
-    fn get(&self, index: usize) -> Option<&Slot> {
-        self.get_address(index)
-            .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
-    }
-
-    /// Get the slot at `index`.
-    fn get_mut(&mut self, index: usize) -> Option<&mut Slot> {
-        self.get_address(index)
-            .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
-    }
-
-    fn get_address(&self, index: usize) -> Option<usize> {
-        let addr = if index >= self.gap_start && index < self.gap_end {
-            self.gap_end
-        } else {
-            index
-        };
-
-        if addr < self.slots.len() {
-            Some(addr)
-        } else {
-            None
-        }
-    }
-
-    fn peek_mut(&mut self) -> Option<&mut Slot> {
-        self.get_mut(self.pos)
-    }
-
-    /// Insert a slot into the current position.
-    fn insert(&mut self, slot: Slot) {
-        if self.pos != self.gap_start {}
-
-        // Check if we're out of space
-        if self.gap_start == self.gap_end {
-            // Double the capacity, to a minimum of 32
-            self.capacity = (self.capacity * 2).max(32);
-            let mut slots = new_slots(self.capacity);
-
-            // Move slots from the old table
-            for idx in 0..self.gap_start {
-                slots[idx] = mem::replace(&mut self.slots[idx], MaybeUninit::uninit());
-            }
-            for idx in self.gap_end..self.slots.len() {
-                slots[idx + self.gap_start] =
-                    mem::replace(&mut self.slots[idx], MaybeUninit::uninit());
-            }
-
-            // Update the state
-            self.gap_start = self.slots.len();
-            self.gap_end = slots.len();
-            self.slots = slots;
-        }
-
-        // Insert the new slot
-        self.slots[self.pos] = MaybeUninit::new(slot);
-        self.pos += 1;
-        self.gap_start += 1;
-        self.child_count += 1;
-    }
+    /*
 
     fn remove(&mut self, start: usize, end: usize) {
         let start_addr = self.get_address(start).unwrap();
@@ -493,11 +397,12 @@ impl Composer {
         self.gap_start = start_addr;
         self.gap_end = end_addr;
     }
+     */
 }
 
 impl fmt::Debug for Composer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let slots: Vec<_> = self.slots().collect();
+        let slots: Vec<_> = self.slot_table.slots().collect();
         f.debug_struct("Composer").field("slots", &slots).finish()
     }
 }

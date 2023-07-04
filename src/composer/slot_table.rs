@@ -1,6 +1,9 @@
-use std::{mem::{self, MaybeUninit}, iter};
+use std::{
+    iter,
+    mem::{self, MaybeUninit},
+};
 
-use super::Slot;
+use super::{Slot, SlotKind};
 
 // TODO this exists to split borrows
 pub struct SlotTable {
@@ -8,11 +11,54 @@ pub struct SlotTable {
     gap_start: usize,
     gap_end: usize,
     capacity: usize,
-    pos: usize,
-    child_count: usize,
+    pub pos: usize,
 }
 
 impl SlotTable {
+    pub fn new() -> Self {
+        Self::with_capacity(32)
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            slots: new_slots(capacity),
+            gap_start: 0,
+            gap_end: capacity,
+            capacity,
+            pos: 0,
+        }
+    }
+
+    /// Get the slot at `index`.
+    pub fn get(&self, index: usize) -> Option<&Slot> {
+        self.get_address(index)
+            .map(|addr| unsafe { self.slots[addr].assume_init_ref() })
+    }
+
+    /// Get the slot at `index`.
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Slot> {
+        self.get_address(index)
+            .map(|addr| unsafe { self.slots[addr].assume_init_mut() })
+    }
+
+    pub fn get_address(&self, index: usize) -> Option<usize> {
+        let addr = if index >= self.gap_start && index < self.gap_end {
+            self.gap_end
+        } else {
+            index
+        };
+
+        if addr < self.slots.len() {
+            Some(addr)
+        } else {
+            None
+        }
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut Slot> {
+        self.get_mut(self.pos)
+    }
+
     /// Insert a slot into the current position.
     pub fn insert(&mut self, slot: Slot) {
         if self.pos != self.gap_start {}
@@ -42,7 +88,23 @@ impl SlotTable {
         self.slots[self.pos] = MaybeUninit::new(slot);
         self.pos += 1;
         self.gap_start += 1;
-        self.child_count += 1;
+    }
+
+    /// Start a new iterator over the slots inside this composer.
+    pub fn slots(&self) -> impl Iterator<Item = &Slot> {
+        let mut pos = 0;
+        iter::from_fn(move || {
+            if let Some(slot) = self.get(pos) {
+                pos += 1;
+                Some(slot)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn slot_kinds(&self) -> impl Iterator<Item = SlotKind> + '_ {
+        self.slots().map(|slot| slot.kind())
     }
 }
 
