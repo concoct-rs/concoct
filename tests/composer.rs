@@ -25,7 +25,7 @@ fn it_grows_slot_table() {
     let mut composer = Composer::with_capacity(Box::new(()), 1);
     composer.compose(app());
 
-    let slots: Vec<_> = composer.slots().map(|slot| slot.kind()).collect();
+    let slots: Vec<_> = composer.slot_kinds().collect();
     assert_eq!(slots, [SlotKind::RestartGroup, SlotKind::RestartGroup]);
 }
 
@@ -39,7 +39,7 @@ fn it_composes_remember() {
     let mut composer = Composer::default();
     composer.compose(app());
 
-    let slots: Vec<_> = composer.slots().map(|slot| slot.kind()).collect();
+    let slots: Vec<_> = composer.slot_kinds().collect();
     assert_eq!(
         slots,
         [
