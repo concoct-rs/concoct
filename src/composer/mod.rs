@@ -34,6 +34,8 @@ use std::{
     rc::Rc,
 };
 
+pub mod slot_table;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SlotKind {
     RestartGroup,
