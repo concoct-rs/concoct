@@ -30,7 +30,7 @@ use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
     fmt, iter,
-    mem::MaybeUninit,
+    mem::{self, MaybeUninit},
     rc::Rc,
 };
 
@@ -41,7 +41,6 @@ pub enum SlotKind {
     Node,
     Data,
 }
-
 
 pub enum GroupKind {
     Restart {
@@ -128,6 +127,10 @@ impl Default for Composer {
     }
 }
 
+fn new_slots(capacity: usize) -> Box<[MaybeUninit<Slot>]> {
+    Vec::from_iter(iter::repeat_with(|| MaybeUninit::uninit()).take(capacity)).into_boxed_slice()
+}
+
 impl Composer {
     /// Create a new composer with the given `applier`.
     pub fn new(applier: Box<dyn Apply>) -> Self {
@@ -142,8 +145,7 @@ impl Composer {
             tracked_states: HashSet::new(),
             snapshot: Snapshot::enter(),
             map: HashMap::new(),
-            slots: Vec::from_iter(iter::repeat_with(|| MaybeUninit::uninit()).take(capacity))
-                .into_boxed_slice(),
+            slots: new_slots(capacity),
             gap_start: 0,
             gap_end: capacity,
             capacity: capacity,
@@ -442,6 +444,24 @@ impl Composer {
     /// Insert a slot into the current position.
     fn insert(&mut self, slot: Slot) {
         if self.pos != self.gap_start {}
+
+        if self.gap_start == self.gap_end {
+            self.capacity = (self.capacity * 2).max(32);
+            let mut slots = new_slots(self.capacity);
+
+            for idx in 0..self.gap_start {
+                slots[idx] = mem::replace(&mut self.slots[idx], MaybeUninit::uninit());
+            }
+
+            for idx in self.gap_end..self.slots.len() {
+                slots[idx + self.gap_start] =
+                    mem::replace(&mut self.slots[idx], MaybeUninit::uninit());
+            }
+
+            self.gap_start = self.slots.len();
+            self.gap_end = slots.len();
+            self.slots = slots;
+        }
 
         self.slots[self.pos] = MaybeUninit::new(slot);
         self.pos += 1;
