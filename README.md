@@ -100,7 +100,7 @@ where
     T: Clone + 'static,
     F: FnOnce() -> T + 'static,
 {
-    composer.cache(false, f)
+    current_composer!().cache(false, f)
 }
 
 // Will become:

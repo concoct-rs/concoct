@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.2.0-alpha.3"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Generic UI compiler and runtime library"
@@ -16,8 +16,8 @@ members = [
 full = []
 
 [dependencies]
-# concoct-macros = "0.2.0-alpha.3"
-concoct-macros = { path = "macros" }
+concoct-macros = "0.2.0"
+# concoct-macros = { path = "macros" }
 lazy_static = "1.4.0"
 pin-project-lite = "0.2.10"
 tokio = { version = "1.29.1", features = ["full"] }
