@@ -1,63 +1,16 @@
 use std::{
     cell::RefCell,
+    mem,
     rc::Rc,
     sync::atomic::{AtomicI32, Ordering},
 };
 
-#[derive(Clone)]
-pub struct SnapshotIdSet {
-    // Bit set from (lowerBound + 64)-(lowerBound+127) of the set
-    upper_set: i64,
-
-    // Bit set from (lowerBound)-(lowerBound+63) of the set
-    lower_set: i64,
-
-    // Lower bound of the bit set. All values above lowerBound+127 are clear.
-    // Values between lowerBound and lowerBound+127 are recorded in lowerSet and upperSet
-    lower_bound: i32,
-
-    // A sorted array of the index of bits set below lowerBound
-    below_bound: Option<Vec<i32>>,
-}
-
-impl SnapshotIdSet {
-    pub const fn empty() -> Self {
-        Self {
-            upper_set: 0,
-            lower_set: 0,
-            lower_bound: 0,
-            below_bound: None,
-        }
-    }
-
-    /// Check if the bit at `index` is set.
-    pub fn is_set(&self, index: i32) -> bool {
-        let offset = index - self.lower_bound;
-        if offset >= 0 && offset < i64::BITS as _ {
-            (1 << offset) & self.lower_set != 0
-        } else if offset >= i64::BITS as _ && offset < (i64::BITS as i32) * 2 {
-            (1 << (offset - i64::BITS as i32)) & self.upper_set != 0
-        } else if offset > 0 {
-            false
-        } else if let Some(ref below_bound) = self.below_bound {
-            below_bound.binary_search(&index).is_ok()
-        } else {
-            false
-        }
-    }
-
-    pub fn set(&mut self, index: i32) {}
-}
+mod set;
+use self::set::Set;
 
 pub enum SnapshotKind {
     Immutable,
     NestedImmutable { parent: Snapshot },
-}
-
-struct Inner {
-    kind: SnapshotKind,
-    id: i32,
-    invalid: SnapshotIdSet,
 }
 
 thread_local! {
@@ -65,12 +18,18 @@ thread_local! {
         inner: Rc::new(Inner {
             kind: SnapshotKind::Immutable,
             id: 0,
-            invalid: SnapshotIdSet::empty(),
+            invalid: Set::empty(),
         }),
     });
 }
 
 static NEXT_SNAPSHOT_ID: AtomicI32 = AtomicI32::new(0);
+
+struct Inner {
+    kind: SnapshotKind,
+    id: i32,
+    invalid: Set,
+}
 
 #[derive(Clone)]
 pub struct Snapshot {
@@ -78,13 +37,19 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    pub fn take_snapshot() -> Self {
+    /// Take a snapshot of the current value of all states.
+    pub fn take() -> Self {
         LOCAL_SNAPSHOT
-            .try_with(|local| local.borrow().take_nested_snapshot())
+            .try_with(|local| {
+                let mut local = local.borrow_mut();
+                let new = local.take_nested();
+                mem::replace(&mut *local, new)
+            })
             .unwrap()
     }
 
-    pub fn take_nested_snapshot(&self) -> Self {
+    /// Take a nested snapshot of the current value of all states.
+    pub fn take_nested(&self) -> Self {
         let id = NEXT_SNAPSHOT_ID.fetch_add(1, Ordering::SeqCst);
         let mut invalid = self.inner.invalid.clone();
         for idx in self.inner.id..id {
