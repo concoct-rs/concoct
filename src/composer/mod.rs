@@ -161,7 +161,7 @@ impl Composer {
     pub fn restart_group(
         &mut self,
         id: TypeId,
-        mut f: impl FnMut(&mut Self) + Clone + Send + 'static,
+        mut f: impl FnMut(&mut Self) + Clone  + 'static,
     ) {
         self.group(
             id,

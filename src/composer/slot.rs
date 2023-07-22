@@ -15,7 +15,7 @@ pub enum SlotKind {
 
 pub enum GroupKind {
     Restart {
-        f: Option<Box<dyn FnMut(&mut Composer) + Send>>,
+        f: Option<Box<dyn FnMut(&mut Composer) >>,
     },
     Replace,
 }
