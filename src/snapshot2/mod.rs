@@ -1,3 +1,10 @@
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::atomic::{AtomicI32, Ordering},
+};
+
+#[derive(Clone)]
 pub struct SnapshotIdSet {
     // Bit set from (lowerBound + 64)-(lowerBound+127) of the set
     upper_set: i64,
@@ -14,6 +21,15 @@ pub struct SnapshotIdSet {
 }
 
 impl SnapshotIdSet {
+    pub const fn empty() -> Self {
+        Self {
+            upper_set: 0,
+            lower_set: 0,
+            lower_bound: 0,
+            below_bound: None,
+        }
+    }
+
     /// Check if the bit at `index` is set.
     pub fn is_set(&self, index: i32) -> bool {
         let offset = index - self.lower_bound;
@@ -27,6 +43,49 @@ impl SnapshotIdSet {
             below_bound.binary_search(&index).is_ok()
         } else {
             false
+        }
+    }
+
+    pub fn set(&mut self, index: i32) {}
+}
+
+pub struct SnapshotData {
+    id: i32,
+    invalid: SnapshotIdSet,
+}
+
+pub enum SnapshotKind {
+    Immutable,
+    NestedImmutable { parent: Snapshot },
+}
+
+struct Inner {
+    kind: SnapshotKind,
+    data: SnapshotData,
+}
+
+static NEXT_SNAPSHOT_ID: AtomicI32 = AtomicI32::new(0);
+
+#[derive(Clone)]
+pub struct Snapshot {
+    inner: Rc<Inner>,
+}
+
+impl Snapshot {
+    pub fn take_nested_snapshot(&self) -> Self {
+        let id = NEXT_SNAPSHOT_ID.fetch_add(1, Ordering::SeqCst);
+        let mut invalid = self.inner.data.invalid.clone();
+        for idx in self.inner.data.id..id {
+            invalid.set(idx);
+        }
+
+        Self {
+            inner: Rc::new(Inner {
+                kind: SnapshotKind::NestedImmutable {
+                    parent: self.clone(),
+                },
+                data: SnapshotData { id, invalid },
+            }),
         }
     }
 }
