@@ -12,6 +12,8 @@ pub use concoct_macros::composable;
 pub mod snapshot;
 pub use snapshot::State;
 
+pub mod snapshot2;
+
 mod task;
 pub use task::{spawn, Task};
 
