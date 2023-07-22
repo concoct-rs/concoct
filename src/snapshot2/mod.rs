@@ -49,11 +49,6 @@ impl SnapshotIdSet {
     pub fn set(&mut self, index: i32) {}
 }
 
-pub struct SnapshotData {
-    id: i32,
-    invalid: SnapshotIdSet,
-}
-
 pub enum SnapshotKind {
     Immutable,
     NestedImmutable { parent: Snapshot },
@@ -61,7 +56,18 @@ pub enum SnapshotKind {
 
 struct Inner {
     kind: SnapshotKind,
-    data: SnapshotData,
+    id: i32,
+    invalid: SnapshotIdSet,
+}
+
+thread_local! {
+    static LOCAL_SNAPSHOT: RefCell<Snapshot> = RefCell::new(Snapshot {
+        inner: Rc::new(Inner {
+            kind: SnapshotKind::Immutable,
+            id: 0,
+            invalid: SnapshotIdSet::empty(),
+        }),
+    });
 }
 
 static NEXT_SNAPSHOT_ID: AtomicI32 = AtomicI32::new(0);
@@ -72,10 +78,16 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    pub fn take_snapshot() -> Self {
+        LOCAL_SNAPSHOT
+            .try_with(|local| local.borrow().take_nested_snapshot())
+            .unwrap()
+    }
+
     pub fn take_nested_snapshot(&self) -> Self {
         let id = NEXT_SNAPSHOT_ID.fetch_add(1, Ordering::SeqCst);
-        let mut invalid = self.inner.data.invalid.clone();
-        for idx in self.inner.data.id..id {
+        let mut invalid = self.inner.invalid.clone();
+        for idx in self.inner.id..id {
             invalid.set(idx);
         }
 
@@ -84,7 +96,8 @@ impl Snapshot {
                 kind: SnapshotKind::NestedImmutable {
                     parent: self.clone(),
                 },
-                data: SnapshotData { id, invalid },
+                id,
+                invalid,
             }),
         }
     }
