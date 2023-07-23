@@ -1,16 +1,10 @@
-use std::{
-    any::Any,
-    cell::RefCell,
-    mem,
-    rc::Rc,
-    sync::atomic::{AtomicI32, Ordering},
-};
+use std::{any::Any, cell::RefCell, mem, rc::Rc, sync::atomic::AtomicI32};
 
 mod builder;
 pub use builder::Builder;
 
 mod set;
-use self::set::Set;
+use self::{builder::MutableBuilder, set::Set};
 
 pub enum SnapshotKind {
     Immutable,
@@ -47,95 +41,26 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    pub fn builder() -> Builder {
-        LOCAL_SNAPSHOT
-            .try_with(|local| local.borrow().clone().nested_builder())
-            .unwrap()
+    pub fn local() -> Self {
+        Self::with_local(Clone::clone)
     }
 
-    pub fn nested_builder(self) -> Builder {
+    pub fn with_local<R>(f: impl FnOnce(&Self) -> R) -> R {
+        LOCAL_SNAPSHOT.try_with(|local| f(&local.borrow())).unwrap()
+    }
+
+    pub fn builder(self) -> Builder {
         Builder::new(self)
     }
 
+    pub fn builder_mut(self) -> MutableBuilder {
+        MutableBuilder::new(self)
+    }
+
     /// Take a snapshot of the current value of all states.
-    pub fn take(read_observer: Option<Rc<dyn Fn(&dyn Any)>>) -> Self {
+    pub fn take(self) -> Self {
         LOCAL_SNAPSHOT
-            .try_with(|local| {
-                let mut local = local.borrow_mut();
-                let new = local.take_nested(read_observer);
-                mem::replace(&mut *local, new)
-            })
+            .try_with(|local| mem::replace(&mut *local.borrow_mut(), self))
             .unwrap()
-    }
-
-    /// Take a nested snapshot of the current value of all states.
-    pub fn take_nested(&self, read_observer: Option<Rc<dyn Fn(&dyn Any)>>) -> Self {
-        let id = NEXT_SNAPSHOT_ID.fetch_add(1, Ordering::SeqCst);
-        let mut invalid = self.inner.invalid.clone();
-        for idx in self.inner.id..id {
-            invalid.set(idx);
-        }
-
-        Self {
-            inner: Rc::new(Inner {
-                kind: SnapshotKind::Immutable,
-                id,
-                read_observer,
-                invalid,
-                parent: Some(self.clone()),
-            }),
-        }
-    }
-
-    /// Take a nested snapshot of the current value of all states.
-    pub fn take_nested_mut(
-        &self,
-        read_observer: Option<Rc<dyn Fn(&dyn Any)>>,
-        write_observer: Option<Rc<dyn Fn(&dyn Any)>>,
-    ) -> Self {
-        fn merge(
-            prev: Option<Rc<dyn Fn(&dyn Any)>>,
-            new: Option<Rc<dyn Fn(&dyn Any)>>,
-        ) -> Option<Rc<dyn Fn(&dyn Any)>> {
-            if let Some(previous) = prev {
-                if let Some(f) = new {
-                    let prev = previous.clone();
-                    let f: Rc<dyn Fn(&dyn Any)> = Rc::new(move |value| {
-                        prev(value);
-                        f(value);
-                    });
-                    Some(f)
-                } else {
-                    Some(previous.clone())
-                }
-            } else {
-                new
-            }
-        }
-
-        let SnapshotKind::Mutable {
-            write_observer: ref previous,
-        } = self.inner.kind
-        else {
-            todo!()
-        };
-        let write_observer = merge(previous.clone(), write_observer);
-        let read_observer = merge(self.inner.read_observer.clone(), read_observer);
-
-        let id = NEXT_SNAPSHOT_ID.fetch_add(1, Ordering::SeqCst);
-        let mut invalid = self.inner.invalid.clone();
-        for idx in self.inner.id..id {
-            invalid.set(idx);
-        }
-
-        Self {
-            inner: Rc::new(Inner {
-                kind: SnapshotKind::Mutable { write_observer },
-                id,
-                read_observer,
-                invalid,
-                parent: Some(self.clone()),
-            }),
-        }
     }
 }
