@@ -6,6 +6,9 @@ use std::{
     sync::atomic::{AtomicI32, Ordering},
 };
 
+mod builder;
+pub use builder::Builder;
+
 mod set;
 use self::set::Set;
 
@@ -44,6 +47,16 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    pub fn builder() -> Builder {
+        LOCAL_SNAPSHOT
+            .try_with(|local| local.borrow().clone().nested_builder())
+            .unwrap()
+    }
+
+    pub fn nested_builder(self) -> Builder {
+        Builder::new(self)
+    }
+
     /// Take a snapshot of the current value of all states.
     pub fn take(read_observer: Option<Rc<dyn Fn(&dyn Any)>>) -> Self {
         LOCAL_SNAPSHOT

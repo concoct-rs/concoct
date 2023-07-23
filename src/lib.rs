@@ -77,7 +77,7 @@ where
 #[composable]
 pub fn node<T>(node: T)
 where
-    T: Clone  + 'static,
+    T: Clone + 'static,
 {
     composer.node(Box::new(node.clone()))
 }

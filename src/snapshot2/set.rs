@@ -41,5 +41,5 @@ impl Set {
         }
     }
 
-    pub fn set(&mut self, index: i32) {}
+    pub fn set(&mut self, _index: i32) {}
 }
