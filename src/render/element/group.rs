@@ -21,22 +21,9 @@ impl Group {
 }
 
 impl Element for Group {
-    fn layout(&mut self, key: ElementKey, cx: LayoutContext) -> bool {
-        let layout_children: Vec<_> = self
-            .children
-            .iter()
-            .map(|child| *cx.element_layouts.get(child).unwrap())
-            .collect();
-        let layout_key = cx
-            .taffy
-            .new_with_children(self.style.clone(), &layout_children)
-            .unwrap();
-
-        cx.layout_elements.insert(layout_key, key);
-        cx.element_layouts.insert(key, layout_key);
-
+    fn layout(&mut self, key: ElementKey, cx: LayoutContext) {
+        let layout_key = cx.insert_with_children(key, self.style.clone(), &self.children);
         self.layout_key = Some(layout_key);
-        true
     }
 
     fn semantics(&mut self, _taffy: &Taffy) {

@@ -6,7 +6,7 @@ use slotmap::{new_key_type, DefaultKey, SlotMap};
 use taffy::{
     compute_layout,
     prelude::{Layout, Size},
-    style::AvailableSpace,
+    style::{AvailableSpace, Style},
     Taffy,
 };
 
@@ -16,6 +16,37 @@ pub struct LayoutContext<'a> {
     pub taffy: &'a mut Taffy,
     pub layout_elements: &'a mut HashMap<DefaultKey, ElementKey>,
     pub element_layouts: &'a mut HashMap<ElementKey, DefaultKey>,
+}
+
+impl<'a> LayoutContext<'a> {
+    pub fn insert(self, key: ElementKey, style: Style) -> DefaultKey {
+        let layout_key = self.taffy.new_leaf(style).unwrap();
+        self.layout_elements.insert(layout_key, key);
+        self.element_layouts.insert(key, layout_key);
+        layout_key
+    }
+
+    pub fn insert_with_children(
+        self,
+        key: ElementKey,
+        style: Style,
+        children: &[ElementKey],
+    ) -> DefaultKey {
+        let layout_children: Vec<_> = children
+            .iter()
+            .filter_map(|child| self.element_layouts.get(child))
+            .cloned()
+            .collect();
+        let layout_key = self
+            .taffy
+            .new_with_children(style, &layout_children)
+            .unwrap();
+
+        self.layout_elements.insert(layout_key, key);
+        self.element_layouts.insert(key, layout_key);
+
+        layout_key
+    }
 }
 
 new_key_type! {
