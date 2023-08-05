@@ -1,5 +1,6 @@
 use crate::render::LayoutContext;
-use slotmap::DefaultKey;
+
+use super::ElementKey;
 use taffy::Taffy;
 
 mod canvas;
@@ -9,11 +10,11 @@ mod group;
 pub use group::Group;
 
 pub trait Element {
-    fn layout(&mut self, key: DefaultKey, cx: LayoutContext) -> bool;
+    fn layout(&mut self, key: ElementKey, cx: LayoutContext) -> bool;
 
     fn semantics(&mut self, taffy: &Taffy);
 
     fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas);
 
-    fn children(&mut self, children: &mut Vec<DefaultKey>);
+    fn children(&mut self, children: &mut Vec<ElementKey>);
 }

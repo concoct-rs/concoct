@@ -1,4 +1,4 @@
-use super::Tree;
+use super::{ElementKey, Tree};
 use accesskit::Point;
 use gl::types::*;
 use glutin::{
@@ -17,7 +17,7 @@ use skia_safe::{
     gpu::{self, gl::FramebufferInfo, BackendRenderTarget, SurfaceOrigin},
     Color, ColorType, Surface,
 };
-use slotmap::DefaultKey;
+
 use std::{
     ffi::CString,
     num::NonZeroU32,
@@ -30,7 +30,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-pub fn run(mut tree: Tree, root: DefaultKey) {
+pub fn run(mut tree: Tree, root: ElementKey) {
     let el = EventLoop::new();
     let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
 
@@ -243,9 +243,9 @@ pub fn run(mut tree: Tree, root: DefaultKey) {
                     env.window.request_redraw();
                 }
                 WindowEvent::CursorMoved {
-                    device_id,
+                    device_id: _,
                     position,
-                    modifiers,
+                    modifiers: _,
                 } => {
                     let t = tree.target(root, Point::new(position.x, position.y));
                     dbg!(t);

@@ -1,5 +1,5 @@
 use super::Element;
-use crate::render::LayoutContext;
+use crate::render::{ElementKey, LayoutContext};
 use skia_safe::Rect;
 use slotmap::DefaultKey;
 use taffy::{style::Style, Taffy};
@@ -21,7 +21,7 @@ impl Canvas {
 }
 
 impl Element for Canvas {
-    fn layout(&mut self, key: DefaultKey, cx: LayoutContext) -> bool {
+    fn layout(&mut self, key: ElementKey, cx: LayoutContext) -> bool {
         let layout_key = cx.taffy.new_leaf(self.style.clone()).unwrap();
 
         cx.layout_elements.insert(layout_key, key);
@@ -55,5 +55,5 @@ impl Element for Canvas {
         canvas.restore();
     }
 
-    fn children(&mut self, _children: &mut Vec<DefaultKey>) {}
+    fn children(&mut self, _children: &mut Vec<ElementKey>) {}
 }
