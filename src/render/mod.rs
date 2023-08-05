@@ -60,7 +60,7 @@ impl Tree {
         let mut keys = vec![layout_key];
 
         while let Some(key) = keys.pop() {
-            let layout = self.taffy.layout(layout_key).unwrap();
+            let layout = self.taffy.layout(key).unwrap();
             visit(key, layout);
 
             let children = self.taffy.children(key).unwrap();
