@@ -20,6 +20,8 @@ pub use task::{spawn, Task};
 pub mod composer;
 pub use composer::Composer;
 
+pub mod render;
+
 pub trait Apply {
     fn root(&mut self) -> Box<dyn Any>;
 
