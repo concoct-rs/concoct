@@ -75,6 +75,10 @@ impl Tree {
         key
     }
 
+    pub fn remove(&mut self, key: ElementKey) -> Option<Box<dyn Element>> {
+        self.elements.remove(key)
+    }
+
     pub fn get_mut(&mut self, key: ElementKey) -> Option<&mut Box<dyn Element>> {
         self.elements.get_mut(key)
     }
