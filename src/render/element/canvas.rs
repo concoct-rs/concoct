@@ -2,16 +2,16 @@ use super::Element;
 use crate::render::{ElementKey, LayoutContext};
 use skia_safe::Rect;
 use slotmap::DefaultKey;
-use taffy::{style::Style, Taffy};
+use taffy::{prelude::Layout, style::Style, Taffy};
 
 pub struct Canvas {
     layout_key: Option<DefaultKey>,
-    draw: Box<dyn FnMut(&Taffy, &mut skia_safe::Canvas)>,
+    draw: Box<dyn FnMut(&Layout, &mut skia_safe::Canvas)>,
     pub style: Style,
 }
 
 impl Canvas {
-    pub fn new(draw: Box<dyn FnMut(&Taffy, &mut skia_safe::Canvas)>) -> Self {
+    pub fn new(draw: Box<dyn FnMut(&Layout, &mut skia_safe::Canvas)>) -> Self {
         Self {
             draw,
             layout_key: None,
@@ -50,7 +50,7 @@ impl Element for Canvas {
         );
         canvas.translate((layout.location.x, layout.location.y));
 
-        (self.draw)(taffy, canvas);
+        (self.draw)(layout, canvas);
 
         canvas.restore();
     }

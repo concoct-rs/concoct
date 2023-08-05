@@ -1,7 +1,6 @@
 use concoct::render::{
     element::{Canvas, Group},
-    renderer::Renderer,
-    Tree,
+    Renderer, Tree,
 };
 use skia_safe::{Color4f, Paint};
 use taffy::{prelude::Size, style::Style};
@@ -10,7 +9,7 @@ fn main() {
     let mut tree = Tree::default();
 
     let a = {
-        let mut elem = Canvas::new(Box::new(|_taffy, canvas| {
+        let mut elem = Canvas::new(Box::new(|_layout, canvas| {
             canvas.draw_circle(
                 (50., 50.),
                 50.,
@@ -22,7 +21,7 @@ fn main() {
     };
 
     let b = {
-        let mut elem = Canvas::new(Box::new(|_taffy, canvas| {
+        let mut elem = Canvas::new(Box::new(|_layout, canvas| {
             canvas.draw_circle(
                 (50., 50.),
                 50.,

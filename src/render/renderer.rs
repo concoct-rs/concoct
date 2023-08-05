@@ -39,8 +39,8 @@ pub enum RendererEvent {
 }
 
 pub struct Renderer {
-    tree: Tree,
-    root: ElementKey,
+    pub tree: Tree,
+    pub root: ElementKey,
 }
 
 impl Renderer {
