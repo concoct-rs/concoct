@@ -3,31 +3,34 @@ use concoct::render::{
     Renderer, Tree,
 };
 use skia_safe::{Color4f, Paint};
-use taffy::{prelude::Size, style::Style};
+use taffy::{
+    prelude::{Layout, Size},
+    style::Style,
+};
 
 fn main() {
     let mut tree = Tree::default();
 
     let a = {
-        let mut elem = Canvas::new(Box::new(|_layout, canvas| {
+        let mut elem = Canvas::new(|_layout, canvas| {
             canvas.draw_circle(
                 (50., 50.),
                 50.,
                 &Paint::new(Color4f::new(0., 1., 0., 1.), None),
             );
-        }));
+        });
         elem.style.size = Size::from_points(100., 100.);
         tree.insert(Box::new(elem))
     };
 
     let b = {
-        let mut elem = Canvas::new(Box::new(|_layout, canvas| {
+        let mut elem = Canvas::new(|_layout, canvas| {
             canvas.draw_circle(
                 (50., 50.),
                 50.,
                 &Paint::new(Color4f::new(0., 0., 1., 1.), None),
             );
-        }));
+        });
         elem.style.size = Size::from_points(100., 100.);
         tree.insert(Box::new(elem))
     };

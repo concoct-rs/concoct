@@ -4,14 +4,20 @@ use skia_safe::Rect;
 use slotmap::DefaultKey;
 use taffy::{prelude::Layout, style::Style, Taffy};
 
-pub struct Canvas {
+/// Canvas element.
+/// This lets you draw directly to the skia canvas.
+pub struct Canvas<F> {
     layout_key: Option<DefaultKey>,
-    draw: Box<dyn FnMut(&Layout, &mut skia_safe::Canvas)>,
+    pub draw: F,
     pub style: Style,
 }
 
-impl Canvas {
-    pub fn new(draw: Box<dyn FnMut(&Layout, &mut skia_safe::Canvas)>) -> Self {
+impl<F> Canvas<F>
+where
+    F: FnMut(&Layout, &mut skia_safe::Canvas),
+{
+    /// Create a new canvas element that will draw its content with the given function.
+    pub fn new(draw: F) -> Self {
         Self {
             draw,
             layout_key: None,
@@ -20,7 +26,10 @@ impl Canvas {
     }
 }
 
-impl Element for Canvas {
+impl<F> Element for Canvas<F>
+where
+    F: FnMut(&Layout, &mut skia_safe::Canvas),
+{
     fn layout(&mut self, key: ElementKey, cx: LayoutContext) {
         let layout_key = cx.insert(key, self.style.clone());
         self.layout_key = Some(layout_key);

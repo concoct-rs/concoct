@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use accesskit::Point;
 use skia_safe::Canvas;
 use slotmap::{new_key_type, DefaultKey, SlotMap};
@@ -9,7 +8,6 @@ use taffy::{
     style::{AvailableSpace, Style},
     Taffy,
 };
-
 use super::element::Element;
 
 pub struct LayoutContext<'a> {
