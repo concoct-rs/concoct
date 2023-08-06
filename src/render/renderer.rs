@@ -25,13 +25,13 @@ use std::{
 };
 use taffy::{prelude::Size, style_helpers::TaffyMaxContent};
 use winit::{
-    event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event::{Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event_loop::{ControlFlow, EventLoop as WinitEventLoop},
     window::{Window, WindowBuilder},
 };
 
 #[derive(Clone, Debug)]
-pub enum RendererEvent {
+pub enum Event {
     MouseMove {
         target: Option<ElementKey>,
         pos: Point,
@@ -48,8 +48,8 @@ impl Renderer {
         Self { tree, root }
     }
 
-    pub fn run(mut self, mut event_handler: impl FnMut(RendererEvent) + 'static) {
-        let el = EventLoop::new();
+    pub fn run(mut self, mut event_handler: impl FnMut(Event) + 'static) {
+        let el = WinitEventLoop::new();
         let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
 
         let template = ConfigTemplateBuilder::new()
@@ -220,8 +220,8 @@ impl Renderer {
 
             #[allow(deprecated)]
             match event {
-                Event::LoopDestroyed => {}
-                Event::WindowEvent { event, .. } => match event {
+                WinitEvent::LoopDestroyed => {}
+                WinitEvent::WindowEvent { event, .. } => match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                         return;
@@ -267,11 +267,11 @@ impl Renderer {
                     } => {
                         let point = Point::new(position.x, position.y);
                         let target = self.tree.target(self.root, point);
-                        event_handler(RendererEvent::MouseMove { target, pos: point })
+                        event_handler(Event::MouseMove { target, pos: point })
                     }
                     _ => (),
                 },
-                Event::RedrawRequested(_) => {
+                WinitEvent::RedrawRequested(_) => {
                     draw_frame = true;
                 }
                 _ => (),

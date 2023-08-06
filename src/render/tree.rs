@@ -1,14 +1,14 @@
-use std::collections::HashMap;
+use super::element::Element;
 use accesskit::Point;
 use skia_safe::Canvas;
 use slotmap::{new_key_type, DefaultKey, SlotMap};
+use std::collections::HashMap;
 use taffy::{
     compute_layout,
     prelude::{Layout, Size},
     style::{AvailableSpace, Style},
     Taffy,
 };
-use super::element::Element;
 
 pub struct LayoutContext<'a> {
     pub taffy: &'a mut Taffy,
@@ -51,6 +51,7 @@ new_key_type! {
     pub struct ElementKey;
 }
 
+/// Tree of elements in the user interface.
 #[derive(Default)]
 pub struct Tree {
     taffy: Taffy,
@@ -60,6 +61,7 @@ pub struct Tree {
 }
 
 impl Tree {
+    /// Insert an element into the tree.
     pub fn insert(&mut self, element: Box<dyn Element>) -> ElementKey {
         let key = self.elements.insert(element);
         self.elements.get_mut(key).unwrap().layout(
@@ -73,18 +75,27 @@ impl Tree {
         key
     }
 
+    /// Remove an element from the tree.
+    /// This will not remove it's children.
     pub fn remove(&mut self, key: ElementKey) -> Option<Box<dyn Element>> {
         self.elements.remove(key)
     }
 
-    pub fn get_mut(&mut self, key: ElementKey) -> Option<&mut Box<dyn Element>> {
-        self.elements.get_mut(key)
+    /// Get a mutable reference to an element from its key.
+    pub fn get_mut(&mut self, key: ElementKey) -> Option<&mut dyn Element> {
+        if let Some(elem) = self.elements.get_mut(key) {
+            Some(&mut **elem)
+        } else {
+            None
+        }
     }
 
+    /// Visit every element in the tree.
     pub fn visit(&mut self, root: ElementKey, visitor: impl FnMut(&mut Box<dyn Element>)) {
         visit(&mut self.elements, root, visitor)
     }
 
+    /// Visit every layout node in the tree.
     pub fn visit_layout(&self, root: ElementKey, mut visit: impl FnMut(DefaultKey, &Layout)) {
         let layout_key = *self.element_layouts.get(&root).unwrap();
         let mut keys = vec![layout_key];
@@ -98,6 +109,7 @@ impl Tree {
         }
     }
 
+    /// Find the top element at a point in the window.
     pub fn target(&self, root: ElementKey, point: Point) -> Option<ElementKey> {
         let mut target: Option<(DefaultKey, Layout)> = None;
 
@@ -120,12 +132,14 @@ impl Tree {
         target.map(|(key, _)| self.layout_elements.get(&key).unwrap().clone())
     }
 
+    /// Paint all elements in the tree on the given canvas.
     pub fn paint(&mut self, root: ElementKey, canvas: &mut Canvas) {
         visit(&mut self.elements, root, |elem| {
             elem.paint(&self.taffy, canvas)
         });
     }
 
+    /// Layout all elements in the tree.
     pub fn layout(&mut self, root: ElementKey, available_space: Size<AvailableSpace>) {
         let layout_key = *self.element_layouts.get(&root).unwrap();
         compute_layout(&mut self.taffy, layout_key, available_space).unwrap();

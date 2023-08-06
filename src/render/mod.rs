@@ -1,5 +1,5 @@
 mod renderer;
-pub use renderer::{Renderer, RendererEvent};
+pub use renderer::{Renderer, Event};
 
 pub mod element;
 
