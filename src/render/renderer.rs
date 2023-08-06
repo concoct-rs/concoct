@@ -48,7 +48,7 @@ impl Renderer {
         Self { tree, root }
     }
 
-    pub fn run(mut self, mut event_handler: impl FnMut(Event) + 'static) {
+    pub fn run(mut self, mut event_handler: impl FnMut(&mut Tree, Event) + 'static) {
         let el = WinitEventLoop::new();
         let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
 
@@ -267,7 +267,7 @@ impl Renderer {
                     } => {
                         let point = Point::new(position.x, position.y);
                         let target = self.tree.target(self.root, point);
-                        event_handler(Event::MouseMove { target, pos: point })
+                        event_handler(&mut self.tree, Event::MouseMove { target, pos: point })
                     }
                     _ => (),
                 },

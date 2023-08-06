@@ -2,7 +2,7 @@ use super::element::Element;
 use accesskit::Point;
 use skia_safe::Canvas;
 use slotmap::{new_key_type, DefaultKey, SlotMap};
-use std::{cell::UnsafeCell, collections::HashMap, marker::PhantomData};
+use std::{collections::HashMap, marker::PhantomData};
 use taffy::{
     compute_layout,
     prelude::{Layout, Size},
@@ -190,7 +190,6 @@ impl<'a> Iterator for IterMut<'a> {
         // Safety: No two elements can be borrowed at the same time
         let tree = unsafe { &mut *self.tree };
 
-       
         if let Some(key) = self.keys.pop() {
             let elem = tree.get_mut(key).unwrap();
             elem.children(&mut self.keys);

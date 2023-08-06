@@ -3,10 +3,7 @@ use concoct::render::{
     Renderer, Tree,
 };
 use skia_safe::{Color4f, Paint};
-use taffy::{
-    prelude::{Layout, Size},
-    style::Style,
-};
+use taffy::{prelude::Size, style::Style};
 
 fn main() {
     let mut tree = Tree::default();
@@ -42,7 +39,7 @@ fn main() {
     };
 
     let app = Renderer::new(tree, root);
-    app.run(|event| {
+    app.run(|_tree, event| {
         dbg!(event);
     });
 }
