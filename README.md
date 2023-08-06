@@ -4,6 +4,8 @@
 [![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/concoct)
 [![CI](https://github.com/matthunz/concoct/actions/workflows/rust.yml/badge.svg)](https://github.com/matthunz/concoct/actions/workflows/rust.yml)
 
+[Examples](https://github.com/concoct-rs/concoct/tree/main/examples)
+
 Modular UI compiler and runtime in rust.
 This crate can be used a fully functional GUI library (WIP) or as a framework for [your own GUI library](https://github.com/concoct-rs/concoct/blob/main/examples/tree.rs).
 
