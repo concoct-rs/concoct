@@ -2,7 +2,7 @@ use super::element::Element;
 use accesskit::Point;
 use skia_safe::Canvas;
 use slotmap::{new_key_type, DefaultKey, SlotMap};
-use std::collections::HashMap;
+use std::{cell::UnsafeCell, collections::HashMap, marker::PhantomData};
 use taffy::{
     compute_layout,
     prelude::{Layout, Size},
@@ -82,11 +82,28 @@ impl Tree {
     }
 
     /// Get a mutable reference to an element from its key.
+    pub fn get(&self, key: ElementKey) -> Option<&dyn Element> {
+        if let Some(elem) = self.elements.get(key) {
+            Some(&**elem)
+        } else {
+            None
+        }
+    }
+
+    /// Get a mutable reference to an element from its key.
     pub fn get_mut(&mut self, key: ElementKey) -> Option<&mut dyn Element> {
         if let Some(elem) = self.elements.get_mut(key) {
             Some(&mut **elem)
         } else {
             None
+        }
+    }
+
+    pub fn iter_mut(&mut self, root: ElementKey) -> IterMut {
+        IterMut {
+            tree: self as *mut Self,
+            keys: vec![root],
+            _marker: PhantomData,
         }
     }
 
@@ -157,5 +174,29 @@ fn visit(
         let elem = elements.get_mut(key).unwrap();
         visit(elem);
         elem.children(&mut keys);
+    }
+}
+
+pub struct IterMut<'a> {
+    tree: *mut Tree,
+    keys: Vec<ElementKey>,
+    _marker: PhantomData<&'a mut Tree>,
+}
+
+impl<'a> Iterator for IterMut<'a> {
+    type Item = &'a mut dyn Element;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Safety: No two elements can be borrowed at the same time
+        let tree = unsafe { &mut *self.tree };
+
+       
+        if let Some(key) = self.keys.pop() {
+            let elem = tree.get_mut(key).unwrap();
+            elem.children(&mut self.keys);
+            Some(elem)
+        } else {
+            None
+        }
     }
 }
