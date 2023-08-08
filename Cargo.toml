@@ -6,12 +6,6 @@ license = "MIT OR Apache-2.0"
 description = "Generic UI compiler and runtime library"
 repository = "https://github.com/concoct-rs/concoct"
 
-[workspace]
-members = [
-    ".",
-    "macros",
-]
-
 [features]
 full = []
 

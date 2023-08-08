@@ -1,4 +1,4 @@
-use concoct::render::{
+use concoct::{
     element::{Canvas, Group},
     Renderer, Tree,
 };
