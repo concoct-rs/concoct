@@ -24,3 +24,4 @@ skia-safe = { version = "0.64.0", features = ["gl"] }
 slotmap = "1.0.6"
 taffy = "0.3.12"
 winit = "0.28.6"
+futures-signals = "0.3.32"

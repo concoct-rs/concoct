@@ -1,44 +1,37 @@
-use concoct::{
-    element::{Canvas, Group},
-    Renderer, Tree,
-};
+use concoct::{element::Canvas, Renderer, Tree};
+use futures_signals::signal::Mutable;
 use skia_safe::{Color4f, Paint};
-use taffy::{prelude::Size, style::Style};
+use std::time::Duration;
+use taffy::prelude::Size;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut tree = Tree::default();
 
+    let is_red = Mutable::new(false);
+
     let a = {
-        let mut elem = Canvas::new(|_layout, canvas| {
-            canvas.draw_circle(
-                (50., 50.),
-                50.,
-                &Paint::new(Color4f::new(0., 1., 0., 1.), None),
-            );
+        let mut elem = Canvas::new(is_red.read_only(), |is_red, _layout, canvas| {
+            let color = if is_red {
+                Color4f::new(1., 0., 0., 1.)
+            } else {
+                Color4f::new(0., 1., 0., 1.)
+            };
+
+            canvas.draw_circle((50., 50.), 50., &Paint::new(color, None));
         });
         elem.style.size = Size::from_points(100., 100.);
         tree.insert(Box::new(elem))
     };
 
-    let b = {
-        let mut elem = Canvas::new(|_layout, canvas| {
-            canvas.draw_circle(
-                (50., 50.),
-                50.,
-                &Paint::new(Color4f::new(0., 0., 1., 1.), None),
-            );
-        });
-        elem.style.size = Size::from_points(100., 100.);
-        tree.insert(Box::new(elem))
-    };
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            is_red.set(!is_red.get());
+        }
+    });
 
-    let root = {
-        let mut elem = Group::new(Style::default(), vec![a, b]);
-        elem.style.size = Size::from_points(1000., 1000.);
-        tree.insert(Box::new(elem))
-    };
-
-    let app = Renderer::new(tree, root);
+    let app = Renderer::new(tree, a);
     app.run(|_tree, event| {
         dbg!(event);
     });
