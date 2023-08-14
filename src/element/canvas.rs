@@ -33,15 +33,23 @@ where
 impl<S, F> Element for Canvas<S, F>
 where
     F: FnMut(S, &Layout, &mut skia_safe::Canvas),
-    S: Clone + 'static,
+    S: Clone + Send + Sync + 'static,
 {
     fn spawn(&mut self, key: ElementKey, proxy: EventLoopProxy<UserEvent>) {
         let state = self.state.clone();
-        tokio::task::spawn_local(async move {
+        tokio::task::spawn(async move {
             state
                 .signal_cloned()
-                .for_each(|_state| async {
-                    proxy.send_event(UserEvent::Update(key)).ok().unwrap();
+                .for_each(move |_state| {
+                    let proxy = proxy.clone();
+                    async move {
+                        dbg!(key);
+                        proxy
+                            .clone()
+                            .send_event(UserEvent::Update(key))
+                            .ok()
+                            .unwrap();
+                    }
                 })
                 .await;
         });

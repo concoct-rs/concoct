@@ -184,7 +184,7 @@ pub struct IterMut<'a> {
 }
 
 impl<'a> Iterator for IterMut<'a> {
-    type Item = &'a mut dyn Element;
+    type Item = (ElementKey, &'a mut dyn Element);
 
     fn next(&mut self) -> Option<Self::Item> {
         // Safety: No two elements can be borrowed at the same time
@@ -193,7 +193,7 @@ impl<'a> Iterator for IterMut<'a> {
         if let Some(key) = self.keys.pop() {
             let elem = tree.get_mut(key).unwrap();
             elem.children(&mut self.keys);
-            Some(elem)
+            Some((key, elem))
         } else {
             None
         }

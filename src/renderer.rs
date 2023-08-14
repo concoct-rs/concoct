@@ -26,7 +26,7 @@ use std::{
 use taffy::{prelude::Size, style_helpers::TaffyMaxContent};
 use winit::{
     event::{Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::{ControlFlow, EventLoop as WinitEventLoop},
+    event_loop::{ControlFlow, EventLoopBuilder},
     window::{Window, WindowBuilder},
 };
 
@@ -49,7 +49,11 @@ impl Renderer {
     }
 
     pub fn run(mut self, mut event_handler: impl FnMut(&mut Tree, Event) + 'static) {
-        let el = WinitEventLoop::new();
+        let el = EventLoopBuilder::with_user_event().build();
+
+        let root = self.tree.get_mut(self.root).unwrap();
+        root.spawn(self.root, el.create_proxy());
+
         let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
 
         let template = ConfigTemplateBuilder::new()
