@@ -1,4 +1,6 @@
-use super::{ElementKey, Tree};
+use crate::view::{LayoutContext, View};
+
+use super::ElementKey;
 use accesskit::Point;
 use gl::types::*;
 use glutin::{
@@ -23,7 +25,7 @@ use std::{
     num::NonZeroU32,
     time::{Duration, Instant},
 };
-use taffy::{prelude::Size, style_helpers::TaffyMaxContent};
+use taffy::{style::Style, style_helpers::TaffyMaxContent, Taffy};
 use winit::{
     event::{Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
@@ -38,21 +40,11 @@ pub enum Event {
     },
 }
 
-pub struct Renderer {
-    pub tree: Tree,
-    pub root: ElementKey,
-}
+pub struct Renderer {}
 
 impl Renderer {
-    pub fn new(tree: Tree, root: ElementKey) -> Self {
-        Self { tree, root }
-    }
-
-    pub fn run(mut self, mut event_handler: impl FnMut(&mut Tree, Event) + 'static) {
+    pub fn run<T, A>(self, mut view: impl View<T, A> + 'static) {
         let el = EventLoopBuilder::with_user_event().build();
-
-        let root = self.tree.get_mut(self.root).unwrap();
-        root.spawn(self.root, el.create_proxy());
 
         let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
 
@@ -218,12 +210,19 @@ impl Renderer {
         };
         let mut previous_frame_start = Instant::now();
 
+        let taffy = Taffy::new();
+        let mut layout_cx = LayoutContext {
+            taffy,
+            children: Vec::new(),
+        };
+
         el.run(move |event, _, control_flow| {
             let frame_start = Instant::now();
             let mut draw_frame = false;
 
             #[allow(deprecated)]
             match event {
+                WinitEvent::UserEvent(()) => {}
                 WinitEvent::LoopDestroyed => {}
                 WinitEvent::WindowEvent { event, .. } => match event {
                     WindowEvent::CloseRequested => {
@@ -269,9 +268,9 @@ impl Renderer {
                         position,
                         modifiers: _,
                     } => {
-                        let point = Point::new(position.x, position.y);
-                        let target = self.tree.target(self.root, point);
-                        event_handler(&mut self.tree, Event::MouseMove { target, pos: point })
+                        let _point = Point::new(position.x, position.y);
+                        //let target = self.tree.target(self.root, point);
+                        // event_handler(&mut self.tree, Event::MouseMove { target, pos: point })
                     }
                     _ => (),
                 },
@@ -292,8 +291,20 @@ impl Renderer {
                 let canvas = env.surface.canvas();
                 canvas.clear(Color::WHITE);
 
-                self.tree.layout(self.root, Size::MAX_CONTENT);
-                self.tree.paint(self.root, canvas);
+                view.layout(&mut layout_cx);
+
+                let root = layout_cx
+                    .taffy
+                    .new_with_children(Style::DEFAULT, &layout_cx.children)
+                    .unwrap();
+                taffy::compute_layout(
+                    &mut layout_cx.taffy,
+                    root,
+                    taffy::prelude::Size::MAX_CONTENT,
+                )
+                .unwrap();
+
+                view.paint(&layout_cx.taffy, canvas);
 
                 env.gr_context.flush_and_submit();
                 env.gl_surface.swap_buffers(&env.gl_context).unwrap();
