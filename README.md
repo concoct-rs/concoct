@@ -8,6 +8,12 @@
 
 Rust native UI framework.
 
+## Features
+- Statically typed, compile-time UI tree
+- Accessability with [accesskit](https://github.com/AccessKit/accesskit)
+- Flexbox layout with [taffy](https://github.com/DioxusLabs/taffy)
+- Inspired by the [xilem](https://github.com/linebender/xilem) and elm architectures.
+
 ```rust
 fn circle(radius: f32) -> impl View<f32> {
     Canvas::new(move |_layout, canvas| {
@@ -24,3 +30,4 @@ fn app() -> impl View<()> {
     )
 }
 ```
+
