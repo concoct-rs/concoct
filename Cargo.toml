@@ -8,6 +8,7 @@ repository = "https://github.com/concoct-rs/concoct"
 
 [features]
 gl = ["dep:gl", "dep:glutin", "dep:glutin-winit", "dep:raw-window-handle", "dep:slotmap", "dep:winit"]
+default = ["gl"]
 
 [dependencies]
 tokio = { version = "1.29.1", features = ["full"] }

@@ -1,10 +1,11 @@
 use super::{Id, View};
 use std::{any::Any, marker::PhantomData};
 
+/// Adapt the state of a view to another.
 pub struct Adapt<T1, A1, T2, A2, V, F = fn(&mut T1, AdaptThunk<T2, A2, V>) -> Option<A1>> {
     f: F,
     child: V,
-    phantom: PhantomData<fn() -> (T1, A1, T2, A2)>,
+    _marker: PhantomData<fn() -> (T1, A1, T2, A2)>,
 }
 
 pub struct AdaptThunk<'a, T2, A2, V: View<T2, A2>> {
@@ -23,7 +24,7 @@ where
         Adapt {
             f,
             child,
-            phantom: Default::default(),
+            _marker: Default::default(),
         }
     }
 }
