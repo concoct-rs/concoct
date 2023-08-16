@@ -1,6 +1,6 @@
 use super::View;
 use crate::Id;
-use std::marker::PhantomData;
+use std::{any::Any, marker::PhantomData};
 
 pub struct Adapt<T1, A1, T2, A2, V, F = fn(&mut T1, AdaptThunk<T2, A2, V>) -> Option<A1>> {
     f: F,
@@ -42,7 +42,15 @@ where
 {
     type State = V::State;
 
-    fn view(&mut self, _state: &mut T1, _id_path: &[Id], _message: Box<dyn std::any::Any>) {
+    fn message(&mut self, state: &mut T1, id_path: &[Id], message: &dyn Any) {
         todo!()
+    }
+
+    fn layout(&mut self, cx: &mut super::LayoutContext) {
+        self.child.layout(cx)
+    }
+
+    fn paint(&mut self, taffy: &taffy::Taffy, canvas: &mut skia_safe::Canvas) {
+        self.child.paint(taffy, canvas)
     }
 }

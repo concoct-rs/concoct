@@ -1,6 +1,7 @@
 use super::{LayoutContext, View};
 use skia_safe::Rect;
 use slotmap::DefaultKey;
+use std::any::Any;
 use taffy::{
     prelude::Layout,
     style::{Dimension, Style},
@@ -40,7 +41,7 @@ where
 {
     type State = ();
 
-    fn view(&mut self, _state: &mut T, _id_path: &[crate::Id], _message: Box<dyn std::any::Any>) {}
+    fn message(&mut self, _state: &mut T, _id_path: &[crate::Id], _message: &dyn Any) {}
 
     fn layout(&mut self, cx: &mut LayoutContext) {
         if self.layout_key.is_none() {
