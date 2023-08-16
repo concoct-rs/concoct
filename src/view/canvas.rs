@@ -1,14 +1,18 @@
 use super::{LayoutContext, View};
 use skia_safe::Rect;
 use slotmap::DefaultKey;
-use taffy::{prelude::Layout, style::Style, Taffy};
+use taffy::{
+    prelude::Layout,
+    style::{Dimension, Style},
+    Taffy,
+};
 
 /// Canvas element.
 /// This lets you draw directly to the skia canvas.
 pub struct Canvas<F> {
     layout_key: Option<DefaultKey>,
-    pub draw: F,
-    pub style: Style,
+    draw: F,
+    style: Style,
 }
 
 impl<F> Canvas<F>
@@ -22,6 +26,11 @@ where
             layout_key: None,
             style: Style::default(),
         }
+    }
+
+    pub fn size(mut self, size: taffy::prelude::Size<Dimension>) -> Self {
+        self.style.size = size;
+        self
     }
 }
 
