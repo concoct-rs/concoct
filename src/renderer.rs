@@ -212,10 +212,12 @@ impl Renderer {
         };
         let mut previous_frame_start = Instant::now();
 
-        let taffy = Taffy::new();
+        let mut taffy = Taffy::new();
+        let root = taffy.new_leaf(Style::DEFAULT).unwrap();
         let mut layout_cx = LayoutContext {
             taffy,
             children: Vec::new(),
+            root,
         };
 
         let mut tree = view(&mut state);
@@ -273,6 +275,19 @@ impl Renderer {
                         frame = frame.saturating_sub(10);
                         env.window.request_redraw();
                     }
+                    WindowEvent::CursorMoved {
+                        device_id,
+                        position,
+                        modifiers,
+                    } => {
+                        let x = layout_cx
+                            .targets(Point {
+                                x: position.x,
+                                y: position.y,
+                            })
+                            .next();
+                        dbg!(x);
+                    }
                     WindowEvent::MouseInput {
                         state: element_state,
                         ..
@@ -304,11 +319,11 @@ impl Renderer {
                 tree.rebuild(&mut build_cx, &mut old);
 
                 tree.layout(&mut layout_cx);
-
-                let root = layout_cx
+                layout_cx
                     .taffy
-                    .new_with_children(Style::DEFAULT, &layout_cx.children)
+                    .set_children(layout_cx.root, &layout_cx.children)
                     .unwrap();
+
                 taffy::compute_layout(
                     &mut layout_cx.taffy,
                     root,

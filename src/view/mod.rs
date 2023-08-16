@@ -1,5 +1,10 @@
+use accesskit::Point;
 use std::{any::Any, num::NonZeroU128};
-use taffy::{prelude::Node, style::Style, Taffy};
+use taffy::{
+    prelude::{Layout, Node},
+    style::Style,
+    Taffy,
+};
 
 mod adapt;
 pub use adapt::{Adapt, AdaptThunk};
@@ -28,6 +33,7 @@ impl BuildContext {
 pub struct LayoutContext {
     pub taffy: Taffy,
     pub children: Vec<Node>,
+    pub root: Node,
 }
 
 impl LayoutContext {
@@ -35,6 +41,41 @@ impl LayoutContext {
         let key = self.taffy.new_leaf(style).unwrap();
         self.children.push(key);
         key
+    }
+
+    pub fn iter(&self) -> Iter {
+        Iter {
+            taffy: &self.taffy,
+            keys: vec![self.root],
+        }
+    }
+
+    pub fn targets(&self, point: Point) -> impl Iterator<Item = (Node, &Layout)> {
+        self.iter().filter(move |(key, layout)| {
+            layout.location.x <= point.x as _
+                && layout.location.x + layout.size.width >= point.x as _
+                && layout.location.y <= point.y as _
+                && layout.location.y + layout.size.height >= point.y as _
+        })
+    }
+}
+
+pub struct Iter<'a> {
+    taffy: &'a Taffy,
+    keys: Vec<Node>,
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = (Node, &'a Layout);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.keys.pop().map(|key| {
+            let children = self.taffy.children(key).unwrap();
+            self.keys.extend_from_slice(&children);
+
+            let layout = self.taffy.layout(key).unwrap();
+            (key, layout)
+        })
     }
 }
 
