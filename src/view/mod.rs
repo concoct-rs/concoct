@@ -7,19 +7,6 @@ pub use adapt::{Adapt, AdaptThunk};
 mod canvas;
 pub use canvas::Canvas;
 
-pub struct LayoutContext {
-    pub taffy: Taffy,
-    pub children: Vec<Node>,
-}
-
-impl LayoutContext {
-    pub fn push(&mut self, style: Style) -> Node {
-        let key = self.taffy.new_leaf(style).unwrap();
-        self.children.push(key);
-        key
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Id(NonZeroU128);
 
@@ -38,16 +25,29 @@ impl BuildContext {
     }
 }
 
+pub struct LayoutContext {
+    pub taffy: Taffy,
+    pub children: Vec<Node>,
+}
+
+impl LayoutContext {
+    pub fn push(&mut self, style: Style) -> Node {
+        let key = self.taffy.new_leaf(style).unwrap();
+        self.children.push(key);
+        key
+    }
+}
+
 pub trait View<T, A> {
     type State;
 
     fn build(&mut self, cx: &mut BuildContext) -> (Id, Self::State);
 
-    fn rebuild(&mut self, cx: &mut BuildContext, old: &mut Self) {}
+    fn rebuild(&mut self, cx: &mut BuildContext, old: &mut Self);
 
-    fn layout(&mut self, _cx: &mut LayoutContext);
+    fn layout(&mut self, cx: &mut LayoutContext);
 
-    fn paint(&mut self, _taffy: &Taffy, _canvas: &mut skia_safe::Canvas);
+    fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas);
 
     fn message(&mut self, state: &mut T, id_path: &[Id], message: &dyn Any);
 }
@@ -65,6 +65,11 @@ where
 
         let id = cx.id();
         (id, (b, d))
+    }
+
+    fn rebuild(&mut self, cx: &mut BuildContext, old: &mut Self) {
+        self.0.rebuild(cx, &mut old.0);
+        self.1.rebuild(cx, &mut old.1);
     }
 
     fn layout(&mut self, cx: &mut LayoutContext) {

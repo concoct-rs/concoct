@@ -18,5 +18,5 @@ fn app(r: &mut f32) -> impl View<f32, ()> {
 }
 
 fn main() {
-    Renderer {}.run(app, 50.);
+    Renderer::default().run(app, 50.);
 }

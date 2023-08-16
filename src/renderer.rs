@@ -36,6 +36,7 @@ pub enum Event {
     MouseMove { pos: Point },
 }
 
+#[derive(Default)]
 pub struct Renderer {}
 
 impl Renderer {
@@ -223,7 +224,7 @@ impl Renderer {
             next_id: NonZeroU128::MIN,
             unused_ids: Vec::new(),
         };
-        let (_, mut view_state) = tree.build(&mut build_cx);
+        let (_, _view_state) = tree.build(&mut build_cx);
 
         el.run(move |event, _, control_flow| {
             let frame_start = Instant::now();

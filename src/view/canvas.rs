@@ -47,7 +47,7 @@ where
         (id, None)
     }
 
-    fn rebuild(&mut self, cx: &mut super::BuildContext, old: &mut Self) {
+    fn rebuild(&mut self, _cx: &mut super::BuildContext, old: &mut Self) {
         self.layout_key = old.layout_key;
     }
 

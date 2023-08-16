@@ -45,6 +45,10 @@ where
         self.child.build(cx)
     }
 
+    fn rebuild(&mut self, cx: &mut super::BuildContext, old: &mut Self) {
+        self.child.rebuild(cx, &mut old.child)
+    }
+
     fn message(&mut self, _state: &mut T1, _id_path: &[Id], _message: &dyn Any) {
         todo!()
     }
