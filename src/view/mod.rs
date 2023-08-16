@@ -24,8 +24,8 @@ impl LayoutContext {
 pub struct Id(NonZeroU128);
 
 pub struct BuildContext {
-    next_id: NonZeroU128,
-    unused_ids: Vec<Id>,
+    pub next_id: NonZeroU128,
+    pub unused_ids: Vec<Id>,
 }
 
 impl BuildContext {
@@ -42,6 +42,8 @@ pub trait View<T, A> {
     type State;
 
     fn build(&mut self, cx: &mut BuildContext) -> (Id, Self::State);
+
+    fn rebuild(&mut self, cx: &mut BuildContext, old: &mut Self) {}
 
     fn layout(&mut self, _cx: &mut LayoutContext);
 

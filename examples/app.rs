@@ -1,11 +1,11 @@
 use concoct::{
     view::{Canvas, View},
-    Renderer,
+    EventHandler, Renderer,
 };
 use skia_safe::{Color4f, Paint};
 use taffy::prelude::Size;
 
-fn circle(radius: f32) -> impl View<(), ()> {
+fn circle(radius: f32) -> impl View<f32, ()> {
     Canvas::new(move |_layout, canvas| {
         let color = Color4f::new(1., 0., 0., 1.);
         canvas.draw_circle((radius, radius), radius, &Paint::new(color, None));
@@ -13,11 +13,10 @@ fn circle(radius: f32) -> impl View<(), ()> {
     .size(Size::from_points(radius * 2., radius * 2.))
 }
 
-fn app() -> impl View<(), ()> {
-    (circle(50.), circle(100.))
+fn app(r: &mut f32) -> impl View<f32, ()> {
+    EventHandler::new(|r: &mut f32| *r *= 2., circle(*r))
 }
 
 fn main() {
-    let view = app();
-    Renderer {}.run(view);
+    Renderer {}.run(app, 50.);
 }

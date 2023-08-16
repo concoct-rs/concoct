@@ -1,4 +1,4 @@
-use crate::view::{LayoutContext, View};
+use crate::view::{BuildContext, LayoutContext, View};
 use accesskit::Point;
 use gl::types::*;
 use glutin::{
@@ -20,12 +20,13 @@ use skia_safe::{
 
 use std::{
     ffi::CString,
-    num::NonZeroU32,
+    mem,
+    num::{NonZeroU128, NonZeroU32},
     time::{Duration, Instant},
 };
 use taffy::{style::Style, style_helpers::TaffyMaxContent, Taffy};
 use winit::{
-    event::{Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
     window::{Window, WindowBuilder},
 };
@@ -38,7 +39,12 @@ pub enum Event {
 pub struct Renderer {}
 
 impl Renderer {
-    pub fn run<T, A>(self, mut view: impl View<T, A> + 'static) {
+    pub fn run<T, A, V>(self, mut view: impl FnMut(&mut T) -> V + 'static, mut state: T)
+    where
+        T: 'static,
+        V: View<T, A> + 'static,
+        V::State: 'static,
+    {
         let el = EventLoopBuilder::with_user_event().build();
 
         let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
@@ -211,6 +217,14 @@ impl Renderer {
             children: Vec::new(),
         };
 
+        let mut tree = view(&mut state);
+
+        let mut build_cx = BuildContext {
+            next_id: NonZeroU128::MIN,
+            unused_ids: Vec::new(),
+        };
+        let (_, mut view_state) = tree.build(&mut build_cx);
+
         el.run(move |event, _, control_flow| {
             let frame_start = Instant::now();
             let mut draw_frame = false;
@@ -258,14 +272,13 @@ impl Renderer {
                         frame = frame.saturating_sub(10);
                         env.window.request_redraw();
                     }
-                    WindowEvent::CursorMoved {
-                        device_id: _,
-                        position,
-                        modifiers: _,
+                    WindowEvent::MouseInput {
+                        state: element_state,
+                        ..
                     } => {
-                        let _point = Point::new(position.x, position.y);
-                        //let target = self.tree.target(self.root, point);
-                        // event_handler(&mut self.tree, Event::MouseMove { target, pos: point })
+                        if element_state == ElementState::Pressed {
+                            tree.message(&mut state, &[], &());
+                        }
                     }
                     _ => (),
                 },
@@ -286,7 +299,10 @@ impl Renderer {
                 let canvas = env.surface.canvas();
                 canvas.clear(Color::WHITE);
 
-                view.layout(&mut layout_cx);
+                let mut old = mem::replace(&mut tree, view(&mut state));
+                tree.rebuild(&mut build_cx, &mut old);
+
+                tree.layout(&mut layout_cx);
 
                 let root = layout_cx
                     .taffy
@@ -299,7 +315,7 @@ impl Renderer {
                 )
                 .unwrap();
 
-                view.paint(&layout_cx.taffy, canvas);
+                tree.paint(&layout_cx.taffy, canvas);
 
                 env.gr_context.flush_and_submit();
                 env.gl_surface.swap_buffers(&env.gl_context).unwrap();
