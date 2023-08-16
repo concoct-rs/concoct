@@ -1,4 +1,4 @@
-use super::View;
+use super::{Id, View};
 
 pub fn remember<F, S, G, V>(make_state: F, make_view: G) -> Remember<F, S, G, V> {
     Remember::new(make_state, make_view)
@@ -28,15 +28,13 @@ where
     G: FnMut(&mut S) -> V,
     V: View<S, A>,
 {
-    type State = V::State;
-
-    fn build(&mut self, cx: &mut super::BuildContext) -> (super::Id, Self::State) {
+    fn build(&mut self, cx: &mut super::BuildContext) -> Id {
         let mut state = (self.make_state)();
         let mut view = (self.make_view)(&mut state);
         self.state = Some(state);
-        let (id, s) = view.build(cx);
+        let id = view.build(cx);
         self.view = Some(view);
-        (id, s)
+        id
     }
 
     fn rebuild(&mut self, cx: &mut super::BuildContext, old: &mut Self) {

@@ -43,7 +43,6 @@ impl Renderer {
     pub fn run<A, V>(self, mut view: impl FnMut() -> V + 'static)
     where
         V: View<(), A> + 'static,
-        V::State: 'static,
     {
         let el = EventLoopBuilder::with_user_event().build();
 
@@ -219,7 +218,7 @@ impl Renderer {
             next_id: NonZeroU128::MIN,
             unused_ids: Vec::new(),
         };
-        let (view_id, _view_state) = tree.build(&mut build_cx);
+        let view_id = tree.build(&mut build_cx);
 
         el.run(move |event, _, control_flow| {
             let frame_start = Instant::now();

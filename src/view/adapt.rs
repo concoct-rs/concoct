@@ -9,9 +9,9 @@ pub struct Adapt<T1, A1, T2, A2, V, F = fn(&mut T1, AdaptThunk<T2, A2, V>) -> Op
 
 pub struct AdaptThunk<'a, T2, A2, V: View<T2, A2>> {
     child: &'a V,
-    state: &'a mut V::State,
     id_path: &'a [Id],
     message: Box<dyn std::any::Any>,
+    _marker: PhantomData<(T2, A2)>,
 }
 
 impl<T1, A1, T2, A2, V, F> Adapt<T1, A1, T2, A2, V, F>
@@ -39,9 +39,7 @@ where
     V: View<T2, A2>,
     F: Fn(&mut T1, AdaptThunk<T2, A2, V>) -> Option<A1>,
 {
-    type State = V::State;
-
-    fn build(&mut self, cx: &mut super::BuildContext) -> (Id, Self::State) {
+    fn build(&mut self, cx: &mut super::BuildContext) -> Id {
         self.child.build(cx)
     }
 

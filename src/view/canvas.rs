@@ -1,5 +1,5 @@
 use super::{Id, LayoutContext, View};
-use accesskit::Node;
+
 use skia_safe::Rect;
 use slotmap::DefaultKey;
 use std::any::Any;
@@ -40,11 +40,8 @@ impl<T, A, F> View<T, A> for Canvas<F>
 where
     F: FnMut(&Layout, &mut skia_safe::Canvas),
 {
-    type State = Option<Node>;
-
-    fn build(&mut self, cx: &mut super::BuildContext) -> (Id, Self::State) {
-        let id = cx.id();
-        (id, None)
+    fn build(&mut self, cx: &mut super::BuildContext) -> Id {
+        cx.id()
     }
 
     fn rebuild(&mut self, _cx: &mut super::BuildContext, old: &mut Self) {

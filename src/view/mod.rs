@@ -32,9 +32,7 @@ impl BuildContext {
 }
 
 pub trait View<T, A = ()> {
-    type State;
-
-    fn build(&mut self, cx: &mut BuildContext) -> (Id, Self::State);
+    fn build(&mut self, cx: &mut BuildContext) -> Id;
 
     fn rebuild(&mut self, cx: &mut BuildContext, old: &mut Self);
 

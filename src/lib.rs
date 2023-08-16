@@ -26,9 +26,7 @@ where
     V: View<T, A>,
     F: FnMut(&mut T),
 {
-    type State = V::State;
-
-    fn build(&mut self, cx: &mut view::BuildContext) -> (Id, Self::State) {
+    fn build(&mut self, cx: &mut view::BuildContext) -> Id {
         self.view.build(cx)
     }
 
