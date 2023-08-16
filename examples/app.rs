@@ -1,6 +1,8 @@
+use accesskit::Role;
 use concoct::{
+    clickable,
     view::{remember, Canvas, View},
-    EventHandler, Renderer,
+    Renderer,
 };
 use skia_safe::{Color4f, Paint};
 use taffy::prelude::Size;
@@ -16,7 +18,7 @@ fn circle(radius: f32) -> impl View<f32> {
 fn app() -> impl View<()> {
     remember(
         || 50.,
-        |radius: &mut f32| EventHandler::new(|r: &mut f32| *r *= 2., circle(*radius)),
+        |radius: &mut f32| clickable(Role::Button, |r: &mut f32| *r *= 2., circle(*radius)),
     )
 }
 

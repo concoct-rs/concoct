@@ -1,9 +1,14 @@
 mod renderer;
 
+use accesskit::Role;
 pub use renderer::{Event, Renderer};
 use view::{Id, View};
 
 pub mod view;
+
+pub fn clickable<F, V>(_role: Role, on_click: F, view: V) -> EventHandler<F, V> {
+    EventHandler::new(on_click, view)
+}
 
 pub struct EventHandler<F, V> {
     on_event: F,
