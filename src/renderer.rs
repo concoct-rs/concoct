@@ -276,9 +276,9 @@ impl Renderer {
                         env.window.request_redraw();
                     }
                     WindowEvent::CursorMoved {
-                        device_id,
+                        device_id: _,
                         position,
-                        modifiers,
+                        modifiers: _,
                     } => {
                         let x = layout_cx
                             .targets(Point {

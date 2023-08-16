@@ -51,7 +51,7 @@ impl LayoutContext {
     }
 
     pub fn targets(&self, point: Point) -> impl Iterator<Item = (Node, &Layout)> {
-        self.iter().filter(move |(key, layout)| {
+        self.iter().filter(move |(_key, layout)| {
             layout.location.x <= point.x as _
                 && layout.location.x + layout.size.width >= point.x as _
                 && layout.location.y <= point.y as _
@@ -79,7 +79,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-pub trait View<T, A> {
+pub trait View<T, A = ()> {
     type State;
 
     fn build(&mut self, cx: &mut BuildContext) -> (Id, Self::State);
