@@ -1,7 +1,7 @@
+use super::{LayoutContext, View};
 use skia_safe::Rect;
 use slotmap::DefaultKey;
 use taffy::{prelude::Layout, style::Style, Taffy};
-use super::{LayoutContext, View};
 
 /// Canvas element.
 /// This lets you draw directly to the skia canvas.

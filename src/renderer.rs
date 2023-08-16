@@ -1,6 +1,4 @@
 use crate::view::{LayoutContext, View};
-
-use super::ElementKey;
 use accesskit::Point;
 use gl::types::*;
 use glutin::{
@@ -34,10 +32,7 @@ use winit::{
 
 #[derive(Clone, Debug)]
 pub enum Event {
-    MouseMove {
-        target: Option<ElementKey>,
-        pos: Point,
-    },
+    MouseMove { pos: Point },
 }
 
 pub struct Renderer {}

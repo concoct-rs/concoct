@@ -41,7 +41,7 @@ where
 {
     type State = (V1::State, V2::State);
 
-    fn view(&mut self, state: &mut T, id_path: &[Id], message: Box<dyn Any>) {}
+    fn view(&mut self, _state: &mut T, _id_path: &[Id], _message: Box<dyn Any>) {}
 
     fn layout(&mut self, cx: &mut LayoutContext) {
         self.0.layout(cx);
