@@ -1,5 +1,4 @@
-use super::View;
-use crate::Id;
+use super::{Id, View};
 use std::{any::Any, marker::PhantomData};
 
 pub struct Adapt<T1, A1, T2, A2, V, F = fn(&mut T1, AdaptThunk<T2, A2, V>) -> Option<A1>> {
@@ -42,7 +41,11 @@ where
 {
     type State = V::State;
 
-    fn message(&mut self, state: &mut T1, id_path: &[Id], message: &dyn Any) {
+    fn build(&mut self, cx: &mut super::BuildContext) -> (Id, Self::State) {
+        self.child.build(cx)
+    }
+
+    fn message(&mut self, _state: &mut T1, _id_path: &[Id], _message: &dyn Any) {
         todo!()
     }
 

@@ -1,13 +1,11 @@
-use crate::Id;
-use std::any::Any;
+use std::{any::Any, num::NonZeroU128};
+use taffy::{prelude::Node, style::Style, Taffy};
 
 mod adapt;
 pub use adapt::{Adapt, AdaptThunk};
 
 mod canvas;
 pub use canvas::Canvas;
-
-use taffy::{prelude::Node, style::Style, Taffy};
 
 pub struct LayoutContext {
     pub taffy: Taffy,
@@ -22,8 +20,28 @@ impl LayoutContext {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Id(NonZeroU128);
+
+pub struct BuildContext {
+    next_id: NonZeroU128,
+    unused_ids: Vec<Id>,
+}
+
+impl BuildContext {
+    pub fn id(&mut self) -> Id {
+        self.unused_ids.pop().unwrap_or_else(|| {
+            let id = self.next_id;
+            self.next_id = self.next_id.checked_add(1).unwrap();
+            Id(id)
+        })
+    }
+}
+
 pub trait View<T, A> {
     type State;
+
+    fn build(&mut self, cx: &mut BuildContext) -> (Id, Self::State);
 
     fn layout(&mut self, _cx: &mut LayoutContext);
 
@@ -38,6 +56,14 @@ where
     V2: View<T, A>,
 {
     type State = (V1::State, V2::State);
+
+    fn build(&mut self, cx: &mut BuildContext) -> (Id, Self::State) {
+        let (_a, b) = self.0.build(cx);
+        let (_c, d) = self.1.build(cx);
+
+        let id = cx.id();
+        (id, (b, d))
+    }
 
     fn layout(&mut self, cx: &mut LayoutContext) {
         self.0.layout(cx);

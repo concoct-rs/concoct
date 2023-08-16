@@ -1,4 +1,4 @@
-use super::{LayoutContext, View};
+use super::{Id, LayoutContext, View};
 use skia_safe::Rect;
 use slotmap::DefaultKey;
 use std::any::Any;
@@ -41,7 +41,12 @@ where
 {
     type State = ();
 
-    fn message(&mut self, _state: &mut T, _id_path: &[crate::Id], _message: &dyn Any) {}
+    fn build(&mut self, cx: &mut super::BuildContext) -> (Id, Self::State) {
+        let id = cx.id();
+        (id, ())
+    }
+
+    fn message(&mut self, _state: &mut T, _id_path: &[Id], _message: &dyn Any) {}
 
     fn layout(&mut self, cx: &mut LayoutContext) {
         if self.layout_key.is_none() {
