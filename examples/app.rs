@@ -1,5 +1,5 @@
 use concoct::{
-    view::{Canvas, View},
+    view::{remember, Canvas, View},
     EventHandler, Renderer,
 };
 use skia_safe::{Color4f, Paint};
@@ -13,10 +13,13 @@ fn circle(radius: f32) -> impl View<f32> {
     .size(Size::from_points(radius * 2., radius * 2.))
 }
 
-fn app(r: &mut f32) -> impl View<f32> {
-    EventHandler::new(|r: &mut f32| *r *= 2., circle(*r))
+fn app() -> impl View<()> {
+    remember(
+        || 50.,
+        |radius: &mut f32| EventHandler::new(|r: &mut f32| *r *= 2., circle(*radius)),
+    )
 }
 
 fn main() {
-    Renderer::default().run(app, 50.);
+    Renderer::default().run(app);
 }

@@ -10,6 +10,9 @@ pub use canvas::Canvas;
 pub mod layout_context;
 pub use layout_context::LayoutContext;
 
+mod remember;
+pub use remember::{remember, Remember};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Id(NonZeroU128);
 
