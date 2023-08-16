@@ -48,7 +48,9 @@ where
         self.layout_key = old.layout_key;
     }
 
-    fn message(&mut self, _state: &mut T, _id_path: &[Id], _message: &dyn Any) {}
+    fn message(&mut self, _state: &mut T, _id_path: &[Id], _message: &dyn Any) -> Option<A> {
+        None
+    }
 
     fn layout(&mut self, cx: &mut LayoutContext, id: Id) {
         if let Some(key) = self.layout_key {

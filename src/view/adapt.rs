@@ -8,9 +8,9 @@ pub struct Adapt<T1, A1, T2, A2, V, F = fn(&mut T1, AdaptThunk<T2, A2, V>) -> Op
 }
 
 pub struct AdaptThunk<'a, T2, A2, V: View<T2, A2>> {
-    child: &'a V,
+    child: &'a mut V,
     id_path: &'a [Id],
-    message: Box<dyn std::any::Any>,
+    message: &'a dyn Any,
     _marker: PhantomData<(T2, A2)>,
 }
 
@@ -29,8 +29,8 @@ where
 }
 
 impl<'a, T2, A2, V: View<T2, A2>> AdaptThunk<'a, T2, A2, V> {
-    pub fn call(self, _app_state: &mut T2) -> Option<A2> {
-        todo!()
+    pub fn call(self, state: &mut T2) -> Option<A2> {
+        self.child.message(state, self.id_path, self.message)
     }
 }
 
@@ -47,8 +47,14 @@ where
         self.child.rebuild(cx, &mut old.child)
     }
 
-    fn message(&mut self, _state: &mut T1, _id_path: &[Id], _message: &dyn Any) {
-        todo!()
+    fn message(&mut self, state: &mut T1, id_path: &[Id], message: &dyn Any) -> Option<A1> {
+        let thunk = AdaptThunk {
+            child: &mut self.child,
+            id_path,
+            message,
+            _marker: PhantomData,
+        };
+        (self.f)(state, thunk)
     }
 
     fn layout(&mut self, cx: &mut super::LayoutContext, id: Id) {

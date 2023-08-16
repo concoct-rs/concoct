@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use super::{Id, View};
 
 pub fn remember<F, S, G, V>(make_state: F, make_view: G) -> Remember<F, S, G, V> {
@@ -53,7 +55,7 @@ where
         self.view.as_mut().unwrap().paint(taffy, canvas)
     }
 
-    fn message(&mut self, _state: &mut T, id_path: &[super::Id], message: &dyn std::any::Any) {
+    fn message(&mut self, _state: &mut T, id_path: &[super::Id], message: &dyn Any) -> Option<A> {
         self.view
             .as_mut()
             .unwrap()

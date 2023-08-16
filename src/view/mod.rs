@@ -40,5 +40,5 @@ pub trait View<T, A = ()> {
 
     fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas);
 
-    fn message(&mut self, state: &mut T, id_path: &[Id], message: &dyn Any);
+    fn message(&mut self, state: &mut T, id_path: &[Id], message: &dyn Any) -> Option<A>;
 }

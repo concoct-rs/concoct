@@ -1,5 +1,7 @@
 mod renderer;
 
+use std::any::Any;
+
 use accesskit::Role;
 pub use renderer::{Event, Renderer};
 use view::{Id, View};
@@ -42,7 +44,7 @@ where
         self.view.paint(taffy, canvas)
     }
 
-    fn message(&mut self, state: &mut T, id_path: &[Id], message: &dyn std::any::Any) {
+    fn message(&mut self, state: &mut T, id_path: &[Id], message: &dyn Any) -> Option<A> {
         (self.on_event)(state);
         self.view.message(state, id_path, message)
     }
