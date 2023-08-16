@@ -7,6 +7,9 @@ pub use adapt::{Adapt, AdaptThunk};
 mod canvas;
 pub use canvas::Canvas;
 
+mod handler;
+pub use handler::{EventHandler, clickable};
+
 pub mod layout_context;
 pub use layout_context::LayoutContext;
 

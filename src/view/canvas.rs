@@ -1,10 +1,8 @@
 use super::{Id, LayoutContext, View};
-
 use skia_safe::Rect;
-use slotmap::DefaultKey;
 use std::any::Any;
 use taffy::{
-    prelude::Layout,
+    prelude::{Layout, Node},
     style::{Dimension, Style},
     Taffy,
 };
@@ -12,7 +10,7 @@ use taffy::{
 /// Canvas element.
 /// This lets you draw directly to the skia canvas.
 pub struct Canvas<F> {
-    layout_key: Option<DefaultKey>,
+    layout_key: Option<Node>,
     draw: F,
     style: Style,
 }

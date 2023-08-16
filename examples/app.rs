@@ -1,7 +1,6 @@
 use accesskit::Role;
 use concoct::{
-    clickable,
-    view::{remember, Canvas, View},
+    view::{clickable, remember, Canvas, View},
     Renderer,
 };
 use skia_safe::{Color4f, Paint};
