@@ -24,7 +24,7 @@ use std::{
     num::{NonZeroU128, NonZeroU32},
     time::{Duration, Instant},
 };
-use taffy::{style::Style, style_helpers::TaffyMaxContent, Taffy};
+
 use winit::{
     event::{ElementState, Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
@@ -48,7 +48,7 @@ impl Renderer {
     {
         let el = EventLoopBuilder::with_user_event().build();
 
-        let winit_window_builder = WindowBuilder::new().with_title("rust-skia-gl-window");
+        let winit_window_builder = WindowBuilder::new().with_title("concoct");
 
         let template = ConfigTemplateBuilder::new()
             .with_alpha_size(8)
@@ -212,13 +212,7 @@ impl Renderer {
         };
         let mut previous_frame_start = Instant::now();
 
-        let mut taffy = Taffy::new();
-        let root = taffy.new_leaf(Style::DEFAULT).unwrap();
-        let mut layout_cx = LayoutContext {
-            taffy,
-            children: Vec::new(),
-            root,
-        };
+        let mut layout_cx = LayoutContext::default();
 
         let mut tree = view(&mut state);
 
@@ -226,7 +220,7 @@ impl Renderer {
             next_id: NonZeroU128::MIN,
             unused_ids: Vec::new(),
         };
-        let (_, _view_state) = tree.build(&mut build_cx);
+        let (view_id, _view_state) = tree.build(&mut build_cx);
 
         el.run(move |event, _, control_flow| {
             let frame_start = Instant::now();
@@ -318,18 +312,8 @@ impl Renderer {
                 let mut old = mem::replace(&mut tree, view(&mut state));
                 tree.rebuild(&mut build_cx, &mut old);
 
-                tree.layout(&mut layout_cx);
-                layout_cx
-                    .taffy
-                    .set_children(layout_cx.root, &layout_cx.children)
-                    .unwrap();
-
-                taffy::compute_layout(
-                    &mut layout_cx.taffy,
-                    root,
-                    taffy::prelude::Size::MAX_CONTENT,
-                )
-                .unwrap();
+                tree.layout(&mut layout_cx, view_id);
+                layout_cx.compute_layout();
 
                 tree.paint(&layout_cx.taffy, canvas);
 

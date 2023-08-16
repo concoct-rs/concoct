@@ -31,8 +31,8 @@ where
         self.view.rebuild(cx, &mut old.view)
     }
 
-    fn layout(&mut self, cx: &mut view::LayoutContext) {
-        self.view.layout(cx)
+    fn layout(&mut self, cx: &mut view::LayoutContext, id: Id) {
+        self.view.layout(cx, id)
     }
 
     fn paint(&mut self, taffy: &taffy::Taffy, canvas: &mut skia_safe::Canvas) {

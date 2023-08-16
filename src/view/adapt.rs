@@ -53,8 +53,8 @@ where
         todo!()
     }
 
-    fn layout(&mut self, cx: &mut super::LayoutContext) {
-        self.child.layout(cx)
+    fn layout(&mut self, cx: &mut super::LayoutContext, id: Id) {
+        self.child.layout(cx, id)
     }
 
     fn paint(&mut self, taffy: &taffy::Taffy, canvas: &mut skia_safe::Canvas) {

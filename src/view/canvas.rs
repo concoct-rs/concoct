@@ -53,11 +53,11 @@ where
 
     fn message(&mut self, _state: &mut T, _id_path: &[Id], _message: &dyn Any) {}
 
-    fn layout(&mut self, cx: &mut LayoutContext) {
+    fn layout(&mut self, cx: &mut LayoutContext, id: Id) {
         if let Some(key) = self.layout_key {
             cx.taffy.set_style(key, self.style.clone()).unwrap();
         } else {
-            let layout_key = cx.push(self.style.clone());
+            let layout_key = cx.insert(id, self.style.clone());
             self.layout_key = Some(layout_key);
         }
     }
