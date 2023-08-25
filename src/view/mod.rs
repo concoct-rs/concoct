@@ -8,11 +8,12 @@ mod canvas;
 pub use canvas::Canvas;
 
 mod handler;
-pub use handler::{EventHandler, clickable};
+pub use handler::{clickable, EventHandler};
 
 pub mod layout_context;
 pub use layout_context::LayoutContext;
 
+mod view_stack;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Id(NonZeroU128);
