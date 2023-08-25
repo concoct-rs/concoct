@@ -40,9 +40,10 @@ pub enum Event {
 pub struct Renderer {}
 
 impl Renderer {
-    pub fn run<A, V>(self, mut view: impl FnMut() -> V + 'static)
+    pub fn run<T, A, V>(self, mut state: T, mut view: impl FnMut(&mut T) -> V + 'static)
     where
-        V: View<(), A> + 'static,
+    T: 'static,
+        V: View<T, A> + 'static,
     {
         let el = EventLoopBuilder::with_user_event().build();
 
@@ -212,7 +213,7 @@ impl Renderer {
 
         let mut layout_cx = LayoutContext::default();
 
-        let mut tree = view();
+        let mut tree = view(&mut state);
 
         let mut build_cx = BuildContext {
             next_id: NonZeroU128::MIN,
@@ -285,7 +286,7 @@ impl Renderer {
                         ..
                     } => {
                         if element_state == ElementState::Pressed {
-                            tree.message(&mut (), &[], &());
+                            tree.message(&mut state, &[], &());
                         }
                     }
                     _ => (),
@@ -307,7 +308,7 @@ impl Renderer {
                 let canvas = env.surface.canvas();
                 canvas.clear(Color::WHITE);
 
-                let mut old = mem::replace(&mut tree, view());
+                let mut old = mem::replace(&mut tree, view(&mut state));
                 tree.rebuild(&mut build_cx, &mut old);
 
                 tree.layout(&mut layout_cx, view_id);

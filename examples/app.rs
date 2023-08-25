@@ -1,6 +1,6 @@
 use accesskit::Role;
 use concoct::{
-    view::{clickable, remember, Canvas, View},
+    view::{clickable, Canvas, View},
     Renderer,
 };
 use skia_safe::{Color4f, Paint};
@@ -14,13 +14,10 @@ fn circle(radius: f32) -> impl View<f32> {
     .size(Size::from_points(radius * 2., radius * 2.))
 }
 
-fn app() -> impl View<()> {
-    remember(
-        || 50.,
-        |radius: &mut f32| clickable(Role::Button, |r: &mut f32| *r *= 2., circle(*radius)),
-    )
+fn app(radius: &mut f32 ) -> impl View<f32> {
+    clickable(Role::Button, |r: &mut f32| *r *= 2., circle(*radius))
 }
 
 fn main() {
-    Renderer::default().run(app);
+    Renderer::default().run(10., app);
 }
