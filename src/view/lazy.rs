@@ -9,25 +9,25 @@ pub struct Lazy<T, V> {
     view: V,
 }
 
-impl<M, T, V> View<M> for Lazy<T, V>
+impl<E, T, V> View<E> for Lazy<T, V>
 where
     T: PartialEq,
-    V: View<M>,
+    V: View<E>,
 {
     type State = (T, V::State);
 
-    fn build(self, cx: &mut crate::Context<M>) -> Self::State {
+    fn build(self, cx: &mut crate::Context<E>) -> Self::State {
         let child_state = self.view.build(cx);
         (self.input, child_state)
     }
 
-    fn rebuild(self, cx: &mut crate::Context<M>, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut crate::Context<E>, state: &mut Self::State) {
         if self.input != state.0 {
             self.view.rebuild(cx, &mut state.1)
         }
     }
 
-    fn remove(cx: &mut crate::Context<M>, state: &mut Self::State) {
+    fn remove(cx: &mut crate::Context<E>, state: &mut Self::State) {
         V::remove(cx, &mut state.1)
     }
 }

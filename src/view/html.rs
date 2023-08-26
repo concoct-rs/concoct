@@ -14,30 +14,30 @@ extern "C" {
     fn log(s: &str);
 }
 
-pub fn on<M>(event: &'static str, msg: M) -> Attribute<M> {
-    Attribute::On { event, msg }
+pub fn on<E>(name: &'static str, event: E) -> Attribute<E> {
+    Attribute::On { name, event }
 }
 
-pub enum Attribute<M> {
-    On { event: &'static str, msg: M },
+pub enum Attribute<E> {
+    On { name: &'static str, event: E },
 }
 
-impl<M: 'static> Attribute<M> {
+impl<E: 'static> Attribute<E> {
     pub fn add(
         self,
-        cx: &mut Context<M>,
+        cx: &mut Context<E>,
         elem: &mut Element,
     ) -> (&'static str, Closure<dyn FnMut()>) {
         match self {
-            Self::On { event, msg } => {
+            Self::On { name, event } => {
                 let update = cx.update.clone();
-                let mut msg_cell = Some(msg);
+                let mut msg_cell = Some(event);
                 let f: Closure<dyn FnMut()> = Closure::new(move || {
                     update.borrow_mut().as_mut().unwrap()(msg_cell.take().unwrap());
                 });
-                elem.add_event_listener_with_callback(event, f.as_ref().unchecked_ref())
+                elem.add_event_listener_with_callback(name, f.as_ref().unchecked_ref())
                     .unwrap();
-                (event, f)
+                (name, f)
             }
         }
     }
@@ -75,15 +75,15 @@ impl<'a, A, V> Html<'a, A, V> {
     }
 }
 
-impl<'a, A, V, M> View<M> for Html<'a, A, V>
+impl<'a, A, V, E> View<E> for Html<'a, A, V>
 where
-    A: IntoIterator<Item = Attribute<M>>,
-    V: View<M>,
-    M: 'static,
+    A: IntoIterator<Item = Attribute<E>>,
+    V: View<E>,
+    E: 'static,
 {
     type State = (Vec<(&'static str, Closure<dyn FnMut()>)>, Element, V::State);
 
-    fn build(self, cx: &mut Context<M>) -> Self::State {
+    fn build(self, cx: &mut Context<E>) -> Self::State {
         let mut elem = cx.document.create_element(self.tag).unwrap();
         cx.insert(&elem);
 
@@ -100,7 +100,7 @@ where
         (fs, elem, state)
     }
 
-    fn rebuild(self, cx: &mut Context<M>, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
         let fs = self
             .attributes
             .into_iter()
@@ -121,7 +121,7 @@ where
         cx.stack.pop();
     }
 
-    fn remove(_cx: &mut Context<M>, state: &mut Self::State) {
+    fn remove(_cx: &mut Context<E>, state: &mut Self::State) {
         state.1.remove();
     }
 }

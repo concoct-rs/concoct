@@ -5,13 +5,13 @@ use web_sys::{Document, Node};
 pub mod view;
 use view::View;
 
-pub struct Context<M> {
+pub struct Context<E> {
     document: Document,
     stack: Vec<(web_sys::Element, usize)>,
-    pub update: Rc<RefCell<Option<Box<dyn FnMut(M)>>>>,
+    pub update: Rc<RefCell<Option<Box<dyn FnMut(E)>>>>,
 }
 
-impl<M> Context<M> {
+impl<E> Context<E> {
     pub fn new() -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -39,11 +39,11 @@ impl<M> Context<M> {
     }
 }
 
-pub fn run<T, M, V>(state: T, update: impl Fn(&mut T, M) + 'static, f: impl Fn(&T) -> V + 'static)
+pub fn run<T, E, V>(state: T, update: impl Fn(&mut T, E) + 'static, f: impl Fn(&T) -> V + 'static)
 where
     T: 'static,
-    M: 'static,
-    V: View<M>,
+    E: 'static,
+    V: View<E>,
     V::State: 'static,
 {
     let f = Rc::new(f);
