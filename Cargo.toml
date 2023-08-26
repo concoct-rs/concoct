@@ -7,19 +7,8 @@ description = "Generic UI compiler and runtime library"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
-# gl = ["dep:gl", "dep:glutin", "dep:glutin-winit", "dep:raw-window-handle", "dep:slotmap", "dep:winit"]
 default = []
 
 [dependencies]
 wasm-bindgen = "0.2.87"
 web-sys = { version = "0.3.64", features = ["Node", "Document", "HtmlElement", "Window", "Text"] }
-# tokio = { version = "1.29.1", features = ["full"] }
-# accesskit = "0.11.1"
-# gl = { version = "0.14.0", optional = true }
-# glutin = { version = "0.30.9", optional = true }
-# glutin-winit = { version = "0.3.0", optional = true }
-# raw-window-handle = { version = "0.5.2", optional = true }
-# skia-safe = { version = "0.64.0", features = ["gl"] }
-# slotmap = { version = "1.0.6", optional = true }
-# taffy = "0.3.12"
-# winit = { version = "0.28.6", optional = true }

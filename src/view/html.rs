@@ -1,5 +1,5 @@
 use super::View;
-use crate::ElementContext;
+use crate::Context;
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 pub struct Html<'a, V> {
@@ -19,7 +19,7 @@ where
 {
     type State = (Closure<dyn FnMut()>, V::State);
 
-    fn build(self, cx: &mut ElementContext) -> Self::State {
+    fn build(self, cx: &mut Context) -> Self::State {
         let elem = cx.document.create_element(self.tag).unwrap();
 
         let update = cx.update.clone();
@@ -38,7 +38,7 @@ where
         (f, state)
     }
 
-    fn rebuild(self, cx: &mut ElementContext, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut Context, state: &mut Self::State) {
         self.child.rebuild(cx, &mut state.1)
     }
 }

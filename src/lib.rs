@@ -4,13 +4,13 @@ use web_sys::Document;
 pub mod view;
 use view::View;
 
-pub struct ElementContext {
+pub struct Context {
     document: Document,
     stack: Vec<web_sys::Element>,
     pub update: Rc<RefCell<Option<Box<dyn FnMut()>>>>,
 }
 
-impl ElementContext {
+impl Context {
     pub fn new() -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -50,7 +50,7 @@ impl App {
         let cx_f = f.clone();
         let cx_view_state = view_state.clone();
 
-        let cx = Rc::new(RefCell::new(ElementContext::new()));
+        let cx = Rc::new(RefCell::new(Context::new()));
         let update_cx = cx.clone();
         *cx.borrow_mut().update.borrow_mut() = Some(Box::new(move || {
             update(&mut cx_state.borrow_mut());
