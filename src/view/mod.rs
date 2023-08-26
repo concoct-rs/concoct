@@ -44,3 +44,4 @@ pub trait View<T, A = ()> {
 
     fn message(&mut self, state: &mut T, id_path: &[Id], message: &dyn Any) -> Option<A>;
 }
+
