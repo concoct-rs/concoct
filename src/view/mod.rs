@@ -4,6 +4,9 @@ use web_sys::Text;
 pub mod html;
 pub use html::{Attribute, Html};
 
+mod lazy;
+pub use lazy::{lazy, Lazy};
+
 pub trait View<M> {
     type State;
 
