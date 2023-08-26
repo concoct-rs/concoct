@@ -1,7 +1,7 @@
 use concoct::{App, Html, View};
 
 fn counter() -> impl View {
-    Html::new("h2")
+    "Hello World!"
 }
 
 fn main() {

@@ -9,7 +9,6 @@ use std::num::NonZeroU64;
 
 pub struct Id(NonZeroU64);
 
-
 pub struct BuildContext {
     next_id: NonZeroU64,
     unused_ids: Vec<Id>,
@@ -17,7 +16,10 @@ pub struct BuildContext {
 
 impl Default for BuildContext {
     fn default() -> Self {
-        Self { next_id: NonZeroU64::MIN, unused_ids: Vec::new() }
+        Self {
+            next_id: NonZeroU64::MIN,
+            unused_ids: Vec::new(),
+        }
     }
 }
 
@@ -38,7 +40,13 @@ impl BuildContext {
 pub trait View {
     type State;
 
-    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Element);
+    type Element: Element;
+
+    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element);
+}
+
+pub trait Element {
+    fn build(&self, cx: &mut ElementContext);
 }
 
 use web_sys::{Document, HtmlElement, Node};
@@ -48,7 +56,7 @@ pub struct Html<'a> {
 }
 
 impl<'a> Html<'a> {
-    pub fn new(  tag: &'a str,) -> Self {
+    pub fn new(tag: &'a str) -> Self {
         Self { tag }
     }
 }
@@ -56,16 +64,42 @@ impl<'a> Html<'a> {
 impl<'a> View for Html<'a> {
     type State = ();
 
-    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Element<'a>) {
+    type Element = DomElement<'a>;
+
+    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element) {
         let id = cx.insert();
-        let elem = Element { tag: self.tag };
+        let elem = DomElement { tag: self.tag };
         (id, (), elem)
+    }
+}
+
+impl<'a> View for &'a str {
+    type State = ();
+
+    type Element = TextElement<'a>;
+
+    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element) {
+        let id = cx.insert();
+        let elem = TextElement { content: self };
+        (id, (), elem)
+    }
+}
+
+pub struct TextElement<'a> {
+    content: &'a str,
+}
+
+impl Element for TextElement<'_> {
+    fn build(&self, cx: &mut ElementContext) {
+        let elem = cx.document.create_text_node(self.content);
+        cx.body.append_child(&elem).unwrap();
     }
 }
 
 pub struct ElementContext {
     document: Document,
     body: HtmlElement,
+    stack: Vec<web_sys::Element>,
 }
 
 impl ElementContext {
@@ -74,16 +108,20 @@ impl ElementContext {
         let document = window.document().expect("should have a document on window");
         let body = document.body().expect("HTML document missing body");
 
-        Self { document, body }
+        Self {
+            document,
+            body,
+            stack: Vec::new(),
+        }
     }
 }
 
-pub struct Element<'a> {
+pub struct DomElement<'a> {
     tag: &'a str,
 }
 
-impl<'a> Element<'a> {
-    pub fn build(&self, cx: &mut ElementContext) {
+impl<'a> Element for DomElement<'a> {
+    fn build(&self, cx: &mut ElementContext) {
         let elem = cx.document.create_element(self.tag);
 
         cx.body.append_child(elem.as_ref().unwrap()).unwrap();
@@ -92,12 +130,15 @@ impl<'a> Element<'a> {
 
 pub struct App {
     build_cx: BuildContext,
-    element_cx: ElementContext
+    element_cx: ElementContext,
 }
 
 impl App {
     pub fn new() -> Self {
-        Self { build_cx: BuildContext::default(), element_cx: ElementContext::new() }
+        Self {
+            build_cx: BuildContext::default(),
+            element_cx: ElementContext::new(),
+        }
     }
 
     pub fn run(&mut self, view: impl View) {

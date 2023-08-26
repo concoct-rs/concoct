@@ -11,7 +11,7 @@ repository = "https://github.com/concoct-rs/concoct"
 default = []
 
 [dependencies]
-web-sys = { version = "0.3.64", features = ["Node", "Document", "HtmlElement", "Window"] }
+web-sys = { version = "0.3.64", features = ["Node", "Document", "HtmlElement", "Window", "Text"] }
 # tokio = { version = "1.29.1", features = ["full"] }
 # accesskit = "0.11.1"
 # gl = { version = "0.14.0", optional = true }
