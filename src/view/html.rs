@@ -1,18 +1,7 @@
 use super::View;
 use crate::Context;
-use wasm_bindgen::{
-    prelude::{wasm_bindgen, Closure},
-    JsCast,
-};
+use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::Element;
-
-#[wasm_bindgen]
-extern "C" {
-    // Use `js_namespace` here to bind `console.log(..)` instead of just
-    // `log(..)`
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
 
 pub fn on<E>(name: &'static str, event: E) -> Attribute<E> {
     Attribute::On { name, event }
