@@ -6,13 +6,11 @@
 
 [Examples](https://github.com/concoct-rs/concoct/tree/main/examples)
 
-Rust native UI framework.
+Rust zero-cost reactive UI framework.
 
 ## Features
-- Statically typed, compile-time UI tree
-- Accessability with [accesskit](https://github.com/AccessKit/accesskit)
-- Flexbox layout with [taffy](https://github.com/DioxusLabs/taffy)
-- Inspired by the [xilem](https://github.com/linebender/xilem) and elm architectures.
+ - Inspired by the elm architecture
+ - Compile-time UI tree
 
 ```rust
 enum Message {
