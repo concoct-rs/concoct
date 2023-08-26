@@ -1,5 +1,5 @@
 [package]
-name = "concoct-example"
+name = "concoct-todomvc"
 version = "0.1.0"
 authors = ["Matt Hunzinger <matthunz2@gmail.com>"]
 edition = "2018"
