@@ -1,5 +1,5 @@
-use concoct::view::{Attribute, Html, View};
-use concoct::App;
+use concoct::view::html::{button, h1, on};
+use concoct::view::View;
 
 enum Message {
     Increment,
@@ -7,19 +7,15 @@ enum Message {
 }
 
 fn counter(count: &i32) -> impl View<Message> {
-    Html::new(
-        "h1",
-        [Attribute::On {
-            event: "click",
-            msg: Message::Decrement,
-        }],
-        count.to_string(),
+    (
+        h1([], count.to_string()),
+        button([on("click", Message::Increment)], "More"),
+        button([on("click", Message::Decrement)], "Less"),
     )
 }
 
 fn main() {
-    let mut app = App::new();
-    app.run(
+    concoct::run(
         0,
         |count, msg| match msg {
             Message::Increment => *count += 1,

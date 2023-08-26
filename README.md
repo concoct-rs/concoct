@@ -15,19 +15,28 @@ Rust native UI framework.
 - Inspired by the [xilem](https://github.com/linebender/xilem) and elm architectures.
 
 ```rust
-fn circle(radius: f32) -> impl View<f32> {
-    Canvas::new(move |_layout, canvas| {
-        let color = Color4f::new(1., 0., 0., 1.);
-        canvas.draw_circle((radius, radius), radius, &Paint::new(color, None));
-    })
-    .size(Size::from_points(radius * 2., radius * 2.))
+enum Message {
+    Increment,
+    Decrement,
 }
 
-fn app() -> impl View<()> {
-    remember(
-        || 50.,
-        |radius: &mut f32| clickable(Role::Button, |r: &mut f32| *r *= 2., circle(*radius)),
+fn counter(count: &i32) -> impl View<Message> {
+    (
+        h1([], count.to_string()),
+        button([on("click", Message::Increment)], "More"),
+        button([on("click", Message::Decrement)], "Less"),
     )
+}
+
+fn main() {
+    concoct::run(
+        0,
+        |count, msg| match msg {
+            Message::Increment => *count += 1,
+            Message::Decrement => *count -= 1,
+        },
+        counter,
+    );
 }
 ```
 

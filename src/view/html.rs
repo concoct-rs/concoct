@@ -1,7 +1,13 @@
+use std::iter;
+
 use super::View;
 use crate::Context;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::Element;
+
+pub fn on<M>(event: &'static str, msg: M) -> Attribute<M> {
+    Attribute::On { event, msg }
+}
 
 pub enum Attribute<M> {
     On { event: &'static str, msg: M },
@@ -28,6 +34,14 @@ impl<M: 'static> Attribute<M> {
     }
 }
 
+pub fn h1<A, V>(attributes: A, child: V) -> Html<'static, A, V> {
+    Html::new("h1", attributes, child)
+}
+
+pub fn button<A, V>(attributes: A, child: V) -> Html<'static, A, V> {
+    Html::new("button", attributes, child)
+}
+
 pub struct Html<'a, A, V> {
     tag: &'a str,
     attributes: A,
@@ -41,6 +55,14 @@ impl<'a, A, V> Html<'a, A, V> {
             attributes,
             child,
         }
+    }
+
+    pub fn attributes<A2>(self, attributes: A2) -> Html<'a, A2, V> {
+        Html::new(self.tag, attributes, self.child)
+    }
+
+    pub fn child<V2>(self, child: V2) -> Html<'a, A, V2> {
+        Html::new(self.tag, self.attributes, child)
     }
 }
 
