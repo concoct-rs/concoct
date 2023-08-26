@@ -1,12 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
-use web_sys::Document;
+
+use web_sys::{Document, Node};
 
 pub mod view;
 use view::View;
 
 pub struct Context<M> {
     document: Document,
-    stack: Vec<web_sys::Element>,
+    stack: Vec<(web_sys::Element, usize)>,
     pub update: Rc<RefCell<Option<Box<dyn FnMut(M)>>>>,
 }
 
@@ -18,9 +19,23 @@ impl<M> Context<M> {
 
         Self {
             document,
-            stack: vec![body.into()],
+            stack: vec![(body.into(), 0)],
             update: Rc::new(RefCell::new(None)),
         }
+    }
+
+    pub fn insert(&mut self, node: &Node) {
+        let (parent, idx) = self.stack.last_mut().unwrap();
+        parent
+            .insert_before(node, parent.children().get_with_index(*idx as _).as_deref())
+            .unwrap();
+
+        *idx += 1;
+    }
+
+    pub fn skip(&mut self) {
+        let (_, idx) = self.stack.last_mut().unwrap();
+        *idx += 1;
     }
 }
 
@@ -46,10 +61,9 @@ where
         update(&mut cx_state.borrow_mut(), msg);
 
         let view = cx_f(&cx_state.borrow());
-        view.rebuild(
-            &mut update_cx.borrow_mut(),
-            cx_view_state.borrow_mut().as_mut().unwrap(),
-        );
+        let update_cx = &mut update_cx.borrow_mut();
+        update_cx.stack.last_mut().unwrap().1 = 0;
+        view.rebuild(update_cx, cx_view_state.borrow_mut().as_mut().unwrap());
     }));
 
     let view = f(&state.borrow());

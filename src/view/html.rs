@@ -1,7 +1,18 @@
 use super::View;
 use crate::Context;
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{
+    prelude::{wasm_bindgen, Closure},
+    JsCast,
+};
 use web_sys::Element;
+
+#[wasm_bindgen]
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
 
 pub fn on<M>(event: &'static str, msg: M) -> Attribute<M> {
     Attribute::On { event, msg }
@@ -74,17 +85,17 @@ where
 
     fn build(self, cx: &mut Context<M>) -> Self::State {
         let mut elem = cx.document.create_element(self.tag).unwrap();
+        cx.insert(&elem);
+
         let fs = self
             .attributes
             .into_iter()
             .map(|attr| attr.add(cx, &mut elem))
             .collect();
 
-        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
-
-        cx.stack.push(elem);
+        cx.stack.push((elem, 0));
         let state = self.child.build(cx);
-        let elem = cx.stack.pop().unwrap();
+        let (elem, _) = cx.stack.pop().unwrap();
 
         (fs, elem, state)
     }
@@ -102,10 +113,12 @@ where
                 attr.add(cx, &mut state.1)
             })
             .collect();
-
         state.0 = fs;
 
-        self.child.rebuild(cx, &mut state.2)
+        cx.skip();
+        cx.stack.push((state.1.clone(), 0));
+        self.child.rebuild(cx, &mut state.2);
+        cx.stack.pop();
     }
 
     fn remove(_cx: &mut Context<M>, state: &mut Self::State) {

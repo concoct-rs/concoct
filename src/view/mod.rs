@@ -40,13 +40,15 @@ impl<M, V: View<M>> View<M> for Option<V> {
             }
         } else if let Some(s) = state {
             V::remove(cx, s);
-            *state = None
+            *state = None;
+            cx.skip();
         }
     }
 
     fn remove(cx: &mut Context<M>, state: &mut Self::State) {
         if let Some(state) = state {
-            V::remove(cx, state)
+            V::remove(cx, state);
+            cx.skip()
         }
     }
 }
@@ -56,14 +58,16 @@ impl<'a, M> View<M> for &'a str {
 
     fn build(self, cx: &mut Context<M>) -> Self::State {
         let elem = cx.document.create_text_node(&self);
-        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
+        cx.insert(&elem);
+
         (self, elem)
     }
 
-    fn rebuild(self, _cx: &mut Context<M>, (prev, text): &mut Self::State) {
+    fn rebuild(self, cx: &mut Context<M>, (prev, text): &mut Self::State) {
         if &self != &*prev {
             text.set_text_content(Some(&self))
         }
+        cx.skip()
     }
 
     fn remove(_cx: &mut Context<M>, state: &mut Self::State) {
@@ -76,14 +80,15 @@ impl<M> View<M> for String {
 
     fn build(self, cx: &mut Context<M>) -> Self::State {
         let elem = cx.document.create_text_node(&self);
-        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
+        cx.insert(&elem);
         (self, elem)
     }
 
-    fn rebuild(self, _cx: &mut Context<M>, (prev, text): &mut Self::State) {
+    fn rebuild(self, cx: &mut Context<M>, (prev, text): &mut Self::State) {
         if &self != &*prev {
             text.set_text_content(Some(&self))
         }
+        cx.skip()
     }
 
     fn remove(_cx: &mut Context<M>, state: &mut Self::State) {
