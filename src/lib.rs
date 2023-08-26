@@ -5,7 +5,7 @@
 
 // pub mod view;
 
-use std::num::NonZeroU64;
+use std::{cell::RefCell, num::NonZeroU64, rc::Rc};
 
 pub mod element;
 
@@ -48,37 +48,62 @@ use web_sys::Document;
 pub struct ElementContext {
     document: Document,
     stack: Vec<web_sys::Element>,
+    pub update: Rc<RefCell<dyn FnMut()>>,
 }
 
 impl ElementContext {
-    pub fn new() -> Self {
+    pub fn new(update: impl FnMut() + 'static) -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let body = document.body().expect("HTML document missing body");
 
         Self {
             document,
-
             stack: vec![body.into()],
+            update: Rc::new(RefCell::new(update)),
         }
     }
 }
 
 pub struct App {
     build_cx: BuildContext,
-    element_cx: ElementContext,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
             build_cx: BuildContext::default(),
-            element_cx: ElementContext::new(),
         }
     }
 
-    pub fn run(&mut self, view: impl View) {
-        let (_id, _state, elem) = view.build(&mut self.build_cx);
-        elem.build(&mut self.element_cx);
+    pub fn run<T, V>(
+        &mut self,
+        mut state: T,
+        update: impl Fn(&mut T) + 'static,
+        f: impl Fn(&T) -> V + 'static,
+    ) where
+        T: 'static,
+        V: View,
+        <V::Element as Element>::State: 'static,
+    {
+        let f = Rc::new(f);
+
+        let state = Rc::new(RefCell::new(state));
+        let element_state = Rc::new(RefCell::new(None));
+
+        let cx_state = state.clone();
+        let cx_f = f.clone();
+        let cx_element_state = element_state.clone();
+
+        let mut cx = ElementContext::new(move || {
+            update(&mut cx_state.borrow_mut());
+
+            let mut view = cx_f(&cx_state.borrow());
+
+            &cx_element_state;
+        });
+
+        let (_id, state, elem) = f(&state.borrow()).build(&mut self.build_cx);
+        *element_state.borrow_mut() = Some(elem.build(&mut cx));
     }
 }

@@ -7,5 +7,7 @@ pub use text::TextElement;
 use crate::ElementContext;
 
 pub trait Element {
-    fn build(&self, cx: &mut ElementContext);
+    type State;
+
+    fn build(&self, cx: &mut ElementContext) -> Self::State;
 }

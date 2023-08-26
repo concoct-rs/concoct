@@ -14,14 +14,14 @@ pub trait View {
     fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element);
 }
 
-impl<'a> View for &'a str {
+impl View for String {
     type State = ();
 
-    type Element = TextElement<'a>;
+    type Element = TextElement;
 
     fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element) {
         let id = cx.insert();
-        let elem = TextElement::new(self);
+        let elem = TextElement::new(self.clone());
         (id, (), elem)
     }
 }
