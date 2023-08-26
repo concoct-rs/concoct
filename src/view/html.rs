@@ -1,44 +1,90 @@
 use super::View;
 use crate::Context;
 use wasm_bindgen::{prelude::Closure, JsCast};
+use web_sys::Element;
 
-pub struct Html<'a, V> {
-    tag: &'a str,
-    child: V,
+pub enum Attribute<M> {
+    On { event: &'static str, msg: M },
 }
 
-impl<'a, V> Html<'a, V> {
-    pub fn new(tag: &'a str, child: V) -> Self {
-        Self { tag, child }
+impl<M: 'static> Attribute<M> {
+    pub fn add(
+        self,
+        cx: &mut Context<M>,
+        elem: &mut Element,
+    ) -> (&'static str, Closure<dyn FnMut()>) {
+        match self {
+            Self::On { event, msg } => {
+                let update = cx.update.clone();
+                let mut msg_cell = Some(msg);
+                let f: Closure<dyn FnMut()> = Closure::new(move || {
+                    update.borrow_mut().as_mut().unwrap()(msg_cell.take().unwrap());
+                });
+                elem.add_event_listener_with_callback(event, f.as_ref().unchecked_ref())
+                    .unwrap();
+                (event, f)
+            }
+        }
     }
 }
 
-impl<'a, V> View for Html<'a, V>
+pub struct Html<'a, A, V> {
+    tag: &'a str,
+    attributes: A,
+    child: V,
+}
+
+impl<'a, A, V> Html<'a, A, V> {
+    pub fn new(tag: &'a str, attributes: A, child: V) -> Self {
+        Self {
+            tag,
+            attributes,
+            child,
+        }
+    }
+}
+
+impl<'a, A, V, M> View<M> for Html<'a, A, V>
 where
-    V: View,
+    A: IntoIterator<Item = Attribute<M>>,
+    V: View<M>,
+    M: 'static,
 {
-    type State = (Closure<dyn FnMut()>, V::State);
+    type State = (Vec<(&'static str, Closure<dyn FnMut()>)>, Element, V::State);
 
-    fn build(self, cx: &mut Context) -> Self::State {
-        let elem = cx.document.create_element(self.tag).unwrap();
-
-        let update = cx.update.clone();
-        let f: Closure<dyn FnMut()> = Closure::new(move || {
-            update.borrow_mut().as_mut().unwrap()();
-        });
-        elem.add_event_listener_with_callback("click", f.as_ref().unchecked_ref())
-            .unwrap();
+    fn build(self, cx: &mut Context<M>) -> Self::State {
+        let mut elem = cx.document.create_element(self.tag).unwrap();
+        let fs = self
+            .attributes
+            .into_iter()
+            .map(|attr| attr.add(cx, &mut elem))
+            .collect();
 
         cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
 
         cx.stack.push(elem);
         let state = self.child.build(cx);
-        cx.stack.pop();
+        let elem = cx.stack.pop().unwrap();
 
-        (f, state)
+        (fs, elem, state)
     }
 
-    fn rebuild(self, cx: &mut Context, state: &mut Self::State) {
-        self.child.rebuild(cx, &mut state.1)
+    fn rebuild(self, cx: &mut Context<M>, state: &mut Self::State) {
+        let fs = self
+            .attributes
+            .into_iter()
+            .zip(state.0.iter())
+            .map(|(attr, prev)| {
+                state
+                    .1
+                    .remove_event_listener_with_callback(prev.0, prev.1.as_ref().unchecked_ref())
+                    .unwrap();
+                attr.add(cx, &mut state.1)
+            })
+            .collect();
+
+        state.0 = fs;
+
+        self.child.rebuild(cx, &mut state.2)
     }
 }

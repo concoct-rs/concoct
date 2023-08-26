@@ -4,13 +4,13 @@ use web_sys::Document;
 pub mod view;
 use view::View;
 
-pub struct Context {
+pub struct Context<M> {
     document: Document,
     stack: Vec<web_sys::Element>,
-    pub update: Rc<RefCell<Option<Box<dyn FnMut()>>>>,
+    pub update: Rc<RefCell<Option<Box<dyn FnMut(M)>>>>,
 }
 
-impl Context {
+impl<M> Context<M> {
     pub fn new() -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -31,14 +31,15 @@ impl App {
         Self {}
     }
 
-    pub fn run<T, V>(
+    pub fn run<T, M, V>(
         &mut self,
         state: T,
-        update: impl Fn(&mut T) + 'static,
+        update: impl Fn(&mut T, M) + 'static,
         f: impl Fn(&T) -> V + 'static,
     ) where
         T: 'static,
-        V: View,
+        M: 'static,
+        V: View<M>,
         V::State: 'static,
     {
         let f = Rc::new(f);
@@ -52,8 +53,8 @@ impl App {
 
         let cx = Rc::new(RefCell::new(Context::new()));
         let update_cx = cx.clone();
-        *cx.borrow_mut().update.borrow_mut() = Some(Box::new(move || {
-            update(&mut cx_state.borrow_mut());
+        *cx.borrow_mut().update.borrow_mut() = Some(Box::new(move |msg| {
+            update(&mut cx_state.borrow_mut(), msg);
 
             let view = cx_f(&cx_state.borrow());
             view.rebuild(
