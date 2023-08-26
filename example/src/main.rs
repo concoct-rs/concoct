@@ -1,4 +1,5 @@
-use concoct::{App, Html, View};
+use concoct::view::{Html, View};
+use concoct::App;
 
 fn counter() -> impl View {
     Html::new("h1", "Hello World!")
