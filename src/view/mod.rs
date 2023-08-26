@@ -1,27 +1,29 @@
-use crate::{
-    element::{Element, TextElement},
-    BuildContext, Id,
-};
+use crate::ElementContext;
+use web_sys::Text;
 
-pub use html::Html;
 mod html;
+pub use html::Html;
 
 pub trait View {
     type State;
 
-    type Element: Element;
+    fn build(self, cx: &mut ElementContext) -> Self::State;
 
-    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element);
+    fn rebuild(self, cx: &mut ElementContext, state: &mut Self::State);
 }
 
 impl View for String {
-    type State = ();
+    type State = (String, Text);
 
-    type Element = TextElement;
+    fn build(self, cx: &mut ElementContext) -> Self::State {
+        let elem = cx.document.create_text_node(&self);
+        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
+        (self, elem)
+    }
 
-    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element) {
-        let id = cx.insert();
-        let elem = TextElement::new(self.clone());
-        (id, (), elem)
+    fn rebuild(self, _cx: &mut ElementContext, (prev, text): &mut Self::State) {
+        if &self != &*prev {
+            text.set_text_content(Some(&self))
+        }
     }
 }

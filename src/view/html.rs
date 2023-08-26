@@ -1,5 +1,6 @@
 use super::View;
-use crate::{element::DomElement, BuildContext, Id};
+use crate::ElementContext;
+use wasm_bindgen::{prelude::Closure, JsCast};
 
 pub struct Html<'a, V> {
     tag: &'a str,
@@ -12,18 +13,32 @@ impl<'a, V> Html<'a, V> {
     }
 }
 
-impl<'a, V: View> View for Html<'a, V> {
-    type State = V::State;
+impl<'a, V> View for Html<'a, V>
+where
+    V: View,
+{
+    type State = (Closure<dyn FnMut()>, V::State);
 
-    type Element = DomElement<'a, V::Element>;
+    fn build(self, cx: &mut ElementContext) -> Self::State {
+        let elem = cx.document.create_element(self.tag).unwrap();
 
-    fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element) {
-        let id = cx.insert();
+        let update = cx.update.clone();
+        let f: Closure<dyn FnMut()> = Closure::new(move || {
+            update.borrow_mut().as_mut().unwrap()();
+        });
+        elem.add_event_listener_with_callback("click", f.as_ref().unchecked_ref())
+            .unwrap();
 
-        let (child_id, child_state, child_elem) = self.child.build(cx);
+        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
 
-        let elem = DomElement::new(self.tag, child_elem, child_id);
+        cx.stack.push(elem);
+        let state = self.child.build(cx);
+        cx.stack.pop();
 
-        (id, child_state, elem)
+        (f, state)
+    }
+
+    fn rebuild(self, cx: &mut ElementContext, state: &mut Self::State) {
+        self.child.rebuild(cx, &mut state.1)
     }
 }

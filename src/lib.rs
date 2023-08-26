@@ -1,58 +1,17 @@
-// #[cfg(feature = "gl")]
-// mod renderer;
-// #[cfg(feature = "gl")]
-// pub use renderer::{Event, Renderer};
-
-// pub mod view;
-
-use std::{cell::RefCell, num::NonZeroU64, rc::Rc};
-
-pub mod element;
+use std::{cell::RefCell, rc::Rc};
+use web_sys::Document;
 
 pub mod view;
-
-pub struct Id(NonZeroU64);
-
-pub struct BuildContext {
-    next_id: NonZeroU64,
-    unused_ids: Vec<Id>,
-}
-
-impl Default for BuildContext {
-    fn default() -> Self {
-        Self {
-            next_id: NonZeroU64::MIN,
-            unused_ids: Vec::new(),
-        }
-    }
-}
-
-impl BuildContext {
-    pub fn insert(&mut self) -> Id {
-        self.unused_ids.pop().unwrap_or_else(|| {
-            let id = Id(self.next_id);
-            self.next_id = self.next_id.checked_add(1).unwrap();
-            id
-        })
-    }
-
-    pub fn remove(&mut self, id: Id) {
-        self.unused_ids.push(id);
-    }
-}
-
-use element::Element;
 use view::View;
-use web_sys::Document;
 
 pub struct ElementContext {
     document: Document,
     stack: Vec<web_sys::Element>,
-    pub update: Rc<RefCell<dyn FnMut()>>,
+    pub update: Rc<RefCell<Option<Box<dyn FnMut()>>>>,
 }
 
 impl ElementContext {
-    pub fn new(update: impl FnMut() + 'static) -> Self {
+    pub fn new() -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let body = document.body().expect("HTML document missing body");
@@ -60,50 +19,50 @@ impl ElementContext {
         Self {
             document,
             stack: vec![body.into()],
-            update: Rc::new(RefCell::new(update)),
+            update: Rc::new(RefCell::new(None)),
         }
     }
 }
 
-pub struct App {
-    build_cx: BuildContext,
-}
+pub struct App {}
 
 impl App {
     pub fn new() -> Self {
-        Self {
-            build_cx: BuildContext::default(),
-        }
+        Self {}
     }
 
     pub fn run<T, V>(
         &mut self,
-        mut state: T,
+        state: T,
         update: impl Fn(&mut T) + 'static,
         f: impl Fn(&T) -> V + 'static,
     ) where
         T: 'static,
         V: View,
-        <V::Element as Element>::State: 'static,
+        V::State: 'static,
     {
         let f = Rc::new(f);
 
         let state = Rc::new(RefCell::new(state));
-        let element_state = Rc::new(RefCell::new(None));
+        let view_state: Rc<RefCell<Option<V::State>>> = Rc::new(RefCell::new(None));
 
         let cx_state = state.clone();
         let cx_f = f.clone();
-        let cx_element_state = element_state.clone();
+        let cx_view_state = view_state.clone();
 
-        let mut cx = ElementContext::new(move || {
+        let cx = Rc::new(RefCell::new(ElementContext::new()));
+        let update_cx = cx.clone();
+        *cx.borrow_mut().update.borrow_mut() = Some(Box::new(move || {
             update(&mut cx_state.borrow_mut());
 
-            let mut view = cx_f(&cx_state.borrow());
+            let view = cx_f(&cx_state.borrow());
+            view.rebuild(
+                &mut update_cx.borrow_mut(),
+                cx_view_state.borrow_mut().as_mut().unwrap(),
+            );
+        }));
 
-            &cx_element_state;
-        });
-
-        let (_id, state, elem) = f(&state.borrow()).build(&mut self.build_cx);
-        *element_state.borrow_mut() = Some(elem.build(&mut cx));
+        let view = f(&state.borrow());
+        *view_state.borrow_mut() = Some(view.build(&mut cx.borrow_mut()));
     }
 }
