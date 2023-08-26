@@ -1,5 +1,3 @@
-use std::iter;
-
 use super::View;
 use crate::Context;
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -108,5 +106,9 @@ where
         state.0 = fs;
 
         self.child.rebuild(cx, &mut state.2)
+    }
+
+    fn remove(_cx: &mut Context<M>, state: &mut Self::State) {
+        state.1.remove();
     }
 }

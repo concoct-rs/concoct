@@ -8,7 +8,11 @@ enum Message {
 
 fn counter(count: &i32) -> impl View<Message> {
     (
-        h1([], count.to_string()),
+        if *count % 2 == 0 {
+            Some(h1([], count.to_string()))
+        } else {
+            None
+        },
         button([on("click", Message::Increment)], "More"),
         button([on("click", Message::Decrement)], "Less"),
     )
