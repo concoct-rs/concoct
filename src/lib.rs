@@ -51,25 +51,34 @@ pub trait Element {
 
 use web_sys::{Document, HtmlElement, Node};
 
-pub struct Html<'a> {
+pub struct Html<'a, V> {
     tag: &'a str,
+    child: V,
 }
 
-impl<'a> Html<'a> {
-    pub fn new(tag: &'a str) -> Self {
-        Self { tag }
+impl<'a, V> Html<'a, V> {
+    pub fn new(tag: &'a str, child: V) -> Self {
+        Self { tag, child }
     }
 }
 
-impl<'a> View for Html<'a> {
-    type State = ();
+impl<'a, V: View> View for Html<'a, V> {
+    type State = V::State;
 
-    type Element = DomElement<'a>;
+    type Element = DomElement<'a, V::Element>;
 
     fn build(&self, cx: &mut BuildContext) -> (Id, Self::State, Self::Element) {
         let id = cx.insert();
-        let elem = DomElement { tag: self.tag };
-        (id, (), elem)
+
+        let (child_id, child_state, child_elem) = self.child.build(cx);
+
+        let elem = DomElement {
+            tag: self.tag,
+            child: child_elem,
+            child_id,
+        };
+
+        (id, child_state, elem)
     }
 }
 
@@ -92,13 +101,12 @@ pub struct TextElement<'a> {
 impl Element for TextElement<'_> {
     fn build(&self, cx: &mut ElementContext) {
         let elem = cx.document.create_text_node(self.content);
-        cx.body.append_child(&elem).unwrap();
+        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
     }
 }
 
 pub struct ElementContext {
     document: Document,
-    body: HtmlElement,
     stack: Vec<web_sys::Element>,
 }
 
@@ -110,21 +118,29 @@ impl ElementContext {
 
         Self {
             document,
-            body,
-            stack: Vec::new(),
+
+            stack: vec![body.into()],
         }
     }
 }
 
-pub struct DomElement<'a> {
+pub struct DomElement<'a, C> {
     tag: &'a str,
+    child: C,
+    child_id: Id,
 }
 
-impl<'a> Element for DomElement<'a> {
+impl<'a, C> Element for DomElement<'a, C>
+where
+    C: Element,
+{
     fn build(&self, cx: &mut ElementContext) {
-        let elem = cx.document.create_element(self.tag);
+        let elem = cx.document.create_element(self.tag).unwrap();
+        cx.stack.last_mut().unwrap().append_child(&elem).unwrap();
 
-        cx.body.append_child(elem.as_ref().unwrap()).unwrap();
+        cx.stack.push(elem);
+        self.child.build(cx);
+        cx.stack.pop();
     }
 }
 
