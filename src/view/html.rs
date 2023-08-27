@@ -2,7 +2,7 @@ use super::View;
 use crate::Context;
 use impl_trait_for_tuples::impl_for_tuples;
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::Element;
+use web_sys::{Element, Event};
 
 pub trait Attribute<E> {
     type State;
@@ -25,7 +25,44 @@ impl<E> Attribute<E> for Tuple {
     }
 }
 
-pub fn on<F>(name: &str, make: F) -> OnAttr<F> {
+pub fn value(value: String) -> StrAttr<'static,> {
+    attr("value", value)
+}
+
+pub fn attr<'a>(name: &'a str, value: String) -> StrAttr<'a> {
+    StrAttr { name, value }
+}
+
+pub struct StrAttr<'a> {
+    name: &'a str,
+    value: String
+}
+
+impl<E> Attribute<E> for StrAttr<'_,> {
+    type State = ();
+
+    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {
+        elem.set_attribute(self.name, &self.value).unwrap();
+    }
+
+    fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {
+        elem.set_attribute(self.name, &self.value).unwrap();
+    }
+}
+
+pub fn event_target_value(event: &Event) -> String {
+    event
+        .target()
+        .unwrap()
+        .unchecked_into::<web_sys::HtmlInputElement>()
+        .value()
+}
+
+pub fn on<F, E>(name: &str, make: F) -> OnAttr<F>
+where
+    F: Fn(Event) -> E + 'static,
+    E: 'static,
+{
     OnAttr { name, make }
 }
 
@@ -36,16 +73,16 @@ pub struct OnAttr<'a, F> {
 
 impl<'a, F, E> Attribute<E> for OnAttr<'a, F>
 where
-    F: Fn() -> E + 'static,
+    F: Fn(Event) -> E + 'static,
     E: 'static,
 {
-    type State = (&'a str, Closure<dyn FnMut()>);
+    type State = (&'a str, Closure<dyn FnMut(Event)>);
 
     fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {
         let update = cx.update.clone();
 
-        let f: Closure<dyn FnMut()> = Closure::new(move || {
-            update.borrow_mut().as_mut().unwrap()((self.make)());
+        let f: Closure<dyn FnMut(Event)> = Closure::new(move |event| {
+            update.borrow_mut().as_mut().unwrap()((self.make)(event));
         });
         elem.add_event_listener_with_callback(self.name, f.as_ref().unchecked_ref())
             .unwrap();
