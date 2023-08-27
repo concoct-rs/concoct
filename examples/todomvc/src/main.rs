@@ -1,5 +1,8 @@
-use concoct::view::html::{event_key_code, event_target_value, h1, header, input, on, p, value};
+use concoct::view::html::{
+    event_key_code, event_target_value, h1, header, input, li, on, p, ul, value,
+};
 use concoct::view::View;
+use slotmap::{DefaultKey, SlotMap};
 use std::mem;
 
 enum Event {
@@ -11,6 +14,7 @@ enum Event {
 #[derive(Default)]
 struct State {
     title: String,
+    todos: SlotMap<DefaultKey, String>,
 }
 
 fn view_input(state: &State) -> impl View<Event> {
@@ -35,7 +39,16 @@ fn view_input(state: &State) -> impl View<Event> {
 }
 
 fn app(state: &State) -> impl View<Event> {
-    view_input(state)
+    (
+        view_input(state),
+        ul().then(
+            state
+                .todos
+                .iter()
+                .map(|(key, todo)| (key, li().then(todo.clone())))
+                .collect::<Vec<_>>(),
+        ),
+    )
 }
 
 fn main() {
@@ -47,7 +60,8 @@ fn main() {
                 state.title = value;
             }
             Event::AddTodo => {
-                state.title = String::new();
+                let title = mem::take(&mut state.title);
+                state.todos.insert(title);
             }
         },
         app,

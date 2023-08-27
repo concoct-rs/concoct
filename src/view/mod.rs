@@ -106,3 +106,38 @@ impl<E> View<E> for Tuple {
         for_tuples!( #( Tuple::remove(cx, &mut state.Tuple); )* )
     }
 }
+
+impl<E, K, V> View<E> for Vec<(K, V)>
+where
+    K: PartialEq,
+    V: View<E>,
+{
+    type State = Vec<(K, V::State)>;
+
+    fn build(self, cx: &mut Context<E>) -> Self::State {
+        self.into_iter()
+            .map(|(key, view)| {
+                let state = view.build(cx);
+                (key, state)
+            })
+            .collect()
+    }
+
+    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
+        let mut idx = 0;
+        for (key, view) in self {
+            if let Some((_, view_state)) = state.iter_mut().find(|(state_key, _)| &key == state_key)
+            {
+                view.rebuild(cx, view_state)
+            } else {
+                let view_state = view.build(cx);
+                state.insert(idx, (key, view_state));
+            }
+            idx += 1;
+        }
+    }
+
+    fn remove(cx: &mut Context<E>, state: &mut Self::State) {
+        todo!()
+    }
+}
