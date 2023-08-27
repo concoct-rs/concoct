@@ -96,8 +96,8 @@ where
 macro_rules! html_tags {
     ($($tag:ident),+) => {
         $(
-            pub fn $tag<V>(child: V) -> Html<'static, (), V> {
-                Html::new(stringify!($tag), (), child)
+            pub fn $tag() -> Html<'static, (), ()> {
+                Html::new(stringify!($tag), (), ())
             }
         )+
     };
@@ -117,24 +117,24 @@ html_tags!(
 pub struct Html<'a, A, V> {
     tag: &'a str,
     attributes: A,
-    child: V,
+    view: V,
 }
 
 impl<'a, A, V> Html<'a, A, V> {
-    pub fn new(tag: &'a str, attributes: A, child: V) -> Self {
+    pub fn new(tag: &'a str, attributes: A, view: V) -> Self {
         Self {
             tag,
             attributes,
-            child,
+            view,
         }
     }
 
     pub fn modify<A2>(self, attributes: A2) -> Html<'a, A2, V> {
-        Html::new(self.tag, attributes, self.child)
+        Html::new(self.tag, attributes, self.view)
     }
 
-    pub fn child<V2>(self, child: V2) -> Html<'a, A, V2> {
-        Html::new(self.tag, self.attributes, child)
+    pub fn then<V2>(self, view: V2) -> Html<'a, A, (V, V2)> {
+        Html::new(self.tag, self.attributes, (self.view, view))
     }
 }
 
@@ -153,7 +153,7 @@ where
         let attrs = self.attributes.build(cx, &mut elem);
 
         cx.stack.push((elem, 0));
-        let state = self.child.build(cx);
+        let state = self.view.build(cx);
         let (elem, _) = cx.stack.pop().unwrap();
 
         (attrs, elem, state)
@@ -164,7 +164,7 @@ where
 
         cx.skip();
         cx.stack.push((state.1.clone(), 0));
-        self.child.rebuild(cx, &mut state.2);
+        self.view.rebuild(cx, &mut state.2);
         cx.stack.pop();
     }
 

@@ -14,14 +14,13 @@ struct State {
 }
 
 fn view_input(state: &State) -> impl View<Event> {
-    header((
-        h1("Todos"),
-        input(()).modify((
+    header().then((
+        h1().then("Todos"),
+        input().modify((
             value(state.title.clone()),
             on("input", |event| {
                 event.prevent_default();
-                let val = event_target_value(&event);
-                Event::UpdateField(val)
+                Event::UpdateField(event_target_value(&event))
             }),
             on("keydown", |event| {
                 if event_key_code(&event) == 13 {
@@ -31,7 +30,7 @@ fn view_input(state: &State) -> impl View<Event> {
                 }
             }),
         )),
-        p(state.title.clone()),
+        p().then(state.title.clone()),
     ))
 }
 
