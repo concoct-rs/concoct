@@ -143,14 +143,18 @@ where
             .collect();
 
         // Remove trailing views
-        for (_, view_state) in &mut state[..] {
-            V::remove(cx, view_state);
-        }
+        remove_views::<_, _, V>(cx, state);
 
         *state = new_state;
     }
 
-    fn remove(_cx: &mut Context<E>, _state: &mut Self::State) {
-        todo!()
+    fn remove(cx: &mut Context<E>, state: &mut Self::State) {
+        remove_views::<_, _, V>(cx, state)
+    }
+}
+
+fn remove_views<K, M, V: View<M>>(cx: &mut Context<M>, state: &mut [(K, V::State)]) {
+    for (_, view_state) in &mut state[..] {
+        V::remove(cx, view_state);
     }
 }
