@@ -2,7 +2,7 @@ use super::View;
 use crate::Context;
 use impl_trait_for_tuples::impl_for_tuples;
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{Element, Event};
+use web_sys::{Element, Event, HtmlInputElement, KeyboardEvent};
 
 pub trait Attribute<E> {
     type State;
@@ -25,28 +25,25 @@ impl<E> Attribute<E> for Tuple {
     }
 }
 
-pub fn value(value: String) -> StrAttr<'static,> {
-    attr("value", value)
+pub fn value(value: String) -> ValueAttr {
+    ValueAttr { value }
 }
 
-pub fn attr<'a>(name: &'a str, value: String) -> StrAttr<'a> {
-    StrAttr { name, value }
+pub struct ValueAttr {
+    value: String,
 }
 
-pub struct StrAttr<'a> {
-    name: &'a str,
-    value: String
-}
-
-impl<E> Attribute<E> for StrAttr<'_,> {
+impl<E> Attribute<E> for ValueAttr {
     type State = ();
 
     fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {
-        elem.set_attribute(self.name, &self.value).unwrap();
+        elem.unchecked_ref::<HtmlInputElement>()
+            .set_value(&self.value);
     }
 
     fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {
-        elem.set_attribute(self.name, &self.value).unwrap();
+        elem.unchecked_ref::<HtmlInputElement>()
+            .set_value(&self.value);
     }
 }
 
@@ -56,6 +53,10 @@ pub fn event_target_value(event: &Event) -> String {
         .unwrap()
         .unchecked_into::<web_sys::HtmlInputElement>()
         .value()
+}
+
+pub fn event_key_code(event: &Event) -> u32 {
+    event.unchecked_ref::<KeyboardEvent>().key_code()
 }
 
 pub fn on<F, E>(name: &str, make: F) -> OnAttr<F>

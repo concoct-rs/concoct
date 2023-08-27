@@ -1,9 +1,11 @@
-use concoct::view::html::{button, event_target_value, h1, header, input, on, p, value};
+use concoct::view::html::{event_key_code, event_target_value, h1, header, input, on, p, value};
 use concoct::view::View;
-use wasm_bindgen::JsCast;
+use std::mem;
 
 enum Event {
+    None,
     UpdateField(String),
+    AddTodo,
 }
 
 #[derive(Default)]
@@ -21,6 +23,13 @@ fn view_input(state: &State) -> impl View<Event> {
                 let val = event_target_value(&event);
                 Event::UpdateField(val)
             }),
+            on("keydown", |event| {
+                if event_key_code(&event) == 13 {
+                    Event::AddTodo
+                } else {
+                    Event::None
+                }
+            }),
         )),
         p(state.title.clone()),
     ))
@@ -34,8 +43,12 @@ fn main() {
     concoct::run(
         State::default(),
         |state, event| match event {
+            Event::None => {}
             Event::UpdateField(value) => {
                 state.title = value;
+            }
+            Event::AddTodo => {
+                state.title = String::new();
             }
         },
         app,
