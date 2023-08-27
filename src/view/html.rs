@@ -3,41 +3,60 @@ use crate::Context;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::Element;
 
-pub fn on<E>(name: &'static str, event: E) -> Attribute<E> {
-    Attribute::On { name, event }
+pub trait Attribute<E> {
+    type State;
+
+    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State;
+
+    fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State);
 }
 
-pub enum Attribute<E> {
-    On { name: &'static str, event: E },
+pub fn on<F>(name: &str, make: F) -> OnAttr<F> {
+    OnAttr { name, make }
 }
 
-impl<E: 'static> Attribute<E> {
-    pub fn add(
-        self,
-        cx: &mut Context<E>,
-        elem: &mut Element,
-    ) -> (&'static str, Closure<dyn FnMut()>) {
-        match self {
-            Self::On { name, event } => {
-                let update = cx.update.clone();
-                let mut msg_cell = Some(event);
-                let f: Closure<dyn FnMut()> = Closure::new(move || {
-                    update.borrow_mut().as_mut().unwrap()(msg_cell.take().unwrap());
-                });
-                elem.add_event_listener_with_callback(name, f.as_ref().unchecked_ref())
-                    .unwrap();
-                (name, f)
-            }
-        }
+pub struct OnAttr<'a, F> {
+    name: &'a str,
+    make: F,
+}
+
+impl<'a, F, E> Attribute<E> for OnAttr<'a, F>
+where
+    F: Fn() -> E + 'static,
+    E: 'static,
+{
+    type State = (&'a str, Closure<dyn FnMut()>);
+
+    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {
+        let update = cx.update.clone();
+
+        let f: Closure<dyn FnMut()> = Closure::new(move || {
+            update.borrow_mut().as_mut().unwrap()((self.make)());
+        });
+        elem.add_event_listener_with_callback(self.name, f.as_ref().unchecked_ref())
+            .unwrap();
+        (self.name, f)
+    }
+
+    fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {
+        
     }
 }
 
-pub fn h1<A, V>(attributes: A, child: V) -> Html<'static, A, V> {
-    Html::new("h1", attributes, child)
+impl<E> Attribute<E> for () {
+    type State = ();
+
+    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {}
+
+    fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {}
 }
 
-pub fn button<A, V>(attributes: A, child: V) -> Html<'static, A, V> {
-    Html::new("button", attributes, child)
+pub fn h1<V>(child: V) -> Html<'static, (), V> {
+    Html::new("h1", (), child)
+}
+
+pub fn button<V>(child: V) -> Html<'static, (), V> {
+    Html::new("button", (), child)
 }
 
 pub struct Html<'a, A, V> {
@@ -55,7 +74,7 @@ impl<'a, A, V> Html<'a, A, V> {
         }
     }
 
-    pub fn attributes<A2>(self, attributes: A2) -> Html<'a, A2, V> {
+    pub fn modify<A2>(self, attributes: A2) -> Html<'a, A2, V> {
         Html::new(self.tag, attributes, self.child)
     }
 
@@ -66,43 +85,27 @@ impl<'a, A, V> Html<'a, A, V> {
 
 impl<'a, A, V, E> View<E> for Html<'a, A, V>
 where
-    A: IntoIterator<Item = Attribute<E>>,
+    A: Attribute<E>,
     V: View<E>,
     E: 'static,
 {
-    type State = (Vec<(&'static str, Closure<dyn FnMut()>)>, Element, V::State);
+    type State = (A::State, Element, V::State);
 
     fn build(self, cx: &mut Context<E>) -> Self::State {
         let mut elem = cx.document.create_element(self.tag).unwrap();
         cx.insert(&elem);
 
-        let fs = self
-            .attributes
-            .into_iter()
-            .map(|attr| attr.add(cx, &mut elem))
-            .collect();
+        let attrs = self.attributes.build(cx, &mut elem);
 
         cx.stack.push((elem, 0));
         let state = self.child.build(cx);
         let (elem, _) = cx.stack.pop().unwrap();
 
-        (fs, elem, state)
+        (attrs, elem, state)
     }
 
     fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
-        let fs = self
-            .attributes
-            .into_iter()
-            .zip(state.0.iter())
-            .map(|(attr, prev)| {
-                state
-                    .1
-                    .remove_event_listener_with_callback(prev.0, prev.1.as_ref().unchecked_ref())
-                    .unwrap();
-                attr.add(cx, &mut state.1)
-            })
-            .collect();
-        state.0 = fs;
+        self.attributes.rebuild(cx, &mut state.1, &mut state.0);
 
         cx.skip();
         cx.stack.push((state.1.clone(), 0));
