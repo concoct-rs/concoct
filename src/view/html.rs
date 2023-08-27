@@ -1,5 +1,6 @@
 use super::View;
 use crate::Context;
+use impl_trait_for_tuples::impl_for_tuples;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::Element;
 
@@ -9,6 +10,19 @@ pub trait Attribute<E> {
     fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State;
 
     fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State);
+}
+
+#[impl_for_tuples(16)]
+impl<E> Attribute<E> for Tuple {
+    for_tuples!( type State = ( #( Tuple::State ),* ); );
+
+    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {
+        for_tuples!( (#( self.Tuple.build(cx, elem) ),*) )
+    }
+
+    fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {
+        for_tuples!( #( self.Tuple.rebuild(cx, elem, &mut state.Tuple); )* )
+    }
 }
 
 pub fn on<F>(name: &str, make: F) -> OnAttr<F> {
@@ -37,14 +51,6 @@ where
             .unwrap();
         (self.name, f)
     }
-
-    fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {}
-}
-
-impl<E> Attribute<E> for () {
-    type State = ();
-
-    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {}
 
     fn rebuild(self, cx: &mut Context<E>, elem: &mut Element, state: &mut Self::State) {}
 }

@@ -1,4 +1,5 @@
 use crate::Context;
+use impl_trait_for_tuples::impl_for_tuples;
 use web_sys::Text;
 
 pub mod html;
@@ -15,16 +16,6 @@ pub trait View<E> {
     fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State);
 
     fn remove(cx: &mut Context<E>, state: &mut Self::State);
-}
-
-impl<E> View<E> for () {
-    type State = ();
-
-    fn build(self, _cx: &mut Context<E>) -> Self::State {}
-
-    fn rebuild(self, _cx: &mut Context<E>, _state: &mut Self::State) {}
-
-    fn remove(_cx: &mut Context<E>, _state: &mut Self::State) {}
 }
 
 impl<E, V: View<E>> View<E> for Option<V> {
@@ -99,27 +90,19 @@ impl<E> View<E> for String {
     }
 }
 
-impl<E, A, B, C> View<E> for (A, B, C)
-where
-    A: View<E>,
-    B: View<E>,
-    C: View<E>,
-{
-    type State = (A::State, B::State, C::State);
+#[impl_for_tuples(16)]
+impl<E> View<E> for Tuple {
+    for_tuples!( type State = ( #( Tuple::State ),* ); );
 
     fn build(self, cx: &mut Context<E>) -> Self::State {
-        (self.0.build(cx), self.1.build(cx), self.2.build(cx))
+        for_tuples!( (#( self.Tuple.build(cx) ),*) )
     }
 
     fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
-        self.0.rebuild(cx, &mut state.0);
-        self.1.rebuild(cx, &mut state.1);
-        self.2.rebuild(cx, &mut state.2)
+        for_tuples!( #( self.Tuple.rebuild(cx, &mut state.Tuple); )* )
     }
 
     fn remove(cx: &mut Context<E>, state: &mut Self::State) {
-        A::remove(cx, &mut state.0);
-        B::remove(cx, &mut state.1);
-        C::remove(cx, &mut state.2);
+        for_tuples!( #( Tuple::remove(cx, &mut state.Tuple); )* )
     }
 }

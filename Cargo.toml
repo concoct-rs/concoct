@@ -7,5 +7,6 @@ description = "Generic UI compiler and runtime library"
 repository = "https://github.com/concoct-rs/concoct"
 
 [dependencies]
+impl-trait-for-tuples = "0.2.2"
 wasm-bindgen = "0.2.87"
 web-sys = { version = "0.3.64", features = ["Node", "Document", "HtmlCollection", "HtmlElement", "Window", "Text"] }
