@@ -14,6 +14,7 @@ enum Event {
 struct State {
     title: String,
     next_id: u32,
+    unused_ids: Vec<u32>,
     todos: Vec<(u32, String)>,
 }
 
@@ -34,7 +35,6 @@ fn view_input(state: &State) -> impl View<Event> {
                 }
             }),
         )),
-        p().then(state.title.clone()),
     ))
 }
 
@@ -72,12 +72,17 @@ fn main() {
             }
             Event::AddTodo => {
                 let title = mem::take(&mut state.title);
-                state.todos.push((state.next_id, title));
-                state.next_id += 1;
+                let id = state.unused_ids.pop().unwrap_or_else(|| {
+                    let id = state.next_id;
+                    state.next_id += 1;
+                    id
+                });
+                state.todos.push((id, title));
             }
-            Event::RemoveTodo(key) => {
-                if let Some(idx) = state.todos.iter().position(|(k, _)| key == *k) {
+            Event::RemoveTodo(id) => {
+                if let Some(idx) = state.todos.iter().position(|(k, _)| id == *k) {
                     state.todos.remove(idx);
+                    state.unused_ids.push(id);
                 }
             }
         },
