@@ -20,6 +20,16 @@ struct State {
     todos: Vec<(u32, String)>,
 }
 
+fn view(state: &State) -> impl View<Event> {
+    (div().modify(attr("class", "todomvc-wrapper")).then((
+        section().modify(attr("class", "todoapp")).then((
+            lazy(state.input.clone(), view_input(state)),
+            lazy(state.todos.clone(), view_entries(state)),
+        )),
+        lazy((), view_footer()),
+    )),)
+}
+
 fn view_input(state: &State) -> impl View<Event> {
     header().modify(attr("class", "header")).then((
         h1().then("Todos"),
@@ -44,22 +54,6 @@ fn view_input(state: &State) -> impl View<Event> {
     ))
 }
 
-fn view_footer() -> impl View<Event> {
-    footer()
-        .modify(class("info"))
-        .then(p().then("Double-click to edit a todo"))
-}
-
-fn app(state: &State) -> impl View<Event> {
-    (div().modify(attr("class", "todomvc-wrapper")).then((
-        section().modify(attr("class", "todoapp")).then((
-            lazy(state.input.clone(), view_input(state)),
-            lazy(state.todos.clone(), view_entries(state)),
-        )),
-        lazy((), view_footer()),
-    )),)
-}
-
 fn view_entries(state: &State) -> impl View<Event> {
     ul().modify(class("todo-list")).then(
         state
@@ -75,6 +69,12 @@ fn view_entry(id: u32, content: String) -> impl View<Event> {
         label().then(content),
         button().modify((class("destroy"), on("click", move |_| Event::Remove(id)))),
     )))
+}
+
+fn view_footer() -> impl View<Event> {
+    footer()
+        .modify(class("info"))
+        .then(p().then("Double-click to edit a todo"))
 }
 
 fn main() {
@@ -101,6 +101,6 @@ fn main() {
                 }
             }
         },
-        app,
+        view,
     )
 }
