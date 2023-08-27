@@ -20,9 +20,9 @@ enum Event {
 
 fn counter(count: &i32) -> impl View<Event> {
     (
-        h1([], count.to_string()),
-        button([on("click", Event::Increment)], "More"),
-        button([on("click", Event::Decrement)], "Less"),
+        h1(count.to_string()),
+        button("More").modify(on("click", || Event::Increment)),
+        button("Less").modify(on("click", || Event::Decrement)),
     )
 }
 
