@@ -1,6 +1,5 @@
-use concoct::view::html::{
-    event_key_code, event_target_value, h1, header, input, li, on, p, ul, value,
-};
+use concoct::attr::{event_key_code, event_target_value, on, value};
+use concoct::view::html::{h1, header, input, li, p, ul};
 use concoct::view::View;
 use slotmap::{DefaultKey, SlotMap};
 use std::mem;

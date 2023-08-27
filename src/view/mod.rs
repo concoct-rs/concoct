@@ -3,7 +3,7 @@ use impl_trait_for_tuples::impl_for_tuples;
 use web_sys::Text;
 
 pub mod html;
-pub use html::{Attribute, Html};
+pub use html::Html;
 
 mod lazy;
 pub use lazy::{lazy, Lazy};
@@ -137,7 +137,7 @@ where
         }
     }
 
-    fn remove(cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(_cx: &mut Context<E>, _state: &mut Self::State) {
         todo!()
     }
 }
