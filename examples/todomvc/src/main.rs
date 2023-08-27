@@ -15,6 +15,12 @@ enum Event {
     Update { id: u32, content: String },
 }
 
+impl Event {
+    fn edit(id: u32, is_editing: bool) -> Self {
+        Self::Edit { id, is_editing }
+    }
+}
+
 #[derive(Clone, PartialEq)]
 struct Todo {
     id: u32,
@@ -31,12 +37,18 @@ struct State {
     todos: Vec<Todo>,
 }
 
+impl State {
+    pub fn get_mut(&mut self, id: u32) -> &mut Todo {
+        self.todos.iter_mut().find(|todo| todo.id == id).unwrap()
+    }
+}
+
 fn view(state: &State) -> impl View<Event> {
     Html::div(
-        attr("class", "todomvc-wrapper"),
+        class("todomvc-wrapper"),
         (
             Html::section(
-                (attr("class", "todoapp"),),
+                class("todoapp"),
                 (
                     lazy(state.input.clone(), view_input(state)),
                     lazy(state.todos.clone(), view_entries(state)),
@@ -54,7 +66,7 @@ fn view_input(state: &State) -> impl View<Event> {
             Html::h1((), "Todos"),
             Html::input(
                 (
-                    attr("class", "new-todo"),
+                    class("new-todo"),
                     attr("placeholder", "What needs to be done?"),
                     attr("autofocus", "True"),
                     attr("name", "newTodo"),
@@ -111,11 +123,8 @@ fn view_entry(todo: &Todo) -> impl View<Event> {
                         ),
                         (),
                     ),
-                    Html::input(
-                        on("click", move |_| Event::Edit {
-                            id,
-                            is_editing: true,
-                        }),
+                    Html::label(
+                        on("click", move |_| Event::edit(id, true)),
                         todo.content.clone(),
                     ),
                     Html::button(
@@ -136,14 +145,8 @@ fn view_entry(todo: &Todo) -> impl View<Event> {
                             content: (event_target_value(&event)),
                         }
                     }),
-                    on("blur", move |_| Event::Edit {
-                        id,
-                        is_editing: false,
-                    }),
-                    on_enter(move || Event::Edit {
-                        id,
-                        is_editing: false,
-                    }),
+                    on("blur", move |_| Event::edit(id, false)),
+                    on_enter(move || Event::edit(id, false)),
                 ),
                 (),
             ),
@@ -188,19 +191,16 @@ fn main() {
                 });
             }
             Event::Check(id) => {
-                if let Some(todo) = state.todos.iter_mut().find(|todo| todo.id == id) {
-                    todo.is_completed = !todo.is_completed;
-                }
+                let todo = state.get_mut(id);
+                todo.is_completed = !todo.is_completed;
             }
             Event::Edit { id, is_editing } => {
-                if let Some(todo) = state.todos.iter_mut().find(|todo| todo.id == id) {
-                    todo.is_editing = is_editing;
-                }
+                let todo = state.get_mut(id);
+                todo.is_editing = is_editing;
             }
             Event::Update { id, content } => {
-                if let Some(todo) = state.todos.iter_mut().find(|todo| todo.id == id) {
-                    todo.content = content;
-                }
+                let todo = state.get_mut(id);
+                todo.content = content;
             }
             Event::Remove(id) => {
                 if let Some(idx) = state.todos.iter().position(|todo| todo.id == id) {
@@ -212,5 +212,3 @@ fn main() {
         view,
     )
 }
-
-// 186
