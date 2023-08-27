@@ -23,6 +23,7 @@ where
 
     fn rebuild(self, cx: &mut crate::Context<E>, state: &mut Self::State) {
         if self.input != state.0 {
+            state.0 = self.input;
             self.view.rebuild(cx, &mut state.1)
         }
     }

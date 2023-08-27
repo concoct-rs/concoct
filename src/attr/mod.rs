@@ -9,6 +9,9 @@ pub use self::on::{on, OnAttr};
 mod value;
 pub use self::value::{value, ValueAttr};
 
+mod string;
+pub use string::{attr, class};
+
 pub trait Attribute<E> {
     type State;
 
