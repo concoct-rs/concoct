@@ -1,5 +1,10 @@
-use concoct::view::html::{button, h1, on};
-use concoct::view::View;
+use concoct::{
+    attr::on,
+    view::{
+        html::{button, h1},
+        View,
+    },
+};
 
 enum Event {
     Increment,
@@ -8,9 +13,13 @@ enum Event {
 
 fn counter(count: &i32) -> impl View<Event> {
     (
-        h1(count.to_string()),
-        button("More").modify(on("click", || Event::Increment)),
-        button("Less").modify(on("click", || Event::Decrement)),
+        h1().then(count.to_string()),
+        button()
+            .modify(on("click", |_| Event::Increment))
+            .then("More"),
+        button()
+            .modify(on("click", |_| Event::Decrement))
+            .then("Less"),
     )
 }
 
