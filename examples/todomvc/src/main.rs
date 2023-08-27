@@ -1,7 +1,8 @@
-use concoct::attr::{attr, class, event_key_code, event_target_value, on, value};
-use concoct::view::html::{button, div, footer, h1, header, input, label, li, p, section, ul};
-use concoct::view::{lazy, View};
-use concoct::Attribute;
+use concoct::{
+    attr::{attr, class, event_key_code, event_target_value, on, value},
+    view::{lazy, Html, View},
+    Attribute,
+};
 use std::mem;
 
 enum Event {
@@ -31,35 +32,48 @@ struct State {
 }
 
 fn view(state: &State) -> impl View<Event> {
-    (div().modify(attr("class", "todomvc-wrapper")).then((
-        section().modify(attr("class", "todoapp")).then((
-            lazy(state.input.clone(), view_input(state)),
-            lazy(state.todos.clone(), view_entries(state)),
-        )),
-        lazy((), view_footer()),
-    )),)
+    Html::div(
+        attr("class", "todomvc-wrapper"),
+        (
+            Html::section(
+                (attr("class", "todoapp"),),
+                (
+                    lazy(state.input.clone(), view_input(state)),
+                    lazy(state.todos.clone(), view_entries(state)),
+                ),
+            ),
+            lazy((), view_footer()),
+        ),
+    )
 }
 
 fn view_input(state: &State) -> impl View<Event> {
-    header().modify(attr("class", "header")).then((
-        h1().then("Todos"),
-        input().modify((
-            attr("class", "new-todo"),
-            attr("placeholder", "What needs to be done?"),
-            attr("autofocus", "True"),
-            attr("name", "newTodo"),
-            value(state.input.clone()),
-            on("input", |event| {
-                event.prevent_default();
-                Event::UpdateInput(event_target_value(&event))
-            }),
-            on_enter(|| Event::Add),
-        )),
-    ))
+    Html::header(
+        class("header"),
+        (
+            Html::h1((), "Todos"),
+            Html::input(
+                (
+                    attr("class", "new-todo"),
+                    attr("placeholder", "What needs to be done?"),
+                    attr("autofocus", "True"),
+                    attr("name", "newTodo"),
+                    value(state.input.clone()),
+                    on("input", |event| {
+                        event.prevent_default();
+                        Event::UpdateInput(event_target_value(&event))
+                    }),
+                    on_enter(|| Event::Add),
+                ),
+                (),
+            ),
+        ),
+    )
 }
 
 fn view_entries(state: &State) -> impl View<Event> {
-    ul().modify(class("todo-list")).then(
+    Html::ul(
+        class("todo-list"),
         state
             .todos
             .iter()
@@ -82,49 +96,63 @@ fn view_entry(todo: &Todo) -> impl View<Event> {
         ""
     };
 
-    li().modify(class(class_list)).then((
-        div().modify(class("view")).then((
-            input().modify((
-                class("toggle"),
-                attr("type", "checkbox"),
-                attr("checked", todo.is_completed.to_string()),
-                on("click", move |_| Event::Check(id)),
-            )),
-            label()
-                .modify(on("click", move |_| Event::Edit {
-                    id,
-                    is_editing: true,
-                }))
-                .then(todo.content.clone()),
-            button().modify((class("destroy"), on("click", move |_| Event::Remove(id)))),
-        )),
-        input().modify((
-            class("edit"),
-            value(todo.content.clone()),
-            attr("name", "content"),
-            on("input", move |event| {
-                event.prevent_default();
-                Event::Update {
-                    id,
-                    content: (event_target_value(&event)),
-                }
-            }),
-            on("blur", move |_| Event::Edit {
-                id,
-                is_editing: false,
-            }),
-            on_enter(move || Event::Edit {
-                id,
-                is_editing: false,
-            }),
-        )),
-    ))
+    Html::li(
+        class(class_list),
+        (
+            Html::div(
+                class("view"),
+                (
+                    Html::input(
+                        (
+                            class("toggle"),
+                            attr("type", "checkbox"),
+                            attr("checked", todo.is_completed.to_string()),
+                            on("click", move |_| Event::Check(id)),
+                        ),
+                        (),
+                    ),
+                    Html::input(
+                        on("click", move |_| Event::Edit {
+                            id,
+                            is_editing: true,
+                        }),
+                        todo.content.clone(),
+                    ),
+                    Html::button(
+                        (class("destroy"), on("click", move |_| Event::Remove(id))),
+                        (),
+                    ),
+                ),
+            ),
+            Html::input(
+                (
+                    class("edit"),
+                    value(todo.content.clone()),
+                    attr("name", "content"),
+                    on("input", move |event| {
+                        event.prevent_default();
+                        Event::Update {
+                            id,
+                            content: (event_target_value(&event)),
+                        }
+                    }),
+                    on("blur", move |_| Event::Edit {
+                        id,
+                        is_editing: false,
+                    }),
+                    on_enter(move || Event::Edit {
+                        id,
+                        is_editing: false,
+                    }),
+                ),
+                (),
+            ),
+        ),
+    )
 }
 
 fn view_footer() -> impl View<Event> {
-    footer()
-        .modify(class("info"))
-        .then(p().then("Click to edit a todo"))
+    Html::footer(class("info"), Html::p((), "Click to edit a todo"))
 }
 
 fn on_enter(f: impl Fn() -> Event + 'static) -> impl Attribute<Event> {
@@ -184,3 +212,5 @@ fn main() {
         view,
     )
 }
+
+// 186
