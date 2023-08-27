@@ -1,19 +1,20 @@
 use concoct::attr::{event_key_code, event_target_value, on, value};
-use concoct::view::html::{h1, header, input, li, p, ul};
+use concoct::view::html::{h1, header, input, li, p, span, ul};
 use concoct::view::View;
-use slotmap::{DefaultKey, SlotMap};
 use std::mem;
 
 enum Event {
     None,
     UpdateField(String),
     AddTodo,
+    RemoveTodo(u32),
 }
 
 #[derive(Default)]
 struct State {
     title: String,
-    todos: SlotMap<DefaultKey, String>,
+    next_id: u32,
+    todos: Vec<(u32, String)>,
 }
 
 fn view_input(state: &State) -> impl View<Event> {
@@ -44,7 +45,18 @@ fn app(state: &State) -> impl View<Event> {
             state
                 .todos
                 .iter()
-                .map(|(key, todo)| (key, li().then(todo.clone())))
+                .map(|(key, todo)| {
+                    let key = *key;
+                    (
+                        key,
+                        li().then((
+                            todo.clone(),
+                            span()
+                                .modify(on("click", move |_| Event::RemoveTodo(key)))
+                                .then("X"),
+                        )),
+                    )
+                })
                 .collect::<Vec<_>>(),
         ),
     )
@@ -60,7 +72,13 @@ fn main() {
             }
             Event::AddTodo => {
                 let title = mem::take(&mut state.title);
-                state.todos.insert(title);
+                state.todos.push((state.next_id, title));
+                state.next_id += 1;
+            }
+            Event::RemoveTodo(key) => {
+                if let Some(idx) = state.todos.iter().position(|(k, _)| key == *k) {
+                    state.todos.remove(idx);
+                }
             }
         },
         app,

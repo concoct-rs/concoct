@@ -124,17 +124,30 @@ where
     }
 
     fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
-        let mut idx = 0;
-        for (key, view) in self {
-            if let Some((_, view_state)) = state.iter_mut().find(|(state_key, _)| &key == state_key)
-            {
-                view.rebuild(cx, view_state)
-            } else {
-                let view_state = view.build(cx);
-                state.insert(idx, (key, view_state));
-            }
-            idx += 1;
+        // Build new views and rebuild old views
+        let new_state = self
+            .into_iter()
+            .map(|(key, view)| {
+                let view_state = if let Some(pos) = state
+                    .iter_mut()
+                    .position(|(state_key, _)| &key == state_key)
+                {
+                    let (_, mut view_state) = state.remove(pos);
+                    view.rebuild(cx, &mut view_state);
+                    view_state
+                } else {
+                    view.build(cx)
+                };
+                (key, view_state)
+            })
+            .collect();
+
+        // Remove trailing views
+        for (_, view_state) in &mut state[..] {
+            V::remove(cx, view_state);
         }
+
+        *state = new_state;
     }
 
     fn remove(_cx: &mut Context<E>, _state: &mut Self::State) {
