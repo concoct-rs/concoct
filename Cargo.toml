@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Generic UI compiler and runtime library"
@@ -8,7 +8,6 @@ repository = "https://github.com/concoct-rs/concoct"
 
 [features]
 web = ["dep:wasm-bindgen", "dep:web-sys"]
-# default = ["web"]
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"

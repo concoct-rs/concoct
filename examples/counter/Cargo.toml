@@ -5,7 +5,7 @@ authors = ["Matt Hunzinger <matthunz2@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-concoct = { path = "../../" }
+concoct = { path = "../../", features = ["web"] }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
