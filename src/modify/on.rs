@@ -1,21 +1,21 @@
-use crate::{Attribute, Context};
+use crate::{Modify, Context};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Event};
 
-pub fn on<F, E>(name: &str, make: F) -> OnAttr<F>
+pub fn on<F, E>(name: &str, make: F) -> On<F>
 where
     F: Fn(Event) -> E + 'static,
     E: 'static,
 {
-    OnAttr { name, make }
+    On { name, make }
 }
 
-pub struct OnAttr<'a, F> {
+pub struct On<'a, F> {
     name: &'a str,
     make: F,
 }
 
-impl<'a, F, E> Attribute<E> for OnAttr<'a, F>
+impl<'a, F, E> Modify<E> for On<'a, F>
 where
     F: Fn(Event) -> E + 'static,
     E: 'static,

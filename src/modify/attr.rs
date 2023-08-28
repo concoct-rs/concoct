@@ -1,21 +1,21 @@
-use crate::{Attribute, Context};
-use wasm_bindgen::JsCast;
-use web_sys::{Element, HtmlInputElement};
+use crate::{Modify, Context};
 
-pub fn class<T>(value: T) -> StringAttr<&'static str, T> {
+use web_sys::{Element};
+
+pub fn class<T>(value: T) -> Attr<&'static str, T> {
     attr("class", value)
 }
 
-pub fn attr<T, U>(name: T, value: U) -> StringAttr<T, U> {
-    StringAttr { name, value }
+pub fn attr<T, U>(name: T, value: U) -> Attr<T, U> {
+    Attr { name, value }
 }
 
-pub struct StringAttr<T, U> {
+pub struct Attr<T, U> {
     name: T,
     value: U,
 }
 
-impl<E, T: AsRef<str>, U: AsRef<str>> Attribute<E> for StringAttr<T, U> {
+impl<E, T: AsRef<str>, U: AsRef<str>> Modify<E> for Attr<T, U> {
     type State = ();
 
     fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {

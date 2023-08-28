@@ -1,5 +1,5 @@
 use super::View;
-use crate::{Attribute, Context};
+use crate::{Modify, Context};
 use web_sys::Element;
 
 macro_rules! html_tags {
@@ -51,7 +51,7 @@ impl<'a, A, V> Html<'static, A, V> {
 
 impl<'a, A, V, E> View<E> for Html<'a, A, V>
 where
-    A: Attribute<E>,
+    A: Modify<E>,
     V: View<E>,
     E: 'static,
 {

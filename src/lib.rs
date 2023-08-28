@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 use web_sys::{Document, Node};
 
-pub mod attr;
-pub use attr::Attribute;
+pub mod modify;
+pub use modify::Modify;
 
 pub mod view;
 use view::View;

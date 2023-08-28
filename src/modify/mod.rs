@@ -4,15 +4,15 @@ use wasm_bindgen::JsCast;
 use web_sys::{Element, Event, KeyboardEvent};
 
 mod on;
-pub use self::on::{on, OnAttr};
+pub use self::on::{on, On};
 
 mod value;
-pub use self::value::{value, ValueAttr};
+pub use self::value::{value, Value};
 
-mod string;
-pub use string::{attr, class};
+mod attr;
+pub use attr::{attr, class};
 
-pub trait Attribute<E> {
+pub trait Modify<E> {
     type State;
 
     fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State;
@@ -21,7 +21,7 @@ pub trait Attribute<E> {
 }
 
 #[impl_for_tuples(16)]
-impl<E> Attribute<E> for Tuple {
+impl<E> Modify<E> for Tuple {
     for_tuples!( type State = ( #( Tuple::State ),* ); );
 
     fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {

@@ -1,7 +1,7 @@
 use concoct::{
-    attr::{attr, class, event_key_code, event_target_value, on, value},
+    modify::{Modify, attr, class, event_key_code, event_target_value, on, value},
     view::{lazy, Html, View},
-    Attribute,
+
 };
 use std::mem;
 
@@ -158,7 +158,7 @@ fn view_footer() -> impl View<Event> {
     Html::footer(class("info"), Html::p((), "Click to edit a todo"))
 }
 
-fn on_enter(f: impl Fn() -> Event + 'static) -> impl Attribute<Event> {
+fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Event> {
     on("keydown", move |event| {
         if event_key_code(&event) == 13 {
             f()

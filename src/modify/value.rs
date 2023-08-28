@@ -1,16 +1,16 @@
-use crate::{Attribute, Context};
+use crate::{Modify, Context};
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
 
-pub fn value(value: String) -> ValueAttr {
-    ValueAttr { value }
+pub fn value(value: String) -> Value {
+    Value { value }
 }
 
-pub struct ValueAttr {
+pub struct Value {
     value: String,
 }
 
-impl<E> Attribute<E> for ValueAttr {
+impl<E> Modify<E> for Value {
     type State = ();
 
     fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {

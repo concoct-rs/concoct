@@ -1,5 +1,5 @@
 use concoct::{
-    attr::on,
+    modify::on,
     view::{Html, View},
 };
 
