@@ -1,5 +1,6 @@
-use crate::{Context, Modify};
 use web_sys::Element;
+
+use crate::{web::Context, Modify};
 
 pub fn class<T>(value: T) -> Attr<&'static str, T> {
     attr("class", value)

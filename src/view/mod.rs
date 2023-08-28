@@ -1,12 +1,13 @@
-use crate::{Context, Web};
 use impl_trait_for_tuples::impl_for_tuples;
 use web_sys::Text;
 
 pub mod html;
 pub use html::Html;
 
-// mod lazy;
-// pub use lazy::{lazy, Lazy};
+use crate::web::{Context, Web};
+
+mod lazy;
+pub use lazy::{lazy, Lazy};
 
 pub trait Platform {
     type Event;
@@ -97,18 +98,18 @@ impl<E> View<Web<E>> for String {
 }
 
 #[impl_for_tuples(16)]
-impl<E> View<Web<E>> for Tuple {
+impl<P: Platform> View<P> for Tuple {
     for_tuples!( type State = ( #( Tuple::State ),* ); );
 
-    fn build(self, cx: &mut Context<E>) -> Self::State {
+    fn build(self, cx: &mut P::Context) -> Self::State {
         for_tuples!( (#( self.Tuple.build(cx) ),*) )
     }
 
-    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut P::Context, state: &mut Self::State) {
         for_tuples!( #( self.Tuple.rebuild(cx, &mut state.Tuple); )* )
     }
 
-    fn remove(cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(cx: &mut P::Context, state: &mut Self::State) {
         for_tuples!( #( Tuple::remove(cx, &mut state.Tuple); )* )
     }
 }

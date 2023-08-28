@@ -1,10 +1,8 @@
-use crate::{
-    web::{Context, Web},
-    Modify,
-};
-
-use super::View;
 use web_sys::Element;
+
+use crate::{view::View, Modify};
+
+use super::{Context, Web};
 
 /// Html element view.
 pub struct Html<'a, A, V> {

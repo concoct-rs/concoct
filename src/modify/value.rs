@@ -1,4 +1,4 @@
-use crate::{Context, Modify};
+use crate::{web::Context, Modify};
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
 

@@ -1,4 +1,4 @@
-use crate::{Context, Modify};
+use crate::{web::Context, Modify};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Event};
 
