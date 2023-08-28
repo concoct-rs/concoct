@@ -1,24 +1,30 @@
-use crate::Context;
+use crate::{Context, Web};
 use impl_trait_for_tuples::impl_for_tuples;
 use web_sys::Text;
 
 pub mod html;
 pub use html::Html;
 
-mod lazy;
-pub use lazy::{lazy, Lazy};
+// mod lazy;
+// pub use lazy::{lazy, Lazy};
 
-pub trait View<E> {
-    type State;
+pub trait Platform {
+    type Event;
 
-    fn build(self, cx: &mut Context<E>) -> Self::State;
-
-    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State);
-
-    fn remove(cx: &mut Context<E>, state: &mut Self::State);
+    type Context;
 }
 
-impl<E, V: View<E>> View<E> for Option<V> {
+pub trait View<P: Platform> {
+    type State;
+
+    fn build(self, cx: &mut P::Context) -> Self::State;
+
+    fn rebuild(self, cx: &mut P::Context, state: &mut Self::State);
+
+    fn remove(cx: &mut P::Context, state: &mut Self::State);
+}
+
+impl<E, V: View<Web<E>>> View<Web<E>> for Option<V> {
     type State = Option<V::State>;
 
     fn build(self, cx: &mut Context<E>) -> Self::State {
@@ -47,7 +53,7 @@ impl<E, V: View<E>> View<E> for Option<V> {
     }
 }
 
-impl<E> View<E> for &'_ str {
+impl<E> View<Web<E>> for &'_ str {
     type State = (Self, Text);
 
     fn build(self, cx: &mut Context<E>) -> Self::State {
@@ -69,7 +75,7 @@ impl<E> View<E> for &'_ str {
     }
 }
 
-impl<E> View<E> for String {
+impl<E> View<Web<E>> for String {
     type State = (String, Text);
 
     fn build(self, cx: &mut Context<E>) -> Self::State {
@@ -91,7 +97,7 @@ impl<E> View<E> for String {
 }
 
 #[impl_for_tuples(16)]
-impl<E> View<E> for Tuple {
+impl<E> View<Web<E>> for Tuple {
     for_tuples!( type State = ( #( Tuple::State ),* ); );
 
     fn build(self, cx: &mut Context<E>) -> Self::State {
@@ -107,10 +113,10 @@ impl<E> View<E> for Tuple {
     }
 }
 
-impl<E, K, V> View<E> for Vec<(K, V)>
+impl<E, K, V> View<Web<E>> for Vec<(K, V)>
 where
     K: PartialEq,
-    V: View<E>,
+    V: View<Web<E>>,
 {
     type State = Vec<(K, V::State)>;
 
@@ -153,7 +159,7 @@ where
     }
 }
 
-fn remove_views<K, M, V: View<M>>(cx: &mut Context<M>, state: &mut [(K, V::State)]) {
+fn remove_views<K, M, V: View<Web<M>>>(cx: &mut Context<M>, state: &mut [(K, V::State)]) {
     for (_, view_state) in &mut state[..] {
         V::remove(cx, view_state);
     }

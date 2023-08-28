@@ -1,11 +1,21 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 use web_sys::{Document, Element, Node};
 
 pub mod modify;
 pub use modify::Modify;
 
 pub mod view;
-use view::View;
+use view::{Platform, View};
+
+pub struct Web<E> {
+    _marker: PhantomData<E>,
+}
+
+impl<E> Platform for Web<E> {
+    type Event = E;
+
+    type Context = Context<E>;
+}
 
 pub struct Context<E> {
     document: Document,
@@ -56,7 +66,7 @@ pub fn run<T, E, V>(state: T, update: impl Fn(&mut T, E) + 'static, f: impl Fn(&
 where
     T: 'static,
     E: 'static,
-    V: View<E>,
+    V: View<Web<E>>,
     V::State: 'static,
 {
     let f = Rc::new(f);

@@ -1,6 +1,7 @@
 use concoct::{
     modify::on,
     view::{Html, View},
+    Web,
 };
 
 enum Event {
@@ -8,7 +9,7 @@ enum Event {
     Decrement,
 }
 
-fn counter(count: &i32) -> impl View<Event> {
+fn counter(count: &i32) -> impl View<Web<Event>> {
     (
         Html::h1((), count.to_string()),
         Html::button(on("click", |_| Event::Increment), "More"),

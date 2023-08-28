@@ -1,5 +1,5 @@
 use super::View;
-use crate::{Context, Modify};
+use crate::{Context, Modify, Web};
 use web_sys::Element;
 
 /// Html element view.
@@ -46,10 +46,10 @@ impl<'a, A, V> Html<'static, A, V> {
     );
 }
 
-impl<'a, A, V, E> View<E> for Html<'a, A, V>
+impl<'a, A, V, E> View<Web<E>> for Html<'a, A, V>
 where
     A: Modify<E>,
-    V: View<E>,
+    V: View<Web<E>>,
     E: 'static,
 {
     type State = (A::State, Element, V::State);

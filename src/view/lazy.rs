@@ -9,10 +9,10 @@ pub struct Lazy<T, V> {
     view: V,
 }
 
-impl<E, T, V> View<E> for Lazy<T, V>
+impl<E, T, V> View<Web<E>> for Lazy<T, V>
 where
     T: PartialEq,
-    V: View<E>,
+    V: View<Web<E>>,
 {
     type State = (T, V::State);
 
