@@ -21,7 +21,7 @@
  <a href="https://github.com/concoct-rs/concoct/tree/main/examples">Examples</a>
 </div>
 
-## Rust zero-cost reactive UI framework.
+## Rust cross-platform reactive UI framework.
 
 ```rust
 enum Event {
