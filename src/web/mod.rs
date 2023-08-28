@@ -1,6 +1,7 @@
 use crate::view::{Platform, View};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
-use web_sys::{Document, Element, Node};
+use web_sys::{Document, Node};
+pub use web_sys::Element;
 
 mod event_ext;
 pub use event_ext::EventExt;

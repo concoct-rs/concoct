@@ -1,7 +1,7 @@
 use concoct::{
-    modify::{Modify, attr, class, event_key_code, event_target_value, on, value},
-    view::{lazy, Html, View},
-
+    view::{lazy, View},
+    web::{attr, class, on, value, Element, EventExt, Html, Web},
+    Modify,
 };
 use std::mem;
 
@@ -43,7 +43,7 @@ impl State {
     }
 }
 
-fn view(state: &State) -> impl View<Event> {
+fn view(state: &State) -> impl View<Web<Event>> {
     Html::div(
         class("todomvc-wrapper"),
         (
@@ -59,7 +59,7 @@ fn view(state: &State) -> impl View<Event> {
     )
 }
 
-fn view_input(state: &State) -> impl View<Event> {
+fn view_input(state: &State) -> impl View<Web<Event>> {
     Html::header(
         class("header"),
         (
@@ -73,7 +73,7 @@ fn view_input(state: &State) -> impl View<Event> {
                     value(state.input.clone()),
                     on("input", |event| {
                         event.prevent_default();
-                        Event::UpdateInput(event_target_value(&event))
+                        Event::UpdateInput(event.event_target_value())
                     }),
                     on_enter(|| Event::Add),
                 ),
@@ -83,7 +83,7 @@ fn view_input(state: &State) -> impl View<Event> {
     )
 }
 
-fn view_entries(state: &State) -> impl View<Event> {
+fn view_entries(state: &State) -> impl View<Web<Event>> {
     Html::ul(
         class("todo-list"),
         state
@@ -94,7 +94,7 @@ fn view_entries(state: &State) -> impl View<Event> {
     )
 }
 
-fn view_entry(todo: &Todo) -> impl View<Event> {
+fn view_entry(todo: &Todo) -> impl View<Web<Event>> {
     let id = todo.id;
     let class_list = if todo.is_completed {
         if todo.is_editing {
@@ -142,7 +142,7 @@ fn view_entry(todo: &Todo) -> impl View<Event> {
                         event.prevent_default();
                         Event::Update {
                             id,
-                            content: (event_target_value(&event)),
+                            content: event.event_target_value(),
                         }
                     }),
                     on("blur", move |_| Event::edit(id, false)),
@@ -154,13 +154,13 @@ fn view_entry(todo: &Todo) -> impl View<Event> {
     )
 }
 
-fn view_footer() -> impl View<Event> {
+fn view_footer() -> impl View<Web<Event>> {
     Html::footer(class("info"), Html::p((), "Click to edit a todo"))
 }
 
-fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Event> {
+fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Web<Event>, Element> {
     on("keydown", move |event| {
-        if event_key_code(&event) == 13 {
+        if event.event_key_code() == 13 {
             f()
         } else {
             Event::None
@@ -169,7 +169,7 @@ fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Event> {
 }
 
 fn main() {
-    concoct::run(
+    concoct::web::run(
         State::default(),
         |state, event| match event {
             Event::None => {}
