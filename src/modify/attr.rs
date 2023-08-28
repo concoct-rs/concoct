@@ -1,6 +1,5 @@
-use crate::{Modify, Context};
-
-use web_sys::{Element};
+use crate::{Context, Modify};
+use web_sys::Element;
 
 pub fn class<T>(value: T) -> Attr<&'static str, T> {
     attr("class", value)
@@ -19,10 +18,12 @@ impl<E, T: AsRef<str>, U: AsRef<str>> Modify<E> for Attr<T, U> {
     type State = ();
 
     fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {
-        elem.set_attribute(self.name.as_ref(), self.value.as_ref()).unwrap()
+        elem.set_attribute(self.name.as_ref(), self.value.as_ref())
+            .unwrap()
     }
 
     fn rebuild(self, _cx: &mut Context<E>, elem: &mut Element, _state: &mut Self::State) {
-        elem.set_attribute(self.name.as_ref(), self.value.as_ref()).unwrap()
+        elem.set_attribute(self.name.as_ref(), self.value.as_ref())
+            .unwrap()
     }
 }

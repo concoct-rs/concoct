@@ -1,5 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
-use web_sys::{Document, Node};
+use web_sys::{Document, Element, Node};
 
 pub mod modify;
 pub use modify::Modify;
@@ -38,6 +38,17 @@ impl<E> Context<E> {
     pub fn skip(&mut self) {
         let (_, idx) = self.stack.last_mut().unwrap();
         *idx += 1;
+    }
+
+    pub fn with_nested<R>(
+        &mut self,
+        elem: Element,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> (Element, usize, R) {
+        self.stack.push((elem, 0));
+        let output = f(self);
+        let (elem, count) = self.stack.pop().unwrap();
+        (elem, count, output)
     }
 }
 

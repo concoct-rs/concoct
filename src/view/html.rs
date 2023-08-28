@@ -1,6 +1,27 @@
 use super::View;
-use crate::{Modify, Context};
+use crate::{Context, Modify};
 use web_sys::Element;
+
+/// Html element view.
+pub struct Html<'a, A, V> {
+    tag: &'a str,
+    modify: A,
+    view: V,
+}
+
+impl<'a, A, V> Html<'a, A, V> {
+    pub fn new(tag: &'a str, modify: A, view: V) -> Self {
+        Self { tag, modify, view }
+    }
+
+    pub fn modify<A2>(self, attributes: A2) -> Html<'a, A2, V> {
+        Html::new(self.tag, attributes, self.view)
+    }
+
+    pub fn then<V2>(self, view: V2) -> Html<'a, A, (V, V2)> {
+        Html::new(self.tag, self.modify, (self.view, view))
+    }
+}
 
 macro_rules! html_tags {
     ($($tag:ident),+) => {
@@ -10,30 +31,6 @@ macro_rules! html_tags {
             }
         )+
     };
-}
-
-pub struct Html<'a, A, V> {
-    tag: &'a str,
-    attributes: A,
-    view: V,
-}
-
-impl<'a, A, V> Html<'a, A, V> {
-    pub fn new(tag: &'a str, attributes: A, view: V) -> Self {
-        Self {
-            tag,
-            attributes,
-            view,
-        }
-    }
-
-    pub fn modify<A2>(self, attributes: A2) -> Html<'a, A2, V> {
-        Html::new(self.tag, attributes, self.view)
-    }
-
-    pub fn then<V2>(self, view: V2) -> Html<'a, A, (V, V2)> {
-        Html::new(self.tag, self.attributes, (self.view, view))
-    }
 }
 
 impl<'a, A, V> Html<'static, A, V> {
@@ -61,22 +58,18 @@ where
         let mut elem = cx.document.create_element(self.tag).unwrap();
         cx.insert(&elem);
 
-        let attrs = self.attributes.build(cx, &mut elem);
-
-        cx.stack.push((elem, 0));
-        let state = self.view.build(cx);
-        let (elem, _) = cx.stack.pop().unwrap();
-
+        let attrs = self.modify.build(cx, &mut elem);
+        let (elem, _, state) = cx.with_nested(elem, |cx| self.view.build(cx));
         (attrs, elem, state)
     }
 
     fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
-        self.attributes.rebuild(cx, &mut state.1, &mut state.0);
+        self.modify.rebuild(cx, &mut state.1, &mut state.0);
 
         cx.skip();
-        cx.stack.push((state.1.clone(), 0));
-        self.view.rebuild(cx, &mut state.2);
-        cx.stack.pop();
+        cx.with_nested(state.1.clone(), |cx| {
+            self.view.rebuild(cx, &mut state.2);
+        });
     }
 
     fn remove(_cx: &mut Context<E>, state: &mut Self::State) {
