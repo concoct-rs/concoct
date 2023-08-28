@@ -1,7 +1,6 @@
 use concoct::{
-    modify::on,
-    view::{Html, View},
-    Web,
+    view::View,
+    web::{on, Html, Web},
 };
 
 enum Event {
@@ -18,7 +17,7 @@ fn counter(count: &i32) -> impl View<Web<Event>> {
 }
 
 fn main() {
-    concoct::run(
+    concoct::web::run(
         0,
         |count, event| match event {
             Event::Increment => *count += 1,

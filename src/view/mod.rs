@@ -1,8 +1,4 @@
 use impl_trait_for_tuples::impl_for_tuples;
-use web_sys::Text;
-
-pub mod html;
-pub use html::Html;
 
 mod lazy;
 pub use lazy::{lazy, Lazy};
@@ -62,7 +58,7 @@ where
 
 #[cfg(feature = "web")]
 impl<E> View<crate::web::Web<E>> for &'_ str {
-    type State = (Self, Text);
+    type State = (Self, web_sys::Text);
 
     fn build(self, cx: &mut crate::web::Context<E>) -> Self::State {
         let elem = cx.document.create_text_node(&self);
@@ -85,7 +81,7 @@ impl<E> View<crate::web::Web<E>> for &'_ str {
 
 #[cfg(feature = "web")]
 impl<E> View<crate::web::Web<E>> for String {
-    type State = (String, Text);
+    type State = (String, web_sys::Text);
 
     fn build(self, cx: &mut crate::web::Context<E>) -> Self::State {
         let elem = cx.document.create_text_node(&self);

@@ -7,10 +7,25 @@ description = "Generic UI compiler and runtime library"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
-web = []
+web = ["dep:wasm-bindgen", "dep:web-sys"]
 default = ["web"]
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"
-wasm-bindgen = "0.2.87"
-web-sys = { version = "0.3.64", features = ["Event", "EventTarget", "KeyboardEvent","Node", "Document", "HtmlCollection", "HtmlElement", "HtmlInputElement", "Window", "Text"] }
+wasm-bindgen = { version = "0.2.87", optional = true }
+
+[dependencies.web-sys]
+version = "0.3.64"
+optional = true
+features = [
+    "Event",
+    "EventTarget",
+    "KeyboardEvent",
+    "Node",
+    "Document",
+    "HtmlCollection",
+    "HtmlElement",
+    "HtmlInputElement",
+    "Window",
+    "Text"
+]

@@ -2,11 +2,13 @@ use crate::view::{Platform, View};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 use web_sys::{Document, Element, Node};
 
+mod event_ext;
+pub use event_ext::EventExt;
+
 mod html;
 pub use self::html::Html;
 
 mod on;
-
 pub use self::on::{on, On};
 
 mod value;
