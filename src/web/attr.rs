@@ -1,6 +1,6 @@
-use web_sys::Element;
-use crate::{web::Context, Modify};
 use super::Web;
+use crate::{web::Context, Modify};
+use web_sys::Element;
 
 pub fn class<T>(value: T) -> Attr<&'static str, T> {
     attr("class", value)
@@ -15,7 +15,7 @@ pub struct Attr<T, U> {
     value: U,
 }
 
-impl<E, T: AsRef<str>, U: AsRef<str>> Modify<Web<E>> for Attr<T, U> {
+impl<E, T: AsRef<str>, U: AsRef<str>> Modify<Web<E>, Element> for Attr<T, U> {
     type State = ();
 
     fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {

@@ -8,7 +8,7 @@ repository = "https://github.com/concoct-rs/concoct"
 
 [features]
 web = ["dep:wasm-bindgen", "dep:web-sys"]
-default = ["web"]
+# default = ["web"]
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"

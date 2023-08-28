@@ -1,7 +1,7 @@
+use super::Web;
 use crate::{web::Context, Modify};
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
-use super::Web;
 
 pub fn value(value: String) -> Value {
     Value { value }
@@ -11,7 +11,7 @@ pub struct Value {
     value: String,
 }
 
-impl<E> Modify<Web<E>> for Value {
+impl<E> Modify<Web<E>, Element> for Value {
     type State = ();
 
     fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {
