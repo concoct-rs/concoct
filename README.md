@@ -1,7 +1,7 @@
 ![Concoct](https://github.com/matthunz/viewbuilder/blob/main/logo.png?raw=true)
 
 [![crate](https://img.shields.io/crates/v/concoct.svg)](https://crates.io/crates/concoct)
-[![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/crate/concoct)
+[![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/concoct/latest/concoct/)
 [![CI](https://github.com/matthunz/concoct/actions/workflows/rust.yml/badge.svg)](https://github.com/matthunz/concoct/actions/workflows/rust.yml)
 
 [Examples](https://github.com/concoct-rs/concoct/tree/main/examples)
@@ -27,7 +27,7 @@ fn counter(count: &i32) -> impl View<Web<Event>> {
 }
 
 fn main() {
-    concoct::run(
+    concoct::web::run(
         0,
         |count, event| match event {
             Event::Increment => *count += 1,
