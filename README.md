@@ -55,4 +55,37 @@ fn main() {
  - Efficient view updates
  - Inspired by the elm architecture
 
+## Getting started
+### Web
+Install [`trunk`](https://trunkrs.dev) or `wasm-pack` (this tutorial will show serving with trunk).
 
+```
+cargo add concoct --features web
+```
+
+Create an index.html file in the crate root
+```html
+<html>
+    <body></body>
+</html>
+```
+
+Create a main view and run it with Concoct
+```rust
+fn app(_state: &()) -> impl View<Web<()>> {
+    Html::h1((), "Hello World!"),
+}
+
+fn main() {
+    concoct::web::run(
+        0,
+        |_state, _event| {},
+        app,
+    );
+}
+```
+
+All done! Check it out at `http://localhost:8080`
+```
+trunk serve
+````
