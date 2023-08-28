@@ -1,9 +1,9 @@
 [package]
 name = "concoct"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "Generic UI compiler and runtime library"
+description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
@@ -28,3 +28,6 @@ features = [
     "Window",
     "Text"
 ]
+
+[package.metadata.docs.rs]
+all-features = true
