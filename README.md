@@ -1,16 +1,27 @@
-![Concoct](https://github.com/matthunz/viewbuilder/blob/main/logo.png?raw=true)
+<p align="center">
+  <img alt="logo" src="./logo.png">
+</p>
 
-[![crate](https://img.shields.io/crates/v/concoct.svg)](https://crates.io/crates/concoct)
-[![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/concoct/latest/concoct/)
-[![CI](https://github.com/matthunz/concoct/actions/workflows/rust.yml/badge.svg)](https://github.com/matthunz/concoct/actions/workflows/rust.yml)
+<div align="center">
+ <a href="https://crates.io/crates/concoct">
+    <img src="https://img.shields.io/crates/v/concoct?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <a href="https://docs.rs/concoct">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+   <a href="https://github.com/concoct-rs/concoct/actions">
+    <img src="https://github.com/matthunz/concoct/actions/workflows/rust.yml/badge.svg"
+      alt="CI status" />
+  </a>
+</div>
 
-[Examples](https://github.com/concoct-rs/concoct/tree/main/examples)
+<div align="center">
+ <a href="https://github.com/concoct-rs/concoct/tree/main/examples">Examples</a>
+</div>
 
-Rust zero-cost reactive UI framework.
-
-## Features
- - Inspired by the elm architecture
- - Compile-time UI tree
+## Rust zero-cost reactive UI framework.
 
 ```rust
 enum Event {
@@ -37,4 +48,11 @@ fn main() {
     );
 }
 ```
+
+## Features
+ - Cross-platform components
+ - Compile-time UI tree
+ - Efficient view updates
+ - Inspired by the elm architecture
+
 
