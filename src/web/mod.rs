@@ -1,7 +1,8 @@
-use crate::view::{Platform, View};
+use crate::Platform;
+use crate::view::{ View};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
-use web_sys::{Document, Node};
 pub use web_sys::Element;
+use web_sys::{Document, Node};
 
 mod event_ext;
 pub use event_ext::EventExt;
@@ -19,22 +20,21 @@ mod attr;
 pub use attr::{attr, class};
 
 pub struct Web<E> {
-    _marker: PhantomData<E>,
-}
-
-impl<E> Platform for Web<E> {
-    type Event = E;
-
-    type Context = Context<E>;
-}
-
-pub struct Context<E> {
     pub document: Document,
     stack: Vec<(web_sys::Element, usize)>,
     pub update: Rc<RefCell<Option<Box<dyn FnMut(E)>>>>,
 }
 
-impl<E> Context<E> {
+impl<E> Platform for Web<E> {
+    type Event = E;
+
+    fn advance(&mut self) {
+        let (_, idx) = self.stack.last_mut().unwrap();
+        *idx += 1;
+    }
+}
+
+impl<E> Web<E> {
     pub fn new() -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -68,12 +68,7 @@ impl<E> Context<E> {
     }
 }
 
-impl<E> crate::view::Context for Context<E> {
-    fn skip(&mut self) {
-        let (_, idx) = self.stack.last_mut().unwrap();
-        *idx += 1;
-    }
-}
+
 
 pub fn run<T, E, V>(state: T, update: impl Fn(&mut T, E) + 'static, f: impl Fn(&T) -> V + 'static)
 where
@@ -91,7 +86,7 @@ where
     let cx_f = f.clone();
     let cx_view_state = view_state.clone();
 
-    let cx = Rc::new(RefCell::new(Context::new()));
+    let cx = Rc::new(RefCell::new(Web::new()));
     let update_cx = cx.clone();
     *cx.borrow_mut().update.borrow_mut() = Some(Box::new(move |msg| {
         update(&mut cx_state.borrow_mut(), msg);

@@ -1,5 +1,5 @@
 use super::Web;
-use crate::{web::Context, Modify};
+use crate::{ Modify};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Event};
 
@@ -23,7 +23,7 @@ where
 {
     type State = (&'a str, Closure<dyn FnMut(Event)>);
 
-    fn build(self, cx: &mut Context<E>, elem: &mut Element) -> Self::State {
+    fn build(self, cx: &mut Web<E>, elem: &mut Element) -> Self::State {
         let update = cx.update.clone();
 
         let f: Closure<dyn FnMut(Event)> = Closure::new(move |event| {
@@ -34,5 +34,5 @@ where
         (self.name, f)
     }
 
-    fn rebuild(self, _cx: &mut Context<E>, _elem: &mut Element, _state: &mut Self::State) {}
+    fn rebuild(self, _cx: &mut Web<E>, _elem: &mut Element, _state: &mut Self::State) {}
 }

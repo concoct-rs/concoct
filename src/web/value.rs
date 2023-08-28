@@ -1,5 +1,5 @@
 use super::Web;
-use crate::{web::Context, Modify};
+use crate::{Modify};
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
 
@@ -14,12 +14,12 @@ pub struct Value {
 impl<E> Modify<Web<E>, Element> for Value {
     type State = ();
 
-    fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {
+    fn build(self, _cx: &mut Web<E>, elem: &mut Element) -> Self::State {
         elem.unchecked_ref::<HtmlInputElement>()
             .set_value(&self.value);
     }
 
-    fn rebuild(self, _cx: &mut Context<E>, elem: &mut Element, _state: &mut Self::State) {
+    fn rebuild(self, _cx: &mut Web<E>, elem: &mut Element, _state: &mut Self::State) {
         elem.unchecked_ref::<HtmlInputElement>()
             .set_value(&self.value);
     }

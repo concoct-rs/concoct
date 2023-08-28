@@ -1,5 +1,5 @@
 use super::Web;
-use crate::{web::Context, Modify};
+use crate::{ Modify};
 use web_sys::Element;
 
 pub fn class<T>(value: T) -> Attr<&'static str, T> {
@@ -18,12 +18,12 @@ pub struct Attr<T, U> {
 impl<E, T: AsRef<str>, U: AsRef<str>> Modify<Web<E>, Element> for Attr<T, U> {
     type State = ();
 
-    fn build(self, _cx: &mut Context<E>, elem: &mut Element) -> Self::State {
+    fn build(self, _cx: &mut Web<E>, elem: &mut Element) -> Self::State {
         elem.set_attribute(self.name.as_ref(), self.value.as_ref())
             .unwrap()
     }
 
-    fn rebuild(self, _cx: &mut Context<E>, elem: &mut Element, _state: &mut Self::State) {
+    fn rebuild(self, _cx: &mut Web<E>, elem: &mut Element, _state: &mut Self::State) {
         elem.set_attribute(self.name.as_ref(), self.value.as_ref())
             .unwrap()
     }

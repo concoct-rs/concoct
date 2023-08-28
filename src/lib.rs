@@ -14,3 +14,12 @@ pub use view::View;
 #[cfg(feature = "web")]
 #[cfg_attr(docsrs, doc(cfg(feature = "web")))]
 pub mod web;
+
+/// Backend rendering platform.
+pub trait Platform {
+    type Event;
+
+    /// Advance the element count.
+    /// This should be called when a view is skipped.
+    fn advance(&mut self);
+}

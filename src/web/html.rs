@@ -1,6 +1,5 @@
-use super::{Context, Web};
-use crate::view::Context as _;
-use crate::{view::View, Modify};
+use super::{ Web};
+use crate::{view::{View}, Modify, Platform};
 use web_sys::Element;
 
 /// Html element view.
@@ -55,7 +54,7 @@ where
 {
     type State = (A::State, Element, V::State);
 
-    fn build(self, cx: &mut Context<E>) -> Self::State {
+    fn build(self, cx: &mut Web<E>) -> Self::State {
         let mut elem = cx.document.create_element(self.tag).unwrap();
         cx.insert(&elem);
 
@@ -64,16 +63,16 @@ where
         (attrs, elem, state)
     }
 
-    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut Web<E>, state: &mut Self::State) {
         self.modify.rebuild(cx, &mut state.1, &mut state.0);
 
-        cx.skip();
+        cx.advance();
         cx.with_nested(state.1.clone(), |cx| {
             self.view.rebuild(cx, &mut state.2);
         });
     }
 
-    fn remove(_cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(_cx: &mut Web<E>, state: &mut Self::State) {
         state.1.remove();
     }
 }
