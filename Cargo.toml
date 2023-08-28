@@ -6,6 +6,13 @@ license = "MIT OR Apache-2.0"
 description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
+[workspace]
+members = [
+    ".",
+    "examples/counter",
+    "examples/todomvc"
+]
+
 [features]
 web = ["dep:wasm-bindgen", "dep:web-sys"]
 
