@@ -1,6 +1,7 @@
 use crate::{web::Context, Modify};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Event};
+use super::Web;
 
 pub fn on<F, E>(name: &str, make: F) -> On<F>
 where
@@ -15,7 +16,7 @@ pub struct On<'a, F> {
     make: F,
 }
 
-impl<'a, F, E> Modify<E> for On<'a, F>
+impl<'a, F, E> Modify<Web<E>> for On<'a, F>
 where
     F: Fn(Event) -> E + 'static,
     E: 'static,

@@ -4,15 +4,17 @@ use web_sys::Text;
 pub mod html;
 pub use html::Html;
 
-use crate::web::{Context, Web};
-
 mod lazy;
 pub use lazy::{lazy, Lazy};
 
 pub trait Platform {
     type Event;
 
-    type Context;
+    type Context: Context;
+}
+
+pub trait Context {
+    fn skip(&mut self);
 }
 
 pub trait View<P: Platform> {
@@ -25,14 +27,18 @@ pub trait View<P: Platform> {
     fn remove(cx: &mut P::Context, state: &mut Self::State);
 }
 
-impl<E, V: View<Web<E>>> View<Web<E>> for Option<V> {
+impl<P, V> View<P> for Option<V>
+where
+    P: Platform,
+    V: View<P>,
+{
     type State = Option<V::State>;
 
-    fn build(self, cx: &mut Context<E>) -> Self::State {
+    fn build(self, cx: &mut P::Context) -> Self::State {
         self.map(|view| view.build(cx))
     }
 
-    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut P::Context, state: &mut Self::State) {
         if let Some(view) = self {
             if let Some(state) = state {
                 view.rebuild(cx, state)
@@ -46,7 +52,7 @@ impl<E, V: View<Web<E>>> View<Web<E>> for Option<V> {
         }
     }
 
-    fn remove(cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(cx: &mut P::Context, state: &mut Self::State) {
         if let Some(state) = state {
             V::remove(cx, state);
             cx.skip()
@@ -54,45 +60,47 @@ impl<E, V: View<Web<E>>> View<Web<E>> for Option<V> {
     }
 }
 
-impl<E> View<Web<E>> for &'_ str {
+#[cfg(feature = "web")]
+impl<E> View<crate::web::Web<E>> for &'_ str {
     type State = (Self, Text);
 
-    fn build(self, cx: &mut Context<E>) -> Self::State {
+    fn build(self, cx: &mut crate::web::Context<E>) -> Self::State {
         let elem = cx.document.create_text_node(&self);
         cx.insert(&elem);
 
         (self, elem)
     }
 
-    fn rebuild(self, cx: &mut Context<E>, (prev, text): &mut Self::State) {
+    fn rebuild(self, cx: &mut crate::web::Context<E>, (prev, text): &mut Self::State) {
         if &self != &*prev {
             text.set_text_content(Some(&self))
         }
         cx.skip()
     }
 
-    fn remove(_cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(_cx: &mut crate::web::Context<E>, state: &mut Self::State) {
         state.1.remove();
     }
 }
 
-impl<E> View<Web<E>> for String {
+#[cfg(feature = "web")]
+impl<E> View<crate::web::Web<E>> for String {
     type State = (String, Text);
 
-    fn build(self, cx: &mut Context<E>) -> Self::State {
+    fn build(self, cx: &mut crate::web::Context<E>) -> Self::State {
         let elem = cx.document.create_text_node(&self);
         cx.insert(&elem);
         (self, elem)
     }
 
-    fn rebuild(self, cx: &mut Context<E>, (prev, text): &mut Self::State) {
+    fn rebuild(self, cx: &mut crate::web::Context<E>, (prev, text): &mut Self::State) {
         if &self != &*prev {
             text.set_text_content(Some(&self))
         }
         cx.skip()
     }
 
-    fn remove(_cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(_cx: &mut crate::web::Context<E>, state: &mut Self::State) {
         state.1.remove();
     }
 }
@@ -114,14 +122,15 @@ impl<P: Platform> View<P> for Tuple {
     }
 }
 
-impl<E, K, V> View<Web<E>> for Vec<(K, V)>
+impl<P, K, V> View<P> for Vec<(K, V)>
 where
+    P: Platform,
     K: PartialEq,
-    V: View<Web<E>>,
+    V: View<P>,
 {
     type State = Vec<(K, V::State)>;
 
-    fn build(self, cx: &mut Context<E>) -> Self::State {
+    fn build(self, cx: &mut P::Context) -> Self::State {
         self.into_iter()
             .map(|(key, view)| {
                 let state = view.build(cx);
@@ -130,7 +139,7 @@ where
             .collect()
     }
 
-    fn rebuild(self, cx: &mut Context<E>, state: &mut Self::State) {
+    fn rebuild(self, cx: &mut P::Context, state: &mut Self::State) {
         // Build new views and rebuild old views
         let new_state = self
             .into_iter()
@@ -155,12 +164,16 @@ where
         *state = new_state;
     }
 
-    fn remove(cx: &mut Context<E>, state: &mut Self::State) {
+    fn remove(cx: &mut P::Context, state: &mut Self::State) {
         remove_views::<_, _, V>(cx, state)
     }
 }
 
-fn remove_views<K, M, V: View<Web<M>>>(cx: &mut Context<M>, state: &mut [(K, V::State)]) {
+fn remove_views<K, P, V>(cx: &mut P::Context, state: &mut [(K, V::State)])
+where
+    P: Platform,
+    V: View<P>,
+{
     for (_, view_state) in &mut state[..] {
         V::remove(cx, view_state);
     }

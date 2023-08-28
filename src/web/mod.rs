@@ -5,6 +5,16 @@ use web_sys::{Document, Element, Node};
 mod html;
 pub use self::html::Html;
 
+mod on;
+
+pub use self::on::{on, On};
+
+mod value;
+pub use self::value::{value, Value};
+
+mod attr;
+pub use attr::{attr, class};
+
 pub struct Web<E> {
     _marker: PhantomData<E>,
 }
@@ -43,11 +53,6 @@ impl<E> Context<E> {
         *idx += 1;
     }
 
-    pub fn skip(&mut self) {
-        let (_, idx) = self.stack.last_mut().unwrap();
-        *idx += 1;
-    }
-
     pub fn with_nested<R>(
         &mut self,
         elem: Element,
@@ -57,6 +62,13 @@ impl<E> Context<E> {
         let output = f(self);
         let (elem, count) = self.stack.pop().unwrap();
         (elem, count, output)
+    }
+}
+
+impl<E> crate::view::Context for Context<E> {
+    fn skip(&mut self) {
+        let (_, idx) = self.stack.last_mut().unwrap();
+        *idx += 1;
     }
 }
 

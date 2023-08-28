@@ -1,8 +1,7 @@
 use web_sys::Element;
-
 use crate::{view::View, Modify};
-
 use super::{Context, Web};
+use crate::view::Context as _;
 
 /// Html element view.
 pub struct Html<'a, A, V> {
@@ -50,7 +49,7 @@ impl<'a, A, V> Html<'static, A, V> {
 
 impl<'a, A, V, E> View<Web<E>> for Html<'a, A, V>
 where
-    A: Modify<E>,
+    A: Modify<Web<E>>,
     V: View<Web<E>>,
     E: 'static,
 {

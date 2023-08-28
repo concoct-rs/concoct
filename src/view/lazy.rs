@@ -1,5 +1,7 @@
 use super::{Platform, View};
 
+/// Lazy-loaded view.
+/// The child view will only be rebuild if the input has changed.
 pub fn lazy<T, V>(input: T, view: V) -> Lazy<T, V> {
     Lazy { input, view }
 }
