@@ -1,5 +1,5 @@
-use super::{ Web};
-use crate::{view::{View}, Modify, Platform};
+use super::Web;
+use crate::{view::View, Modify, Platform};
 use web_sys::Element;
 
 /// Html element view.

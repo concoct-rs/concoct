@@ -1,5 +1,5 @@
+use crate::view::View;
 use crate::Platform;
-use crate::view::{ View};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 pub use web_sys::Element;
 use web_sys::{Document, Node};
@@ -67,8 +67,6 @@ impl<E> Web<E> {
         (elem, count, output)
     }
 }
-
-
 
 pub fn run<T, E, V>(state: T, update: impl Fn(&mut T, E) + 'static, f: impl Fn(&T) -> V + 'static)
 where

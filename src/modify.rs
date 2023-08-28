@@ -1,5 +1,5 @@
-use impl_trait_for_tuples::impl_for_tuples;
 use crate::Platform;
+use impl_trait_for_tuples::impl_for_tuples;
 
 pub trait Modify<P: Platform, E> {
     type State;

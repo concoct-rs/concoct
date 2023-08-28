@@ -1,5 +1,5 @@
 use super::Web;
-use crate::{ Modify};
+use crate::Modify;
 use web_sys::Element;
 
 pub fn class<T>(value: T) -> Attr<&'static str, T> {

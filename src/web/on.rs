@@ -1,5 +1,5 @@
 use super::Web;
-use crate::{ Modify};
+use crate::Modify;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Event};
 

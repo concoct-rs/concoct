@@ -1,5 +1,4 @@
 ///! Viewable components
-
 use crate::Platform;
 use impl_trait_for_tuples::impl_for_tuples;
 
