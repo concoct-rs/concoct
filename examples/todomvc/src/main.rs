@@ -1,7 +1,7 @@
 use concoct::{
     view::{lazy, View},
     web::{attr, class, on, value, Element, EventExt, Html, Web},
-    Modify,
+    Modify, State,
 };
 use std::mem;
 
@@ -12,7 +12,7 @@ enum Event {
     Remove(u32),
     Check(u32),
     Edit { id: u32, is_editing: bool },
-    Update { id: u32, content: String },
+    Update { id: u32, content: String, },
 }
 
 impl Event {
@@ -24,26 +24,26 @@ impl Event {
 #[derive(Clone, PartialEq)]
 struct Todo {
     id: u32,
-    content: String,
+    content: State<String>,
     is_editing: bool,
     is_completed: bool,
 }
 
 #[derive(Default)]
-struct State {
-    input: String,
+struct Model {
+    input: State<String>,
     next_id: u32,
     unused_ids: Vec<u32>,
     todos: Vec<Todo>,
 }
 
-impl State {
+impl Model {
     pub fn get_mut(&mut self, id: u32) -> &mut Todo {
         self.todos.iter_mut().find(|todo| todo.id == id).unwrap()
     }
 }
 
-fn view(state: &State) -> impl View<Web<Event>> {
+fn view(state: &Model) -> impl View<Web<Event>> {
     Html::div(
         class("todomvc-wrapper"),
         (
@@ -59,7 +59,7 @@ fn view(state: &State) -> impl View<Web<Event>> {
     )
 }
 
-fn view_input(state: &State) -> impl View<Web<Event>> {
+fn view_input(state: &Model) -> impl View<Web<Event>> {
     Html::header(
         class("header"),
         (
@@ -83,7 +83,7 @@ fn view_input(state: &State) -> impl View<Web<Event>> {
     )
 }
 
-fn view_entries(state: &State) -> impl View<Web<Event>> {
+fn view_entries(state: &Model) -> impl View<Web<Event>> {
     Html::ul(
         class("todo-list"),
         state
@@ -170,11 +170,11 @@ fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Web<Event>, Element>
 
 fn main() {
     concoct::web::run(
-        State::default(),
+        Model::default(),
         |state, event| match event {
             Event::None => {}
             Event::UpdateInput(value) => {
-                state.input = value;
+                *state.input.make_mut() = value;
             }
             Event::Add => {
                 let content = mem::take(&mut state.input);
@@ -200,7 +200,7 @@ fn main() {
             }
             Event::Update { id, content } => {
                 let todo = state.get_mut(id);
-                todo.content = content;
+                *todo.content.make_mut() = content;
             }
             Event::Remove(id) => {
                 if let Some(idx) = state.todos.iter().position(|todo| todo.id == id) {

@@ -1,5 +1,5 @@
 ///! Viewable components
-use crate::Platform;
+use crate::{Platform, State};
 use impl_trait_for_tuples::impl_for_tuples;
 
 mod lazy;
@@ -169,6 +169,28 @@ impl<E> View<crate::web::Web<E>> for String {
     fn rebuild(self, cx: &mut crate::web::Web<E>, (prev, text): &mut Self::State) {
         if &self != &*prev {
             text.set_text_content(Some(&self))
+        }
+        cx.advance()
+    }
+
+    fn remove(_cx: &mut crate::web::Web<E>, state: &mut Self::State) {
+        state.1.remove();
+    }
+}
+
+#[cfg(feature = "web")]
+impl<E> View<crate::web::Web<E>> for crate::State<String> {
+    type State = (State<String>, web_sys::Text);
+
+    fn build(self, cx: &mut crate::web::Web<E>) -> Self::State {
+        let elem = cx.document.create_text_node(&self.get());
+        cx.insert(&elem);
+        (self, elem)
+    }
+
+    fn rebuild(self, cx: &mut crate::web::Web<E>, (prev, text): &mut Self::State) {
+        if &self != &*prev {
+            text.set_text_content(Some(&self.get()))
         }
         cx.advance()
     }

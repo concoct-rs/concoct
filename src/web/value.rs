@@ -3,24 +3,24 @@ use crate::Modify;
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
 
-pub fn value(value: String) -> Value {
+pub fn value<T>(value: T) -> Value<T> {
     Value { value }
 }
 
-pub struct Value {
-    value: String,
+pub struct Value<T> {
+    value: T,
 }
 
-impl<E> Modify<Web<E>, Element> for Value {
+impl<E, T: AsRef<str>> Modify<Web<E>, Element> for Value<T> {
     type State = ();
 
     fn build(self, _cx: &mut Web<E>, elem: &mut Element) -> Self::State {
         elem.unchecked_ref::<HtmlInputElement>()
-            .set_value(&self.value);
+            .set_value(self.value.as_ref());
     }
 
     fn rebuild(self, _cx: &mut Web<E>, elem: &mut Element, _state: &mut Self::State) {
         elem.unchecked_ref::<HtmlInputElement>()
-            .set_value(&self.value);
+            .set_value(self.value.as_ref());
     }
 }
