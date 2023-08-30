@@ -1,7 +1,7 @@
 use concoct::{
-    view::{lazy, View},
+    view::{lazy, once, View},
     web::{attr, class, on, value, Element, EventExt, Html, Web},
-    Modify, State,
+    Modify,
 };
 use std::mem;
 
@@ -54,7 +54,7 @@ fn view(state: &Model) -> impl View<Web<Event>> {
                     lazy(&state.todos, view_entries(state)),
                 ),
             ),
-            lazy(&(), view_footer()),
+            once(view_footer()),
         ),
     )
 }

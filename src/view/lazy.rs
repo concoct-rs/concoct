@@ -1,10 +1,21 @@
+use super::{Platform, View};
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
 
-use super::{Platform, View};
+pub fn once<V, P>(view: V) -> Lazy<(), V>
+where
+    V: View<P>,
+    P: Platform,
+{
+    Lazy {
+        view,
+        hash: 0,
+        _marker: PhantomData,
+    }
+}
 
 /// Lazy-loaded view.
 /// The child view will only be rebuild if the input has changed.
