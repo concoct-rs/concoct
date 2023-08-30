@@ -1,5 +1,5 @@
 use concoct::{
-    native::{canvas, Native},
+    native::{canvas, Native, text},
     view::View,
 };
 use skia_safe::{Color4f, Paint};
@@ -9,23 +9,8 @@ enum Event {
     Decrement,
 }
 
-fn counter(_count: &i32) -> impl View<Native<Event>> {
-    (
-        canvas(|layout, canvas| {
-            canvas.draw_circle(
-                (layout.location.x, layout.location.y),
-                100.,
-                &Paint::new(Color4f::new(1., 0., 0., 1.), None),
-            );
-        }),
-        canvas(|layout, canvas| {
-            canvas.draw_circle(
-                (layout.location.x, layout.location.y),
-                100.,
-                &Paint::new(Color4f::new(0., 1., 0., 1.), None),
-            );
-        }),
-    )
+fn counter(count: &i32) -> impl View<Native<Event>> {
+    text(count.to_string())
 }
 
 fn main() {
