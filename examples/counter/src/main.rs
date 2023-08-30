@@ -1,5 +1,5 @@
 use concoct::{
-    view::{View, once},
+    view::{once, View},
     web::{on, Html, Web},
 };
 

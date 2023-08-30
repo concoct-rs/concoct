@@ -17,23 +17,39 @@ use skia_safe::{
     gpu::{self, gl::FramebufferInfo, BackendRenderTarget, SurfaceOrigin},
     Color, ColorType, Surface,
 };
-
+use slotmap::{DefaultKey, SlotMap};
 use std::{
     ffi::CString,
     marker::PhantomData,
-    mem,
-    num::{NonZeroU128, NonZeroU32},
+    num::NonZeroU32,
     time::{Duration, Instant},
 };
-
 use winit::{
     event::{ElementState, Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
     window::{Window, WindowBuilder},
 };
 
+mod canvas;
+pub use canvas::Canvas;
+
+pub trait Element {
+    fn paint(&mut self, canvas: &mut skia_safe::Canvas);
+}
+
+// Guarantee the drop order inside the FnMut closure. `Window` _must_ be dropped after
+// `DirectContext`.
+//
+// https://github.com/rust-skia/rust-skia/issues/476
 pub struct Native<E> {
+    surface: Surface,
+    gl_surface: GlutinSurface<WindowSurface>,
+    gr_context: skia_safe::gpu::DirectContext,
+    gl_context: PossiblyCurrentContext,
+    window: Window,
     _marker: PhantomData<E>,
+    elements: SlotMap<DefaultKey, Box<dyn Element>>,
+    stack: Vec<DefaultKey>,
 }
 
 impl<E> Platform for Native<E> {
@@ -51,12 +67,13 @@ pub enum Event {
 
 pub fn run<T, V, E>(
     mut state: T,
-    update: impl Fn(&mut T, E) + 'static,
+    _update: impl Fn(&mut T, E) + 'static,
     mut make_view: impl FnMut(&T) -> V + 'static,
 ) where
     T: 'static,
     V: View<Native<E>> + 'static,
     V::State: 'static,
+    E: 'static,
 {
     let el = EventLoopBuilder::with_user_event().build();
 
@@ -203,31 +220,20 @@ pub fn run<T, V, E>(
 
     let mut frame = 0usize;
 
-    // Guarantee the drop order inside the FnMut closure. `Window` _must_ be dropped after
-    // `DirectContext`.
-    //
-    // https://github.com/rust-skia/rust-skia/issues/476
-    struct Env {
-        surface: Surface,
-        gl_surface: GlutinSurface<WindowSurface>,
-        gr_context: skia_safe::gpu::DirectContext,
-        gl_context: PossiblyCurrentContext,
-        window: Window,
-    }
-
-    let mut env = Env {
+    let mut env = Native {
         surface,
         gl_surface,
         gl_context,
         gr_context,
         window,
+        _marker: PhantomData,
+        elements: SlotMap::new(),
+        stack: Vec::new(),
     };
     let mut previous_frame_start = Instant::now();
 
     let view = make_view(&mut state);
-    let mut view_state = view.build(&mut Native {
-        _marker: PhantomData,
-    });
+    let mut view_state = view.build(&mut env);
 
     el.run(move |event, _, control_flow| {
         let frame_start = Instant::now();
@@ -278,7 +284,7 @@ pub fn run<T, V, E>(
                 }
                 WindowEvent::CursorMoved {
                     device_id: _,
-                    position,
+                    position: _,
                     modifiers: _,
                 } => {}
                 WindowEvent::MouseInput {
@@ -305,12 +311,11 @@ pub fn run<T, V, E>(
             canvas.clear(Color::WHITE);
 
             let tree = make_view(&mut state);
-            tree.rebuild(
-                &mut Native {
-                    _marker: PhantomData,
-                },
-                &mut view_state,
-            );
+            tree.rebuild(&mut env, &mut view_state);
+
+            let root_key = env.stack.first().unwrap();
+            let root = env.elements.get_mut(*root_key).unwrap();
+            root.paint(env.surface.canvas());
 
             env.gr_context.flush_and_submit();
             env.gl_surface.swap_buffers(&env.gl_context).unwrap();

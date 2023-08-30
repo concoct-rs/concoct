@@ -1,6 +1,6 @@
 use concoct::{
-    native::Native,
-    view::{once, View},
+    native::{Canvas, Native},
+    view::View,
 };
 
 enum Event {
@@ -8,8 +8,8 @@ enum Event {
     Decrement,
 }
 
-fn counter(count: &i32) -> impl View<Native<Event>> {
-    ()
+fn counter(_count: &i32) -> impl View<Native<Event>> {
+    Canvas {}
 }
 
 fn main() {
