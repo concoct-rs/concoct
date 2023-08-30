@@ -12,6 +12,10 @@ pub use modify::Modify;
 pub mod view;
 pub use view::View;
 
+#[cfg(feature = "native")]
+#[cfg_attr(docsrs, doc(cfg(feature = "native")))]
+pub mod native;
+
 #[cfg(feature = "web")]
 #[cfg_attr(docsrs, doc(cfg(feature = "web")))]
 pub mod web;
