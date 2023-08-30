@@ -1,5 +1,5 @@
 use concoct::{
-    view::View,
+    view::{View, once},
     web::{on, Html, Web},
 };
 
@@ -11,8 +11,8 @@ enum Event {
 fn counter(count: &i32) -> impl View<Web<Event>> {
     (
         Html::h1((), count.to_string()),
-        Html::button(on("click", |_| Event::Increment), "More"),
-        Html::button(on("click", |_| Event::Decrement), "Less"),
+        once(Html::button(on("click", |_| Event::Increment), "More")),
+        once(Html::button(on("click", |_| Event::Decrement), "Less")),
     )
 }
 
