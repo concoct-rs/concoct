@@ -21,17 +21,17 @@ impl Event {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Hash)]
 struct Todo {
     id: u32,
-    content: State<String>,
+    content: String,
     is_editing: bool,
     is_completed: bool,
 }
 
 #[derive(Default)]
 struct Model {
-    input: State<String>,
+    input: String,
     next_id: u32,
     unused_ids: Vec<u32>,
     todos: Vec<Todo>,
@@ -50,11 +50,11 @@ fn view(state: &Model) -> impl View<Web<Event>> {
             Html::section(
                 class("todoapp"),
                 (
-                    lazy(state.input.clone(), view_input(state)),
-                    lazy(state.todos.clone(), view_entries(state)),
+                    lazy(&state.input, view_input(state)),
+                    lazy(&state.todos, view_entries(state)),
                 ),
             ),
-            lazy((), view_footer()),
+            lazy(&(), view_footer()),
         ),
     )
 }
@@ -174,7 +174,7 @@ fn main() {
         |state, event| match event {
             Event::None => {}
             Event::UpdateInput(value) => {
-                *state.input.make_mut() = value;
+                state.input= value;
             }
             Event::Add => {
                 let content = mem::take(&mut state.input);
@@ -200,7 +200,7 @@ fn main() {
             }
             Event::Update { id, content } => {
                 let todo = state.get_mut(id);
-                *todo.content.make_mut() = content;
+                todo.content = content;
             }
             Event::Remove(id) => {
                 if let Some(idx) = state.todos.iter().position(|todo| todo.id == id) {

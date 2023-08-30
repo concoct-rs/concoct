@@ -1,38 +1,52 @@
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
+
 use super::{Platform, View};
 
 /// Lazy-loaded view.
 /// The child view will only be rebuild if the input has changed.
-pub fn lazy<T, V, P>(input: T, view: V) -> Lazy<T, V>
+pub fn lazy<T, V, P>(input: &T, view: V) -> Lazy<T, V>
 where
-    T: PartialEq,
+    T: Hash,
     V: View<P>,
     P: Platform,
 {
-    Lazy { input, view }
+    let mut hasher = DefaultHasher::new();
+    input.hash(&mut hasher);
+
+    Lazy {
+        view,
+        hash: hasher.finish(),
+        _marker: PhantomData,
+    }
 }
 
 /// View for the [`lazy`] function.
 pub struct Lazy<T, V> {
-    input: T,
     view: V,
+    hash: u64,
+    _marker: PhantomData<T>,
 }
 
 impl<P, T, V> View<P> for Lazy<T, V>
 where
-    T: PartialEq,
+    T: Hash,
     V: View<P>,
     P: Platform,
 {
-    type State = (T, V::State);
+    type State = (u64, V::State);
 
     fn build(self, cx: &mut P) -> Self::State {
         let child_state = self.view.build(cx);
-        (self.input, child_state)
+        (self.hash, child_state)
     }
 
     fn rebuild(self, cx: &mut P, state: &mut Self::State) {
-        if self.input != state.0 {
-            state.0 = self.input;
+        if self.hash != state.0 {
+            state.0 = self.hash;
             self.view.rebuild(cx, &mut state.1)
         }
     }
