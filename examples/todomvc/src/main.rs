@@ -12,7 +12,7 @@ enum Event {
     Remove(u32),
     Check(u32),
     Edit { id: u32, is_editing: bool },
-    Update { id: u32, content: String, },
+    Update { id: u32, content: String },
 }
 
 impl Event {
@@ -174,7 +174,7 @@ fn main() {
         |state, event| match event {
             Event::None => {}
             Event::UpdateInput(value) => {
-                state.input= value;
+                state.input = value;
             }
             Event::Add => {
                 let content = mem::take(&mut state.input);

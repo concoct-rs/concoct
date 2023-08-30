@@ -1,5 +1,5 @@
 ///! Viewable components
-use crate::{Platform, State};
+use crate::Platform;
 use impl_trait_for_tuples::impl_for_tuples;
 
 mod lazy;
