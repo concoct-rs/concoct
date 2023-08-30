@@ -1,12 +1,28 @@
 use super::{Element, Native};
 use crate::View;
-use skia_safe::{Color4f, Paint};
+
 use slotmap::DefaultKey;
-use taffy::{prelude::Size, style::Style, Taffy};
+use taffy::{
+    prelude::{Layout, Size},
+    style::Style,
+    Taffy,
+};
 
-pub struct Canvas {}
+pub fn canvas<F>(draw: F) -> Canvas<F>
+where
+    F: FnMut(&Layout, &mut skia_safe::Canvas) + 'static,
+{
+    Canvas { draw }
+}
 
-impl<E> View<Native<E>> for Canvas {
+pub struct Canvas<F> {
+    draw: F,
+}
+
+impl<E, F> View<Native<E>> for Canvas<F>
+where
+    F: FnMut(&Layout, &mut skia_safe::Canvas) + 'static,
+{
     type State = ();
 
     fn build(self, cx: &mut Native<E>) -> Self::State {
@@ -15,7 +31,10 @@ impl<E> View<Native<E>> for Canvas {
         let layout_key = cx.taffy.new_leaf(layout).unwrap();
         cx.layout_stack.push(layout_key);
 
-        let key = cx.elements.insert(Box::new(CanvasElement { layout_key }));
+        let key = cx.elements.insert(Box::new(CanvasElement {
+            layout_key,
+            draw: self.draw,
+        }));
         cx.stack.push(key);
     }
 
@@ -24,17 +43,17 @@ impl<E> View<Native<E>> for Canvas {
     fn remove(_cx: &mut Native<E>, _state: &mut Self::State) {}
 }
 
-struct CanvasElement {
+struct CanvasElement<F> {
     layout_key: DefaultKey,
+    draw: F,
 }
 
-impl Element for CanvasElement {
+impl<F> Element for CanvasElement<F>
+where
+    F: FnMut(&Layout, &mut skia_safe::Canvas),
+{
     fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas) {
         let layout = taffy.layout(self.layout_key).unwrap();
-        canvas.draw_circle(
-            (layout.location.x, layout.location.y),
-            100.,
-            &Paint::new(Color4f::new(1., 0., 0., 1.), None),
-        );
+        (self.draw)(layout, canvas)
     }
 }

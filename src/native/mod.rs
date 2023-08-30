@@ -25,7 +25,7 @@ use std::{
     time::{Duration, Instant},
 };
 use taffy::{
-    prelude::{Node, Size},
+    prelude::Size,
     style::{FlexDirection, Style},
     style_helpers::TaffyMaxContent,
     Taffy,
@@ -37,7 +37,7 @@ use winit::{
 };
 
 mod canvas;
-pub use canvas::Canvas;
+pub use canvas::{canvas, Canvas};
 
 pub trait Element {
     fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas);
