@@ -9,7 +9,7 @@ enum Event {
 }
 
 fn counter(_count: &i32) -> impl View<Native<Event>> {
-    Canvas {}
+    (Canvas {}, Canvas {})
 }
 
 fn main() {

@@ -24,6 +24,12 @@ use std::{
     num::NonZeroU32,
     time::{Duration, Instant},
 };
+use taffy::{
+    prelude::{Node, Size},
+    style::{FlexDirection, Style},
+    style_helpers::TaffyMaxContent,
+    Taffy,
+};
 use winit::{
     event::{ElementState, Event as WinitEvent, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
@@ -34,7 +40,7 @@ mod canvas;
 pub use canvas::Canvas;
 
 pub trait Element {
-    fn paint(&mut self, canvas: &mut skia_safe::Canvas);
+    fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas);
 }
 
 // Guarantee the drop order inside the FnMut closure. `Window` _must_ be dropped after
@@ -50,6 +56,9 @@ pub struct Native<E> {
     _marker: PhantomData<E>,
     elements: SlotMap<DefaultKey, Box<dyn Element>>,
     stack: Vec<DefaultKey>,
+    layout_keys: SlotMap<DefaultKey, DefaultKey>,
+    taffy: Taffy,
+    layout_stack: Vec<DefaultKey>,
 }
 
 impl<E> Platform for Native<E> {
@@ -229,11 +238,24 @@ pub fn run<T, V, E>(
         _marker: PhantomData,
         elements: SlotMap::new(),
         stack: Vec::new(),
+        layout_keys: SlotMap::new(),
+        taffy: Taffy::new(),
+        layout_stack: Vec::new(),
     };
     let mut previous_frame_start = Instant::now();
 
     let view = make_view(&mut state);
     let mut view_state = view.build(&mut env);
+
+    let mut layout = Style::default();
+    layout.size = Size::from_points(1000., 1000.);
+    layout.flex_direction = FlexDirection::Row;
+
+    let root = env
+        .taffy
+        .new_with_children(layout, &env.layout_stack)
+        .unwrap();
+    taffy::compute_layout(&mut env.taffy, root, Size::MAX_CONTENT).unwrap();
 
     el.run(move |event, _, control_flow| {
         let frame_start = Instant::now();
@@ -313,9 +335,10 @@ pub fn run<T, V, E>(
             let tree = make_view(&mut state);
             tree.rebuild(&mut env, &mut view_state);
 
-            let root_key = env.stack.first().unwrap();
-            let root = env.elements.get_mut(*root_key).unwrap();
-            root.paint(env.surface.canvas());
+            for key in &env.stack {
+                let root = env.elements.get_mut(*key).unwrap();
+                root.paint(&env.taffy, env.surface.canvas());
+            }
 
             env.gr_context.flush_and_submit();
             env.gl_surface.swap_buffers(&env.gl_context).unwrap();
