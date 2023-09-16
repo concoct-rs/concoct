@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.6.3"
+version = "0.6.4"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Cross-platform UI framework"
@@ -16,7 +16,7 @@ members = [
 [features]
 web = ["dep:wasm-bindgen", "dep:web-sys"]
 native = ["dep:gl", "dep:glutin", "dep:glutin-winit", "dep:raw-window-handle", "dep:slotmap", "dep:winit"]
-default = ["native"]
+default = []
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"
