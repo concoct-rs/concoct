@@ -27,6 +27,7 @@ native = [
     "dep:skia-safe",
     "dep:accesskit"
 ]
+full = ["web", "native"]
 default = []
 
 [dependencies]
