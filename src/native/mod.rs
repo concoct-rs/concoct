@@ -126,7 +126,6 @@ pub fn run<T, V, E>(
                 .unwrap()
         })
         .unwrap();
-    println!("Picked a config with {} samples", gl_config.num_samples());
     let mut window = window.expect("Could not create window with OpenGL context");
     let raw_window_handle = window.raw_window_handle();
 

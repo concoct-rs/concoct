@@ -62,3 +62,7 @@ features = [
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "native"
+required-features = ["native"]
