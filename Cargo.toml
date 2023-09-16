@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.6.5"
+version = "0.6.6"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Cross-platform UI framework"
@@ -60,5 +60,4 @@ features = [
 ]
 
 [package.metadata.docs.rs]
-all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
