@@ -53,7 +53,7 @@ fn main() {
  - Cross-platform components
  - Compile-time UI tree
  - Efficient view updates
- - Inspired by the elm architecture
+ - Inspired by the elm and xilem architectures
 
 ## Getting started
 ### Web
@@ -85,7 +85,7 @@ fn main() {
 }
 ```
 
-All done! Check it out at `http://localhost:8080`
 ```
 trunk serve
 ````
+All done! Check it out at `http://localhost:8080`
