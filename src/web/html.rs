@@ -2,6 +2,13 @@ use super::Web;
 use crate::{view::View, Modify, Platform};
 use web_sys::Element;
 
+/// State for the [`Html`] view.
+pub struct State<M, V> {
+    element: Element,
+    modify: M,
+    view: V,
+}
+
 /// Html element view.
 pub struct Html<'a, A, V> {
     tag: &'a str,
@@ -52,27 +59,37 @@ where
     V: View<Web<E>>,
     E: 'static,
 {
-    type State = (A::State, Element, V::State);
+    type State = State<A::State, V::State>;
 
     fn build(self, cx: &mut Web<E>) -> Self::State {
-        let mut elem = cx.document.create_element(self.tag).unwrap();
-        cx.insert(&elem);
+        let mut element = cx.document.create_element(self.tag).unwrap();
+        cx.insert(&element);
 
-        let attrs = self.modify.build(cx, &mut elem);
-        let (elem, _, state) = cx.with_nested(elem, |cx| self.view.build(cx));
-        (attrs, elem, state)
+        let modify = self.modify.build(cx, &mut element);
+        let (element, _, view) = cx.with_nested(element, |cx| self.view.build(cx));
+
+        State {
+            element,
+            modify,
+            view,
+        }
     }
 
     fn rebuild(self, cx: &mut Web<E>, state: &mut Self::State) {
-        self.modify.rebuild(cx, &mut state.1, &mut state.0);
+        self.modify
+            .rebuild(cx, &mut state.element, &mut state.modify);
 
         cx.advance();
-        cx.with_nested(state.1.clone(), |cx| {
-            self.view.rebuild(cx, &mut state.2);
+        cx.with_nested(state.element.clone(), |cx| {
+            self.view.rebuild(cx, &mut state.view);
         });
     }
 
-    fn remove(_cx: &mut Web<E>, state: &mut Self::State) {
-        state.1.remove();
+    fn remove(cx: &mut Web<E>, state: &mut Self::State) {
+        // Remove the child view
+        V::remove(cx, &mut state.view);
+
+        // Remove the html element
+        state.element.remove();
     }
 }

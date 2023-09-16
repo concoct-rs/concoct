@@ -113,23 +113,16 @@ where
             .collect();
 
         // Remove trailing views
-        remove_views::<_, _, V>(cx, state);
+        <Self as View<P>>::remove(cx, state);
 
+        // Update the state
         *state = new_state;
     }
 
     fn remove(cx: &mut P, state: &mut Self::State) {
-        remove_views::<_, _, V>(cx, state)
-    }
-}
-
-fn remove_views<K, P, V>(cx: &mut P, state: &mut [(K, V::State)])
-where
-    P: Platform,
-    V: View<P>,
-{
-    for (_, view_state) in &mut state[..] {
-        V::remove(cx, view_state);
+        for (_, view_state) in &mut state[..] {
+            V::remove(cx, view_state);
+        }
     }
 }
 

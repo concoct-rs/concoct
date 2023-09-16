@@ -7,7 +7,7 @@ use web_sys::{Document, Node};
 mod event_ext;
 pub use event_ext::EventExt;
 
-mod html;
+pub mod html;
 pub use self::html::Html;
 
 mod on;
