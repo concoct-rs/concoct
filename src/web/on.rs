@@ -39,9 +39,10 @@ where
     fn build(self, cx: &mut Web<E>, elem: &mut Element) -> Self::State {
         let update_cell = cx.update.clone();
         let closure: Closure<dyn FnMut(Event)> = Closure::new(move |event| {
+            let msg = (self.handler)(event);
+
             let mut update = update_cell.borrow_mut();
             let update_fn = update.as_mut().unwrap();
-            let msg = (self.handler)(event);
             update_fn(msg);
         });
 

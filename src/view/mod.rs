@@ -139,6 +139,7 @@ impl<E> View<crate::web::Web<E>> for &'_ str {
 
     fn rebuild(self, cx: &mut crate::web::Web<E>, (prev, text): &mut Self::State) {
         if &self != &*prev {
+            *prev = self;
             text.set_text_content(Some(&self))
         }
         cx.advance()
@@ -161,7 +162,8 @@ impl<E> View<crate::web::Web<E>> for String {
 
     fn rebuild(self, cx: &mut crate::web::Web<E>, (prev, text): &mut Self::State) {
         if &self != &*prev {
-            text.set_text_content(Some(&self))
+            *prev = self;
+            text.set_text_content(Some(&prev))
         }
         cx.advance()
     }
