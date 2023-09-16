@@ -5,20 +5,18 @@ use std::{
     marker::PhantomData,
 };
 
+/// Lazy-loaded constant view.
+/// The child view will never be rebuilt.
 pub fn once<V, P>(view: V) -> Lazy<(), V>
 where
     V: View<P>,
     P: Platform,
 {
-    Lazy {
-        view,
-        hash: 0,
-        _marker: PhantomData,
-    }
+    lazy(&(), view)
 }
 
 /// Lazy-loaded view.
-/// The child view will only be rebuild if the input has changed.
+/// The child view will only be rebuilt if the input has changed.
 pub fn lazy<T, V, P>(input: &T, view: V) -> Lazy<T, V>
 where
     T: Hash,

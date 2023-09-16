@@ -73,7 +73,7 @@ fn view_input(state: &Model) -> impl View<Web<Event>> {
                     value(state.input.clone()),
                     on("input", |event| {
                         event.prevent_default();
-                        Event::UpdateInput(event.event_target_value())
+                        Event::UpdateInput(event.target_value())
                     }),
                     on_enter(|| Event::Add),
                 ),
@@ -142,7 +142,7 @@ fn view_entry(todo: &Todo) -> impl View<Web<Event>> {
                         event.prevent_default();
                         Event::Update {
                             id,
-                            content: event.event_target_value(),
+                            content: event.target_value(),
                         }
                     }),
                     on("blur", move |_| Event::edit(id, false)),
@@ -160,7 +160,7 @@ fn view_footer() -> impl View<Web<Event>> {
 
 fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Web<Event>, Element> {
     on("keydown", move |event| {
-        if event.event_key_code() == 13 {
+        if event.key_code() == 13 {
             f()
         } else {
             Event::None

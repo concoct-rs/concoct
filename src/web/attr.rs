@@ -2,14 +2,17 @@ use super::Web;
 use crate::Modify;
 use web_sys::Element;
 
+/// Set the class attribute for an element.
 pub fn class<T>(value: T) -> Attr<&'static str, T> {
     attr("class", value)
 }
 
+/// Set a stringly-typed attribute for an element.
 pub fn attr<T, U>(name: T, value: U) -> Attr<T, U> {
     Attr { name, value }
 }
 
+/// View for the [`attr`] function.
 pub struct Attr<T, U> {
     name: T,
     value: U,

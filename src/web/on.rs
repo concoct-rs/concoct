@@ -3,6 +3,7 @@ use crate::Modify;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{Element, Event};
 
+/// Add an event listener to an element.
 pub fn on<F, E>(name: &str, make: F) -> On<F>
 where
     F: Fn(Event) -> E + 'static,
@@ -11,6 +12,7 @@ where
     On { name, make }
 }
 
+/// View for the [`on`] function.
 pub struct On<'a, F> {
     name: &'a str,
     make: F,

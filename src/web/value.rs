@@ -3,10 +3,12 @@ use crate::Modify;
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
 
+/// Set the value attribute of an element.
 pub fn value<T>(value: T) -> Value<T> {
     Value { value }
 }
 
+/// View for the [`value`] function.
 pub struct Value<T> {
     value: T,
 }

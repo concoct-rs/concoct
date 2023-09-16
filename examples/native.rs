@@ -1,5 +1,5 @@
 use concoct::{
-    native::{canvas, Native, text},
+    native::{canvas, text, Native},
     view::View,
 };
 use skia_safe::{Color4f, Paint};
