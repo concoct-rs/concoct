@@ -1,24 +1,29 @@
+use std::borrow::Cow;
+
 use super::Web;
 use crate::Modify;
 use web_sys::Element;
 
 /// Set the class attribute for an element.
-pub fn class<T>(value: T) -> Attr<&'static str, T> {
+pub fn class(value: impl Into<Cow<'static, str>>) -> Attr {
     attr("class", value)
 }
 
 /// Set a stringly-typed attribute for an element.
-pub fn attr<T, U>(name: T, value: U) -> Attr<T, U> {
-    Attr { name, value }
+pub fn attr(name: impl Into<Cow<'static, str>>, value: impl Into<Cow<'static, str>>) -> Attr {
+    Attr {
+        name: name.into(),
+        value: value.into(),
+    }
 }
 
 /// View for the [`attr`] function.
-pub struct Attr<T, U> {
-    name: T,
-    value: U,
+pub struct Attr {
+    name: Cow<'static, str>,
+    value: Cow<'static, str>,
 }
 
-impl<E, T: AsRef<str>, U: AsRef<str>> Modify<Web<E>, Element> for Attr<T, U> {
+impl<E> Modify<Web<E>, Element> for Attr {
     type State = ();
 
     fn build(self, _cx: &mut Web<E>, elem: &mut Element) -> Self::State {

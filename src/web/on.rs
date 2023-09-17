@@ -46,7 +46,6 @@ where
             update_fn(msg);
         });
 
-       
         elem.add_event_listener_with_callback(&self.name, closure.as_ref().unchecked_ref())
             .unwrap();
 
@@ -63,7 +62,8 @@ where
             update_fn(msg);
         });
 
-        elem.remove_event_listener_with_callback(&state.0, state.1.as_ref().unchecked_ref()).unwrap();
+        elem.remove_event_listener_with_callback(&state.0, state.1.as_ref().unchecked_ref())
+            .unwrap();
         elem.add_event_listener_with_callback(&self.name, closure.as_ref().unchecked_ref())
             .unwrap();
 

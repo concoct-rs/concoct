@@ -1,19 +1,23 @@
+use std::borrow::Cow;
+
 use super::Web;
 use crate::Modify;
 use wasm_bindgen::JsCast;
 use web_sys::{Element, HtmlInputElement};
 
 /// Set the value attribute of an element.
-pub fn value<T>(value: T) -> Value<T> {
-    Value { value }
+pub fn value(value: impl Into<Cow<'static, str>>) -> Value {
+    Value {
+        value: value.into(),
+    }
 }
 
 /// View for the [`value`] function.
-pub struct Value<T> {
-    value: T,
+pub struct Value {
+    value: Cow<'static, str>,
 }
 
-impl<E, T: AsRef<str>> Modify<Web<E>, Element> for Value<T> {
+impl<E> Modify<Web<E>, Element> for Value {
     type State = ();
 
     fn build(self, _cx: &mut Web<E>, elem: &mut Element) -> Self::State {

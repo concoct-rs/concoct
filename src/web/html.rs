@@ -1,7 +1,9 @@
-use std::borrow::Cow;
-
-use super::{on, On, Web};
+use super::{
+    attr::{attr, Attr},
+    class, on, value, On, Value, Web,
+};
 use crate::{view::View, Modify, Platform};
+use std::borrow::Cow;
 use web_sys::{Element, Event};
 
 /// State for the [`Html`] view.
@@ -43,6 +45,22 @@ impl<A, V> Html<A, V> {
         E: 'static,
     {
         self.modify(on(name, handler))
+    }
+
+    pub fn attr(
+        self,
+        name: impl Into<Cow<'static, str>>,
+        value: impl Into<Cow<'static, str>>,
+    ) -> Html<(A, Attr), V> {
+        self.modify(attr(name, value))
+    }
+
+    pub fn class(self, value: impl Into<Cow<'static, str>>) -> Html<(A, Attr), V> {
+        self.modify(class(value))
+    }
+
+    pub fn value(self, value: impl Into<Cow<'static, str>>) -> Html<(A, Value), V> {
+        self.modify(value::value(value))
     }
 
     pub fn view<V2>(self, view: V2) -> Html<A, (V, V2)> {
