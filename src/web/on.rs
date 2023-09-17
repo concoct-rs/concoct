@@ -46,11 +46,27 @@ where
             update_fn(msg);
         });
 
+       
         elem.add_event_listener_with_callback(&self.name, closure.as_ref().unchecked_ref())
             .unwrap();
 
         (self.name, closure)
     }
 
-    fn rebuild(self, _cx: &mut Web<E>, _elem: &mut Element, _state: &mut Self::State) {}
+    fn rebuild(self, cx: &mut Web<E>, elem: &mut Element, state: &mut Self::State) {
+        let update_cell = cx.update.clone();
+        let closure: Closure<dyn FnMut(Event)> = Closure::new(move |event| {
+            let msg = (self.handler)(event);
+
+            let mut update = update_cell.borrow_mut();
+            let update_fn = update.as_mut().unwrap();
+            update_fn(msg);
+        });
+
+        elem.remove_event_listener_with_callback(&state.0, state.1.as_ref().unchecked_ref()).unwrap();
+        elem.add_event_listener_with_callback(&self.name, closure.as_ref().unchecked_ref())
+            .unwrap();
+
+        *state = (self.name, closure);
+    }
 }

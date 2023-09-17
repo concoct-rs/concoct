@@ -1,6 +1,8 @@
-use super::Web;
+use std::borrow::Cow;
+
+use super::{on, On, Web};
 use crate::{view::View, Modify, Platform};
-use web_sys::Element;
+use web_sys::{Element, Event};
 
 /// State for the [`Html`] view.
 pub struct State<M, V> {
@@ -10,37 +12,59 @@ pub struct State<M, V> {
 }
 
 /// Html element view.
-pub struct Html<'a, A, V> {
-    tag: &'a str,
+pub struct Html<A, V> {
+    tag: Cow<'static, str>,
     modify: A,
     view: V,
 }
 
-impl<'a, A, V> Html<'a, A, V> {
-    pub fn new(tag: &'a str, modify: A, view: V) -> Self {
-        Self { tag, modify, view }
+impl Html<(), ()> {
+    pub fn new(tag: impl Into<Cow<'static, str>>) -> Self {
+        Self {
+            tag: tag.into(),
+            modify: (),
+            view: (),
+        }
+    }
+}
+
+impl<A, V> Html<A, V> {
+    pub fn modify<A2>(self, modify: A2) -> Html<(A, A2), V> {
+        Html {
+            tag: self.tag,
+            modify: (self.modify, modify),
+            view: self.view,
+        }
     }
 
-    pub fn modify<A2>(self, attributes: A2) -> Html<'a, A2, V> {
-        Html::new(self.tag, attributes, self.view)
+    pub fn on<F, E>(self, name: impl Into<Cow<'static, str>>, handler: F) -> Html<(A, On<F>), V>
+    where
+        F: Fn(Event) -> E + 'static,
+        E: 'static,
+    {
+        self.modify(on(name, handler))
     }
 
-    pub fn then<V2>(self, view: V2) -> Html<'a, A, (V, V2)> {
-        Html::new(self.tag, self.modify, (self.view, view))
+    pub fn view<V2>(self, view: V2) -> Html<A, (V, V2)> {
+        Html {
+            tag: self.tag,
+            modify: self.modify,
+            view: (self.view, view),
+        }
     }
 }
 
 macro_rules! html_tags {
     ($($tag:ident),+) => {
         $(
-            pub fn $tag(attrs: A, view: V) -> Self {
-                Html::new(stringify!($tag), attrs, view)
+            pub fn $tag() -> Self {
+                Html::new(stringify!($tag))
             }
         )+
     };
 }
 
-impl<'a, A, V> Html<'static, A, V> {
+impl Html<(), ()> {
     html_tags!(
         a, abbr, address, area, article, aside, audio, b, base, bdi, bdo, blockquote, body, br,
         button, canvas, caption, cite, code, col, colgroup, data, datalist, dd, del, details, dfn,
@@ -53,7 +77,7 @@ impl<'a, A, V> Html<'static, A, V> {
     );
 }
 
-impl<'a, A, V, E> View<Web<E>> for Html<'a, A, V>
+impl<A, V, E> View<Web<E>> for Html<A, V>
 where
     A: Modify<Web<E>, Element>,
     V: View<Web<E>>,
@@ -62,7 +86,7 @@ where
     type State = State<A::State, V::State>;
 
     fn build(self, cx: &mut Web<E>) -> Self::State {
-        let mut element = cx.document.create_element(self.tag).unwrap();
+        let mut element = cx.document.create_element(&self.tag).unwrap();
         cx.insert(&element);
 
         let modify = self.modify.build(cx, &mut element);

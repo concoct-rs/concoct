@@ -44,48 +44,35 @@ impl Model {
 }
 
 fn view(state: &Model) -> impl View<Web<Event>> {
-    Html::div(
-        class("todomvc-wrapper"),
-        (
-            Html::section(
-                class("todoapp"),
-                (
-                    lazy(&state.input, view_input(state)),
-                    lazy(&state.todos, view_entries(state)),
-                ),
-            ),
-            once(view_footer()),
-        ),
-    )
+    Html::div().modify(class("todomvc-wrapper")).view((
+        Html::section().modify(class("todoapp")).view((
+            lazy(&state.input, view_input(state)),
+            lazy(&state.todos, view_entries(state)),
+        )),
+        once(view_footer()),
+    ))
 }
 
 fn view_input(state: &Model) -> impl View<Web<Event>> {
-    Html::header(
-        class("header"),
-        (
-            Html::h1((), "Todos"),
-            Html::input(
-                (
-                    class("new-todo"),
-                    attr("placeholder", "What needs to be done?"),
-                    attr("autofocus", "True"),
-                    attr("name", "newTodo"),
-                    value(state.input.clone()),
-                    on("input", |event| {
-                        event.prevent_default();
-                        Event::UpdateInput(event.target_value())
-                    }),
-                    on_enter(|| Event::Add),
-                ),
-                (),
-            ),
-        ),
-    )
+    Html::header().modify(class("header")).view((
+        Html::h1().view("Todos"),
+        Html::input().modify((
+            class("new-todo"),
+            attr("placeholder", "What needs to be done?"),
+            attr("autofocus", "True"),
+            attr("name", "newTodo"),
+            value(state.input.clone()),
+            on("input", |event| {
+                event.prevent_default();
+                Event::UpdateInput(event.target_value())
+            }),
+            on_enter(|| Event::Add),
+        )),
+    ))
 }
 
 fn view_entries(state: &Model) -> impl View<Web<Event>> {
-    Html::ul(
-        class("todo-list"),
+    Html::ul().modify(class("todo-list")).view(
         state
             .todos
             .iter()
@@ -108,54 +95,40 @@ fn view_entry(todo: &Todo) -> impl View<Web<Event>> {
         ""
     };
 
-    Html::li(
-        class(class_list),
-        (
-            Html::div(
-                class("view"),
-                (
-                    Html::input(
-                        (
-                            class("toggle"),
-                            attr("type", "checkbox"),
-                            attr("checked", todo.is_completed.to_string()),
-                            on("click", move |_| Event::Check(id)),
-                        ),
-                        (),
-                    ),
-                    Html::label(
-                        on("click", move |_| Event::edit(id, true)),
-                        todo.content.clone(),
-                    ),
-                    Html::button(
-                        (class("destroy"), on("click", move |_| Event::Remove(id))),
-                        (),
-                    ),
-                ),
-            ),
-            Html::input(
-                (
-                    class("edit"),
-                    value(todo.content.clone()),
-                    attr("name", "content"),
-                    on("input", move |event| {
-                        event.prevent_default();
-                        Event::Update {
-                            id,
-                            content: event.target_value(),
-                        }
-                    }),
-                    on("blur", move |_| Event::edit(id, false)),
-                    on_enter(move || Event::edit(id, false)),
-                ),
-                (),
-            ),
-        ),
-    )
+    Html::li().modify(class(class_list)).view((
+        Html::div().modify(class("view")).view((
+            Html::input().modify((
+                class("toggle"),
+                attr("type", "checkbox"),
+                attr("checked", todo.is_completed.to_string()),
+                on("click", move |_| Event::Check(id)),
+            )),
+            Html::label()
+                .modify(on("click", move |_| Event::edit(id, true)))
+                .view(todo.content.clone()),
+            Html::button().modify((class("destroy"), on("click", move |_| Event::Remove(id)))),
+        )),
+        Html::input().modify((
+            class("edit"),
+            value(todo.content.clone()),
+            attr("name", "content"),
+            on("input", move |event| {
+                event.prevent_default();
+                Event::Update {
+                    id,
+                    content: event.target_value(),
+                }
+            }),
+            on("blur", move |_| Event::edit(id, false)),
+            on_enter(move || Event::edit(id, false)),
+        )),
+    ))
 }
 
 fn view_footer() -> impl View<Web<Event>> {
-    Html::footer(class("info"), Html::p((), "Click to edit a todo"))
+    Html::footer()
+        .modify(class("info"))
+        .view(Html::p().view("Click to edit a todo"))
 }
 
 fn on_enter(f: impl Fn() -> Event + 'static) -> impl Modify<Web<Event>, Element> {
