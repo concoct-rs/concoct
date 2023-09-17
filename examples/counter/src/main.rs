@@ -1,6 +1,6 @@
 use concoct::{
     view::{self, View},
-    web::{on, Html, Web},
+    web::{Html, Web},
 };
 
 enum Event {

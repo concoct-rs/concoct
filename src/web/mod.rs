@@ -1,6 +1,6 @@
 use crate::view::View;
 use crate::Platform;
-use std::{cell::RefCell, marker::PhantomData, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 pub use web_sys::Element;
 use web_sys::{Document, Node};
 

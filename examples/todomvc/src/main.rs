@@ -1,6 +1,6 @@
 use concoct::{
     view::{lazy, once, View},
-    web::{attr, class, on, value, Element, EventExt, Html, Web},
+    web::{on, Element, EventExt, Html, Web},
     Modify,
 };
 use std::mem;
