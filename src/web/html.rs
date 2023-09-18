@@ -18,7 +18,7 @@ pub struct Html<A, V, E> {
     tag: Cow<'static, str>,
     modify: A,
     view: V,
-    _marker: PhantomData<E>
+    _marker: PhantomData<E>,
 }
 
 impl<E> Html<(), (), E> {
@@ -27,18 +27,18 @@ impl<E> Html<(), (), E> {
             tag: tag.into(),
             modify: (),
             view: (),
-            _marker: PhantomData
+            _marker: PhantomData,
         }
     }
 }
 
 impl<A, V, E> Html<A, V, E> {
-    pub fn modify<A2>(self, modify: A2) -> Html<(A, A2), V , E> {
+    pub fn modify<A2>(self, modify: A2) -> Html<(A, A2), V, E> {
         Html {
             tag: self.tag,
             modify: (self.modify, modify),
             view: self.view,
-            _marker: PhantomData
+            _marker: PhantomData,
         }
     }
 
@@ -74,7 +74,7 @@ impl<A, V, E> Html<A, V, E> {
             tag: self.tag,
             modify: self.modify,
             view: (self.view, view),
-            _marker: PhantomData
+            _marker: PhantomData,
         }
     }
 }

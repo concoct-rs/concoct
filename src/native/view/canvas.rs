@@ -1,6 +1,7 @@
-use super::{Element, Native};
-use crate::View;
-
+use crate::{
+    native::{Element, Native},
+    View,
+};
 use slotmap::DefaultKey;
 use taffy::{
     prelude::{Layout, Size},

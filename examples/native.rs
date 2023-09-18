@@ -1,8 +1,7 @@
 use concoct::{
-    native::{canvas, text, Native},
+    native::{view::text, Native},
     view::View,
 };
-use skia_safe::{Color4f, Paint};
 
 enum Event {
     Increment,
@@ -10,7 +9,7 @@ enum Event {
 }
 
 fn counter(count: &i32) -> impl View<Native<Event>> {
-    text(count.to_string())
+    (text(count.to_string()), text("More"), text("Less"))
 }
 
 fn main() {

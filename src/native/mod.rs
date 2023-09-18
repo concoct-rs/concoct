@@ -15,7 +15,7 @@ use glutin_winit::DisplayBuilder;
 use raw_window_handle::HasRawWindowHandle;
 use skia_safe::{
     gpu::{self, gl::FramebufferInfo, BackendRenderTarget, SurfaceOrigin},
-    Color, Color4f, ColorType, Font, FontStyle, Paint, Surface, TextBlob, Typeface,
+    Color, ColorType, Surface,
 };
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -36,25 +36,10 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-mod canvas;
-pub use canvas::{canvas, Canvas};
+mod element;
+pub use element::Element;
 
-pub fn text<E>(content: String) -> impl View<Native<E>> {
-    canvas(move |layout, canvas| {
-        let typeface = Typeface::new("Arial", FontStyle::default()).unwrap();
-        let font = Font::new(typeface, Some(100.));
-        let blob = TextBlob::new(&content, &font).unwrap();
-        canvas.draw_text_blob(
-            &blob,
-            (layout.location.x + 100., layout.location.y + 100.),
-            &Paint::new(Color4f::new(1., 0., 0., 1.), None),
-        );
-    })
-}
-
-pub trait Element {
-    fn paint(&mut self, taffy: &Taffy, canvas: &mut skia_safe::Canvas);
-}
+pub mod view;
 
 // Guarantee the drop order inside the FnMut closure. `Window` _must_ be dropped after
 // `DirectContext`.
