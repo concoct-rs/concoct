@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.6.8"
+version = "0.7.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Cross-platform UI framework"
