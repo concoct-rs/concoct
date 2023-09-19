@@ -6,6 +6,44 @@ use crate::{view::View, Modify, Platform};
 use std::{borrow::Cow, marker::PhantomData};
 use web_sys::{Element, Event};
 
+pub struct ClassList {
+    string: Option<String>,
+    is_empty: bool,
+}
+
+impl Default for ClassList {
+    fn default() -> Self {
+        Self {
+            string: Some(String::new()),
+            is_empty: true,
+        }
+    }
+}
+
+impl ClassList {
+    pub fn class(&mut self, class_name: impl AsRef<str>) {
+        if self.is_empty {
+            self.is_empty = false;
+        } else if let Some(s) = self.string.as_mut() {
+            s.push(' ');
+        }
+
+        if let Some(s) = self.string.as_mut() {
+            s.push_str(class_name.as_ref());
+        }
+    }
+
+    pub fn build(&mut self) -> String {
+        self.string.take().unwrap()
+    }
+}
+
+impl From<ClassList> for Cow<'static, str> {
+    fn from(mut value: ClassList) -> Self {
+        value.build().into()
+    }
+}
+
 /// State for the [`Html`] view.
 pub struct State<M, V> {
     element: Element,

@@ -8,7 +8,7 @@ mod event_ext;
 pub use event_ext::EventExt;
 
 pub mod html;
-pub use self::html::Html;
+pub use self::html::{Html, ClassList};
 
 mod on;
 pub use self::on::{on, On};

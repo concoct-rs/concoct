@@ -1,6 +1,6 @@
 use concoct::{
     view::{lazy, once, View},
-    web::{on, Element, EventExt, Html, Web},
+    web::{on, ClassList, Element, EventExt, Html, Web},
     Modify,
 };
 use std::mem;
@@ -82,17 +82,14 @@ fn view_entries(state: &Model) -> impl View<Web<Event>> {
 
 fn view_entry(todo: &Todo) -> impl View<Web<Event>> {
     let id = todo.id;
-    let class_list = if todo.is_completed {
-        if todo.is_editing {
-            "completed editing"
-        } else {
-            "completed"
-        }
-    } else if todo.is_editing {
-        "editing"
-    } else {
-        ""
-    };
+
+    let mut class_list = ClassList::default();
+    if todo.is_completed {
+        class_list.class("completed")
+    }
+    if todo.is_editing {
+        class_list.class("editing")
+    }
 
     Html::li().class(class_list).view((
         Html::div().class("view").view((
