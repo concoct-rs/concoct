@@ -46,14 +46,14 @@ impl Model {
 fn view(state: &Model) -> impl View<Web<Event>> {
     Html::div().class("todomvc-wrapper").view((
         Html::section().class("todoapp").view((
-            lazy(&state.input, view_input(state)),
+            lazy(&state.input, view_input(state.input.clone())),
             lazy(&state.todos, view_entries(state)),
         )),
         once(view_footer()),
     ))
 }
 
-fn view_input(state: &Model) -> impl View<Web<Event>> {
+fn view_input(input: String) -> impl View<Web<Event>> {
     Html::header().class("header").view((
         Html::h1().view("Todos"),
         Html::input()
@@ -61,7 +61,7 @@ fn view_input(state: &Model) -> impl View<Web<Event>> {
             .attr("placeholder", "What needs to be done?")
             .attr("autofocus", "True")
             .attr("name", "newTodo")
-            .value(state.input.clone())
+            .value(input)
             .on("input", |event| {
                 event.prevent_default();
                 Event::UpdateInput(event.target_value())
@@ -85,10 +85,10 @@ fn view_entry(todo: &Todo) -> impl View<Web<Event>> {
 
     let mut class_list = ClassList::default();
     if todo.is_completed {
-        class_list.class("completed")
+        class_list.class("completed");
     }
     if todo.is_editing {
-        class_list.class("editing")
+        class_list.class("editing");
     }
 
     Html::li().class(class_list).view((

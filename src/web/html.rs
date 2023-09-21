@@ -21,7 +21,7 @@ impl Default for ClassList {
 }
 
 impl ClassList {
-    pub fn class(&mut self, class_name: impl AsRef<str>) {
+    pub fn class(&mut self, class_name: impl AsRef<str>)  -> &mut Self{
         if self.is_empty {
             self.is_empty = false;
         } else if let Some(s) = self.string.as_mut() {
@@ -31,6 +31,8 @@ impl ClassList {
         if let Some(s) = self.string.as_mut() {
             s.push_str(class_name.as_ref());
         }
+
+        self
     }
 
     pub fn build(&mut self) -> String {
