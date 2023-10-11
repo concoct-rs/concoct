@@ -95,5 +95,5 @@ fn main() {
 
 ```
 trunk serve
-```` 
+````
 All done! Check it out at `http://localhost:8080`
