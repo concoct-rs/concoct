@@ -5,21 +5,20 @@ use web_sys::Element;
 
 pub mod html;
 
+mod scope;
+pub use scope::Scope;
+
 mod signal;
 pub use signal::Signal;
 
 mod view;
 pub use view::View;
 
-struct Scope {
-    owner: Owner,
-}
 
 thread_local! {
     static STORE: Store = Store::default();
 
-    static SCOPE: Scope = Scope { owner: STORE.try_with(|store| store.owner()).unwrap() };
-}
+   }
 
 
 pub enum Node {
