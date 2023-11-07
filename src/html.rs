@@ -1,10 +1,11 @@
 use crate::{runtime::Runtime, use_context, use_context_provider, Node, Scope, View};
 
-use std::{borrow::Cow, cell::RefCell, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{window, Element};
 
 pub struct Parent(pub Element);
+
 
 macro_rules! html_tags {
     ($($tag:ident),+) => {
@@ -14,6 +15,26 @@ macro_rules! html_tags {
             }
         )+
     };
+}
+
+
+
+macro_rules! handlers {
+    ($($fn_name:ident: $name:expr),+) => {
+        $(
+            pub fn $fn_name(self, handler: impl FnMut() + 'static) -> Self {
+                self.on_event($name, handler)
+             }
+        )+
+    };
+}
+
+
+#[derive(Clone)]
+pub struct Html {
+    tag: Cow<'static, str>,
+    view: Option<Rc<RefCell<dyn View>>>,
+    event_handlers: HashMap<Cow<'static, str>, Rc<RefCell<dyn FnMut()>>>,
 }
 
 impl Html {
@@ -27,23 +48,12 @@ impl Html {
         source, span, strong, style, sub, summary, sup, table, tbody, td, template, textarea,
         tfoot, th, thead, time, title, tr, track, u, ul, var, video, wbr
     );
-}
 
-#[derive(Clone)]
-pub struct Html {
-    tag: Cow<'static, str>,
-    view: Option<Rc<RefCell<dyn View>>>,
-    on_click: Option<Rc<RefCell<dyn FnMut()>>>,
-    callback: Option<Rc<Closure<dyn FnMut()>>>,
-}
-
-impl Html {
     pub fn new(tag: impl Into<Cow<'static, str>>) -> Self {
         Self {
             tag: tag.into(),
             view: None,
-            on_click: None,
-            callback: None,
+            event_handlers: HashMap::new(),
         }
     }
 
@@ -52,8 +62,15 @@ impl Html {
         self
     }
 
-    pub fn on_click(mut self, f: impl FnMut() + 'static) -> Self {
-        self.on_click = Some(Rc::new(RefCell::new(f)));
+    handlers!(on_click: "click", on_hover: "hover", on_scroll: "scroll");
+    
+    pub fn on_event(
+        mut self,
+        name: impl Into<Cow<'static, str>>,
+        handler: impl FnMut() + 'static,
+    ) -> Self {
+        self.event_handlers
+            .insert(name.into(), Rc::new(RefCell::new(handler)));
         self
     }
 }
@@ -73,18 +90,17 @@ impl View for Html {
             });
 
         let scope = Scope::current();
-        let callback = scope
-            .use_hook(|| {
-                if let Some(f) = self.on_click.take() {
+        let callbacks = scope.use_hook(|| {
+            self.event_handlers
+                .iter()
+                .map(|(name, handler)| {
+                    let handler = handler.clone();
                     let closure: Closure<dyn FnMut()> =
-                        Closure::wrap(Box::new(move || f.borrow_mut()()));
-                    Some(Rc::new(closure))
-                } else {
-                    None
-                }
-            })
-            .clone();
-        drop(scope);
+                        Closure::wrap(Box::new(move || handler.borrow_mut()()));
+                    (name.clone(), Rc::new(closure))
+                })
+                .collect::<Vec<_>>()
+        });
 
         let elem = use_context_provider(|| {
             let elem = window()
@@ -94,9 +110,12 @@ impl View for Html {
                 .create_element(&self.tag)
                 .unwrap();
 
-            if let Some(f) = callback {
-                elem.add_event_listener_with_callback("click", f.as_ref().as_ref().unchecked_ref())
-                    .unwrap();
+            for (name, handler) in callbacks.iter() {
+                elem.add_event_listener_with_callback(
+                    name,
+                    handler.as_ref().as_ref().unchecked_ref(),
+                )
+                .unwrap();
             }
 
             parent.append_child(&elem).unwrap();
@@ -120,3 +139,4 @@ impl View for Html {
         todo!()
     }
 }
+
