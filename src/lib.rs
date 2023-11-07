@@ -38,5 +38,4 @@ pub fn run<V: View + 'static>(component: fn() -> V) {
     for _ in 0..10 {
         Runtime::current().poll();
     }
-    
 }

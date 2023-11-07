@@ -55,12 +55,17 @@ impl View for Rc<RefCell<dyn View>> {
     }
 }
 
-impl<A: View +Clone + 'static, B: View +Clone+ 'static, C: View +Clone+ 'static> View for (A, B, C) {
+impl<A, B, C> View for (A, B, C)
+where
+    A: View + Clone + 'static,
+    B: View + Clone + 'static,
+    C: View + Clone + 'static,
+{
     fn view(&mut self) -> Option<Node> {
         Some(Node::Components(vec![
-           Box::new( self.0.clone()),
-           Box::new( self.1.clone()),
-           Box::new( self.2.clone()),
+            Box::new(self.0.clone()),
+            Box::new(self.1.clone()),
+            Box::new(self.2.clone()),
         ]))
     }
 

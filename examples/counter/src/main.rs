@@ -1,22 +1,13 @@
-use concoct::{html::div, use_context, use_context_provider, use_signal, Scope, View};
-use gloo_timers::callback::Interval;
+use concoct::{html::div, use_signal, View};
 
 fn app() -> impl View {
     let mut count = use_signal(|| 0);
 
-    log::info!("{:?}", count.read());
-
-    div().view(move || {
-        (
-            format!("High five count: {}", count),
-            div()
-                .view(String::from("Up high!"))
-                .on_click(move || count += 1),
-            div()
-                .view(String::from("Down low!"))
-                .on_click(move || count -= 1),
-        )
-    })
+    div().view((
+        move || format!("High five count: {}", count),
+        div().view("Up high!").on_click(move || count += 1),
+        div().view("Down low!").on_click(move || count -= 1),
+    ))
 }
 
 fn main() {

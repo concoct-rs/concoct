@@ -1,5 +1,5 @@
 use crate::{runtime::Runtime, use_context, use_context_provider, Node, Scope, View};
-use slotmap::DefaultKey;
+
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{window, Element};
@@ -141,7 +141,28 @@ impl View for String {
 
 impl View for &'static str {
     fn view(&mut self) -> Option<Node> {
-        log::info!("{:?}", &self);
+        let parent = use_context::<Parent>()
+            .map(|cx| cx.0.clone())
+            .unwrap_or_else(|| {
+                window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .body()
+                    .unwrap()
+                    .unchecked_into()
+            });
+
+        let elem = Scope::current()
+            .use_hook(|| {
+                let elem = window().unwrap().document().unwrap().create_text_node(self);
+                parent.append_child(&elem).unwrap();
+                Parent(elem.unchecked_into())
+            })
+            .0
+            .clone();
+
+        elem.set_text_content(Some(self));
 
         let document = web_sys::window().unwrap().document().unwrap();
         let elem = document.create_text_node(self);
