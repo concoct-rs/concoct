@@ -9,8 +9,12 @@ fn app() -> impl View {
     use_context_provider(|| 0);
 
     div().view(move || {
-        log::info!("{}", *use_context::<i32>());
-        format!("High five count: {}", count)
+        (
+            format!("High five count: {}", count),
+            div().view(String::from("Up high!")),
+            div().view(String::from("Down low!"))
+        )
+       
     })
 }
 

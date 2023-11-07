@@ -1,13 +1,41 @@
-use crate::{runtime::Runtime, Node, View};
+use crate::{runtime::Runtime, use_context, use_context_provider, Node, View};
+use slotmap::DefaultKey;
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsCast;
+use web_sys::{window, Element};
+
+pub struct Parent(Element);
 
 pub fn div() -> Div {
+    let parent = use_context::<Parent>()
+        .map(|cx| cx.0.clone())
+        .unwrap_or_else(|| {
+            window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .body()
+                .unwrap()
+                .unchecked_into()
+        });
+
+    use_context_provider(|| {
+        let elem = window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .create_element("div")
+            .unwrap();
+        parent.append_child(&elem).unwrap();
+        Parent(elem)
+    });
+
     Div::new()
 }
 
+#[derive(Clone)]
 pub struct Div {
-    view: Option<Box<dyn View>>,
+    view: Option<Rc<RefCell<dyn View>>>,
 }
 
 impl Div {
@@ -16,7 +44,7 @@ impl Div {
     }
 
     pub fn view(mut self, view: impl View + 'static) -> Self {
-        self.view = Some(Box::new(view));
+        self.view = Some(Rc::new(RefCell::new(view)));
         self
     }
 
@@ -48,7 +76,27 @@ impl View for Div {
 
 impl View for String {
     fn view(&mut self) -> Option<Node> {
-        log::info!("{:?}", &self);
+        let parent = use_context::<Parent>()
+            .map(|cx| cx.0.clone())
+            .unwrap_or_else(|| {
+                window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .body()
+                    .unwrap()
+                    .unchecked_into()
+            });
+
+        let elem = use_context_provider(|| {
+            let elem = window().unwrap().document().unwrap().create_text_node(self);
+            parent.append_child(&elem).unwrap();
+            Parent(elem.unchecked_into())
+        })
+        .0
+        .clone();
+
+        elem.set_text_content(Some(self));
 
         let document = web_sys::window().unwrap().document().unwrap();
         let elem = document.create_text_node(self);

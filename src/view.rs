@@ -41,12 +41,27 @@ impl View for Box<dyn View> {
     }
 }
 
-impl<A: View, B: View, C: View> View for (A, B, C) {
+impl View for Rc<RefCell<dyn View>> {
     fn view(&mut self) -> Option<Node> {
-        self.0.view();
-        self.1.view();
-        self.2.view();
-        None
+        self.borrow_mut().view()
+    }
+
+    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
+        todo!()
+    }
+
+    fn remove(&mut self) {
+        todo!()
+    }
+}
+
+impl<A: View +Clone + 'static, B: View +Clone+ 'static, C: View +Clone+ 'static> View for (A, B, C) {
+    fn view(&mut self) -> Option<Node> {
+        Some(Node::Components(vec![
+           Box::new( self.0.clone()),
+           Box::new( self.1.clone()),
+           Box::new( self.2.clone()),
+        ]))
     }
 
     fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {

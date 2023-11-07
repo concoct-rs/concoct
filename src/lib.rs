@@ -27,6 +27,7 @@ thread_local! {
 pub enum Node {
     Component(Box<dyn View>),
     Element(Element),
+    Components(Vec<Box<dyn View>>),
 }
 
 pub fn run<V: View + 'static>(component: fn() -> V) {
@@ -34,6 +35,8 @@ pub fn run<V: View + 'static>(component: fn() -> V) {
 
     Runtime::current().spawn(component);
 
-    Runtime::current().poll();
-    Runtime::current().poll();
+    for _ in 0..10 {
+        Runtime::current().poll();
+    }
+    
 }
