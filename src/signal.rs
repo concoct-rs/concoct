@@ -2,9 +2,10 @@ use crate::{runtime::Runtime, Scope};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
 use std::{
+    cell::{Ref, RefMut},
     collections::HashSet,
     fmt,
-    ops::{AddAssign, SubAssign},
+    ops::{AddAssign, SubAssign, Deref, DerefMut},
 };
 
 pub fn use_signal<T: 'static>(f: impl FnOnce() -> T) -> Signal<T> {
@@ -42,9 +43,37 @@ impl<T: 'static> Signal<T> {
         self.value.read()
     }
 
-    pub fn write(&self) -> std::cell::RefMut<'_, T> {
+    pub fn write(&self) -> Write<T> {
+        Write {
+            r: Some(self.value.write()),
+            key: self.key,
+        }
+    }
+}
+
+pub struct Write<'a, T> {
+    r: Option<RefMut<'a, T>>,
+    key: DefaultKey,
+}
+
+impl<'a, T> Deref for Write<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.r.as_ref().unwrap()
+    }
+}
+
+impl<'a, T> DerefMut for Write<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.r.as_mut().unwrap()
+    }
+}
+
+impl<T> Drop for Write<'_, T> {
+    fn drop(&mut self) {
+        self.r.take();
         Runtime::current().update(self.key);
-        self.value.write()
     }
 }
 
