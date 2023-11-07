@@ -16,6 +16,9 @@ pub use signal::{use_signal, Signal};
 mod view;
 pub use view::View;
 
+mod use_context;
+pub use use_context::{use_context, use_context_provider, UseContext};
+
 thread_local! {
  static STORE: Store = Store::default();
 

@@ -1,9 +1,10 @@
-use crate::{View, STORE, runtime::Runtime, Node};
+use crate::{runtime::Runtime, Node, View, STORE};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
 use std::{
-    any::Any,
+    any::{Any, TypeId},
     cell::{RefCell, RefMut},
+    collections::HashMap,
     mem,
     rc::Rc,
 };
@@ -14,6 +15,8 @@ pub(crate) struct Inner {
     pub key: DefaultKey,
     hooks: Vec<GenerationalBox<Box<dyn Any>>>,
     hook_idx: RefCell<usize>,
+    parent_key: Option<DefaultKey>,
+    pub(crate) contexts: HashMap<TypeId, Rc<dyn Any>>,
 }
 
 thread_local! {
@@ -26,7 +29,12 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub fn new(key: DefaultKey, view: impl View + 'static) -> Self {
+    pub fn new(
+        key: DefaultKey,
+        parent_key: Option<DefaultKey>,
+        contexts: HashMap<TypeId, Rc<dyn Any>>,
+        view: impl View + 'static,
+    ) -> Self {
         let me = Self {
             inner: Rc::new(RefCell::new(Inner {
                 owner: STORE.try_with(|store| store.owner()).unwrap(),
@@ -34,6 +42,8 @@ impl Scope {
                 key,
                 hook_idx: RefCell::new(0),
                 hooks: Vec::new(),
+                parent_key,
+                contexts,
             })),
         };
         me
@@ -42,6 +52,12 @@ impl Scope {
     pub fn current() -> Self {
         CURRENT
             .try_with(|current| current.borrow().as_ref().unwrap().clone())
+            .unwrap()
+    }
+
+    pub fn try_current() -> Option<Self> {
+        CURRENT
+            .try_with(|current| current.borrow().as_ref().cloned())
             .unwrap()
     }
 
@@ -55,7 +71,9 @@ impl Scope {
         let me = self.inner.borrow_mut();
         let idx = *me.hook_idx.borrow();
         let any = if let Some(any) = me.hooks.get(idx) {
-            *any
+            let any = *any;
+            drop(me);
+            any
         } else {
             drop(me);
             let value = f();
@@ -82,7 +100,7 @@ impl Scope {
         if let Some(node) = node {
             match node {
                 Node::Component(component) => Runtime::current().spawn(component),
-                Node::Element(_) => {},
+                Node::Element(_) => {}
             }
         }
     }

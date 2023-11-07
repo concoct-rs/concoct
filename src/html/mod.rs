@@ -15,7 +15,7 @@ impl Div {
         Self { view: None }
     }
 
-    pub fn view(mut self, mut view: impl View + 'static) -> Self {
+    pub fn view(mut self, view: impl View + 'static) -> Self {
         self.view = Some(Box::new(view));
         self
     }
