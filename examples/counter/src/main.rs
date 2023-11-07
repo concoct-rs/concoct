@@ -8,7 +8,7 @@ fn app() -> impl View {
     log::info!("app");
 
     mem::forget(Interval::new(500, move || {
-        log::info!("timer");
+        log::info!("timer: {}", count.read());
         *count.write() += 1;
     }));
 

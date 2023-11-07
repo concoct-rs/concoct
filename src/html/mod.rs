@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsCast;
 
 pub struct Div {
-    child: Option<Box<dyn FnOnce() -> Box<dyn View>>>,
+    child: Option<Box<dyn FnMut() -> Box<dyn View>>>,
 }
 
 impl Div {
@@ -11,8 +11,8 @@ impl Div {
         Self { child: None }
     }
 
-    pub fn child<V: View + 'static>(mut self, component: impl FnOnce() -> V + 'static) -> Self {
-        self.child = Some(Box::new(|| Box::new(component())));
+    pub fn child<V: View + 'static>(mut self, mut component: impl FnMut() -> V + 'static) -> Self {
+        self.child = Some(Box::new(move || Box::new(component())));
         self
     }
 }

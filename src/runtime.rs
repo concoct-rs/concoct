@@ -1,20 +1,21 @@
 use crate::{Scope, View};
 use slotmap::{DefaultKey, SlotMap};
-use std::{cell::RefCell, mem, rc::Rc};
+use std::{cell::RefCell, collections::HashSet, mem, rc::Rc};
 
 thread_local! {
     static CURRENT: RefCell<Option<Runtime>> = RefCell::new(None);
 }
 
 #[derive(Default)]
-struct Inner {
+pub(crate) struct Inner {
     scopes: SlotMap<DefaultKey, Option<Scope>>,
     pending: Vec<Box<dyn FnOnce() -> Scope>>,
+    pub(crate) signals: SlotMap<DefaultKey, HashSet<DefaultKey>>,
 }
 
 #[derive(Clone, Default)]
 pub struct Runtime {
-    inner: Rc<RefCell<Inner>>,
+    pub(crate) inner: Rc<RefCell<Inner>>,
 }
 
 impl Runtime {
@@ -30,7 +31,7 @@ impl Runtime {
             .unwrap()
     }
 
-    pub fn spawn<V>(&self, component: impl FnOnce() -> V + 'static)
+    pub fn spawn<V>(&self, component: impl FnMut() -> V + 'static)
     where
         V: View + 'static,
     {
@@ -43,15 +44,17 @@ impl Runtime {
     }
 
     pub fn update(&self, key: DefaultKey) {
-        self.inner.borrow_mut().scopes[key]
-            .as_ref()
-            .unwrap()
-            .inner
-            .borrow_mut()
-            .view
-            .as_mut()
-            .unwrap()
-            .view();
+        let signals = self.inner.borrow_mut().signals[key].clone();
+
+        for scope_key in signals {
+            let mut inner = self.inner.borrow_mut();
+            let scope = inner.scopes[scope_key].as_mut().unwrap();
+            scope.clone().enter();
+            let component = scope.inner.borrow_mut().component.clone();
+            drop(inner);
+            let mut view = component.borrow_mut()();
+            view.view();
+        }
     }
 
     pub fn poll(&self) {
@@ -63,10 +66,13 @@ impl Runtime {
             for f in pending {
                 let scope = f();
                 let key = scope.inner.borrow().key;
-                let mut inner = scope.inner.borrow_mut();
-                let view = inner.view.as_mut().unwrap();
-                view.view();
+                let inner = scope.inner.borrow_mut();
+                scope.clone().enter();
+
+                let component = inner.component.clone();
                 drop(inner);
+                let mut view = component.borrow_mut()();
+                view.view();
 
                 let mut me = self.inner.borrow_mut();
                 me.scopes[key] = Some(scope);

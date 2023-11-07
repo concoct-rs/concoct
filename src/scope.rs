@@ -5,7 +5,7 @@ use std::{cell::RefCell, mem, rc::Rc};
 
 pub(crate) struct Inner {
     pub owner: Owner,
-    pub view: Option<Box<dyn View>>,
+    pub component: Rc<RefCell<dyn FnMut() -> Box<dyn View>>>,
     pub key: DefaultKey,
 }
 
@@ -19,18 +19,20 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub fn new<V: View + 'static>(key: DefaultKey, component: impl FnOnce() -> V) -> Self {
+    pub fn new<V: View + 'static>(
+        key: DefaultKey,
+        mut component: impl FnMut() -> V + 'static,
+    ) -> Self {
         let me = Self {
             inner: Rc::new(RefCell::new(Inner {
                 owner: STORE.try_with(|store| store.owner()).unwrap(),
-                view: None,
+                component: Rc::new(RefCell::new(move || {
+                    let view: Box<dyn View> = Box::new(component());
+                    view
+                })),
                 key,
             })),
         };
-        me.clone().enter();
-
-        let view = component();
-        me.inner.borrow_mut().view = Some(Box::new(view));
         me
     }
 
@@ -45,4 +47,6 @@ impl Scope {
             .try_with(|current| mem::replace(&mut *current.borrow_mut(), Some(self)))
             .unwrap()
     }
+
+    pub fn track(&self, _key: DefaultKey) {}
 }
