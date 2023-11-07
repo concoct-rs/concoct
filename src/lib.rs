@@ -1,7 +1,6 @@
-use generational_box::{Owner, Store};
+use generational_box::Store;
 use runtime::Runtime;
-use std::{cell::RefCell, rc::Rc};
-use wasm_bindgen::JsCast;
+
 use web_sys::Element;
 
 pub mod html;
@@ -32,5 +31,6 @@ pub fn run<V: View + 'static>(component: fn() -> V) {
 
     Runtime::current().spawn(component);
 
+    Runtime::current().poll();
     Runtime::current().poll();
 }

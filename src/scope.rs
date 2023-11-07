@@ -1,10 +1,12 @@
 use crate::{View, STORE};
 use generational_box::Owner;
+use slotmap::DefaultKey;
 use std::{cell::RefCell, mem, rc::Rc};
 
 pub(crate) struct Inner {
     pub owner: Owner,
-    view: Option<Box<dyn View>>,
+    pub view: Option<Box<dyn View>>,
+    pub key: DefaultKey,
 }
 
 thread_local! {
@@ -13,15 +15,16 @@ thread_local! {
 
 #[derive(Clone)]
 pub struct Scope {
-    pub (crate) inner: Rc<RefCell<Inner>>,
+    pub(crate) inner: Rc<RefCell<Inner>>,
 }
 
 impl Scope {
-    pub fn new<V: View + 'static>(component: impl FnOnce() -> V) -> Self {
+    pub fn new<V: View + 'static>(key: DefaultKey, component: impl FnOnce() -> V) -> Self {
         let me = Self {
             inner: Rc::new(RefCell::new(Inner {
                 owner: STORE.try_with(|store| store.owner()).unwrap(),
                 view: None,
+                key,
             })),
         };
         me.clone().enter();

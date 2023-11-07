@@ -8,7 +8,7 @@ thread_local! {
 
 #[derive(Default)]
 struct Inner {
-    scopes: SlotMap<DefaultKey, Scope>,
+    scopes: SlotMap<DefaultKey, Option<Scope>>,
     pending: Vec<Box<dyn FnOnce() -> Scope>>,
 }
 
@@ -34,18 +34,42 @@ impl Runtime {
     where
         V: View + 'static,
     {
-        self.inner
+        let key = self.inner.borrow_mut().scopes.insert(None);
+        self.spawn_with_scope(Box::new(move || Scope::new(key, component)))
+    }
+
+    pub fn spawn_with_scope(&self, component: Box<dyn FnOnce() -> Scope>) {
+        self.inner.borrow_mut().pending.push(component);
+    }
+
+    pub fn update(&self, key: DefaultKey) {
+        self.inner.borrow_mut().scopes[key]
+            .as_ref()
+            .unwrap()
+            .inner
             .borrow_mut()
-            .pending
-            .push(Box::new(|| Scope::new(component)));
+            .view
+            .as_mut()
+            .unwrap()
+            .view();
     }
 
     pub fn poll(&self) {
         let mut me = self.inner.borrow_mut();
         if !me.pending.is_empty() {
-            for f in mem::take(&mut me.pending) {
+            let pending = mem::take(&mut me.pending);
+            drop(me);
+
+            for f in pending {
                 let scope = f();
-                me.scopes.insert(scope);
+                let key = scope.inner.borrow().key;
+                let mut inner = scope.inner.borrow_mut();
+                let view = inner.view.as_mut().unwrap();
+                view.view();
+                drop(inner);
+
+                let mut me = self.inner.borrow_mut();
+                me.scopes[key] = Some(scope);
             }
         }
     }

@@ -1,18 +1,18 @@
+use crate::{runtime::Runtime, Node, View};
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsCast;
-use crate::{View, Node};
 
 pub struct Div {
-    view: Option<Rc<RefCell<Box<dyn View>>>>,
+    child: Option<Box<dyn FnOnce() -> Box<dyn View>>>,
 }
 
 impl Div {
     pub fn new() -> Self {
-        Self { view: None }
+        Self { child: None }
     }
 
-    pub fn view(mut self, view: impl View + 'static) -> Self {
-        self.view = Some(Rc::new(RefCell::new(Box::new(view))));
+    pub fn child<V: View + 'static>(mut self, component: impl FnOnce() -> V + 'static) -> Self {
+        self.child = Some(Box::new(|| Box::new(component())));
         self
     }
 }
@@ -22,11 +22,15 @@ impl View for Div {
         let document = web_sys::window().unwrap().document().unwrap();
         let elem = document.create_element("div").unwrap();
 
+        if let Some(component) = self.child.take() {
+            Runtime::current().spawn(component)
+        }
+
         Node::Element(elem)
     }
 
     fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        self.view.clone()
+        todo!()
     }
 
     fn remove(&mut self) {
@@ -36,6 +40,8 @@ impl View for Div {
 
 impl View for String {
     fn view(&mut self) -> Node {
+        log::info!("{:?}", &self);
+
         let document = web_sys::window().unwrap().document().unwrap();
         let elem = document.create_text_node(self);
         Node::Element(elem.unchecked_into())
