@@ -24,36 +24,16 @@
 ## Rust cross-platform reactive UI framework.
 
 ```rust
-enum Event {
-    Increment,
-    Decrement,
-}
+fn app() -> impl View {
+    let mut count = use_signal(|| 0);
 
-fn counter(count: &i32) -> impl View<Web<Event>> {
-    (
-        Html::h1().view(count.to_string()),
-        view::once(
-            Html::button()
-                .on("click", |_| Event::Increment)
-                .view("More"),
-        ),
-        view::once(
-            Html::button()
-                .on("click", |_| Event::Decrement)
-                .view("Less"),
-        ),
-    )
-}
-
-fn main() {
-    concoct::web::run(
-        0,
-        |count, event| match event {
-            Event::Increment => *count += 1,
-            Event::Decrement => *count -= 1,
-        },
-        counter,
-    );
+    div().view(move || {
+        (
+            format!("High five count: {}", count),
+            div().on_click(move || count += 1).view("Up high!"),
+            div().on_click(move || count -= 1).view("Down low!"),
+        )
+    })
 }
 ```
 
