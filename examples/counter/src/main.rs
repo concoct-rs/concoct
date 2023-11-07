@@ -1,4 +1,4 @@
-use concoct::{Div, Signal, View};
+use concoct::{html::Div, Signal, View};
 
 fn app() -> impl View {
     let count = Signal::new(0);
