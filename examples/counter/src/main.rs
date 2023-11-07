@@ -1,21 +1,12 @@
-use concoct::{html::Div, Signal, View};
+use concoct::{html::Div, use_signal, Scope, View};
 use gloo_timers::callback::Interval;
-use std::mem;
 
 fn app() -> impl View {
-    let count = Signal::new(0);
+    let count = use_signal(|| 0);
 
-    log::info!("app");
+    Scope::current().use_hook(|| Interval::new(500, move || *count.write() += 1));
 
-    mem::forget(Interval::new(500, move || {
-        log::info!("timer: {}", count.read());
-        *count.write() += 1;
-    }));
-
-    Div::new().child(move || {
-        log::info!("child");
-        format!("High five count: {}", count.read())
-    })
+    Div::new().child(move || format!("High five count: {}", count.read()))
 }
 
 fn main() {

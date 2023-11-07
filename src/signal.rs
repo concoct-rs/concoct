@@ -1,8 +1,17 @@
+use crate::{runtime::Runtime, Scope};
+use generational_box::{GenerationalBox, Owner};
+use slotmap::DefaultKey;
 use std::collections::HashSet;
 
-use crate::{runtime::Runtime, Scope};
-use generational_box::GenerationalBox;
-use slotmap::DefaultKey;
+pub fn use_signal<T: 'static>(f: impl FnOnce() -> T) -> Signal<T> {
+    let scope = Scope::current();
+
+    let hook = scope.use_hook(|| {
+        let owner = &scope.inner.borrow().owner;
+        Signal::new(f(), owner)
+    });
+    *hook
+}
 
 pub struct Signal<T> {
     value: GenerationalBox<T>,
@@ -10,9 +19,7 @@ pub struct Signal<T> {
 }
 
 impl<T: 'static> Signal<T> {
-    pub fn new(value: T) -> Self {
-        let scope = Scope::current();
-        let inner = scope.inner.borrow_mut();
+    fn new(value: T, owner: &Owner) -> Self {
         let key = Runtime::current()
             .inner
             .borrow_mut()
@@ -20,7 +27,7 @@ impl<T: 'static> Signal<T> {
             .insert(HashSet::new());
 
         Self {
-            value: inner.owner.insert(value),
+            value: owner.insert(value),
             key,
         }
     }

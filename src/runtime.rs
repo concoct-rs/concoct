@@ -48,12 +48,10 @@ impl Runtime {
 
         for scope_key in signals {
             let mut inner = self.inner.borrow_mut();
-            let scope = inner.scopes[scope_key].as_mut().unwrap();
-            scope.clone().enter();
-            let component = scope.inner.borrow_mut().component.clone();
+            let scope = inner.scopes[scope_key].as_mut().unwrap().clone();
             drop(inner);
-            let mut view = component.borrow_mut()();
-            view.view();
+
+            scope.run();
         }
     }
 
@@ -66,13 +64,8 @@ impl Runtime {
             for f in pending {
                 let scope = f();
                 let key = scope.inner.borrow().key;
-                let inner = scope.inner.borrow_mut();
-                scope.clone().enter();
 
-                let component = inner.component.clone();
-                drop(inner);
-                let mut view = component.borrow_mut()();
-                view.view();
+                scope.run();
 
                 let mut me = self.inner.borrow_mut();
                 me.scopes[key] = Some(scope);

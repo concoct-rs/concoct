@@ -11,7 +11,7 @@ mod scope;
 pub use scope::Scope;
 
 mod signal;
-pub use signal::Signal;
+pub use signal::{use_signal, Signal};
 
 mod view;
 pub use view::View;
