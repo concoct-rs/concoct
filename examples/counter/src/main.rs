@@ -11,10 +11,10 @@ fn app() -> impl View {
             format!("High five count: {}", count.read()),
             div()
                 .on_click(move || *count.write() += 1)
-                .view(|| String::from("Up high!")),
+                .view(|| "Up high!"),
             div()
-                .on_click(move || *count.write() += 1)
-                .view(|| String::from("Down low!")),
+                .on_click(move || *count.write() -= 1)
+                .view(|| "Down low!"),
         )
     })
 }

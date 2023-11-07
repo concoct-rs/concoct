@@ -63,3 +63,21 @@ impl View for String {
         todo!()
     }
 }
+
+impl View for &'static str {
+    fn view(&mut self) -> Option<Node> {
+        log::info!("{:?}", &self);
+
+        let document = web_sys::window().unwrap().document().unwrap();
+        let elem = document.create_text_node(self);
+        Some(Node::Element(elem.unchecked_into()))
+    }
+
+    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
+        None
+    }
+
+    fn remove(&mut self) {
+        todo!()
+    }
+}
