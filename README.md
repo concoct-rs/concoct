@@ -43,6 +43,24 @@ fn app() -> impl View {
  - Efficient view updates
  - Inspired by the elm and xilem architectures
 
+
+### Components
+
+```rust
+fn button(label: impl View + 'static, on_click: impl FnMut() + 'static) -> impl View {
+    Html::button().on_click(on_click).view(label)
+}
+
+fn app() -> impl View {
+    let selection = use_signal(|| "A");
+
+    Html::div().view((
+        move || button("A", move || *selection.write() = "A"),
+        move || button("B", move || *selection.write() = "B"),
+        move || button("C", move || *selection.write() = "C"),
+    ))
+}
+```
 ## Getting started
 ### Web
 Install [`trunk`](https://trunkrs.dev) or `wasm-pack` (this tutorial will show serving with trunk).

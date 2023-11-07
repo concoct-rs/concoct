@@ -1,0 +1,16 @@
+[package]
+name = "concoct-component-example"
+version = "0.1.0"
+authors = ["Matt Hunzinger <matthunz2@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+concoct = { path = "../../", features = ["web"] }
+dioxus-logger = "0.4.1"
+log = "0.4.20"
+console_error_panic_hook = "0.1.7"
+gloo-timers = "0.3.0"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

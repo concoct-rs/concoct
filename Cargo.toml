@@ -10,6 +10,7 @@ repository = "https://github.com/concoct-rs/concoct"
 members = [
     ".",
     "examples/counter",
+    "examples/component",
 ]
 
 [features]
