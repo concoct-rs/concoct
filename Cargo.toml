@@ -10,7 +10,6 @@ repository = "https://github.com/concoct-rs/concoct"
 members = [
     ".",
     "examples/counter",
-    "examples/todomvc",
 ]
 
 [features]
@@ -28,7 +27,7 @@ native = [
     "dep:accesskit"
 ]
 full = ["web", "native"]
-default = []
+default = ["web"]
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"
@@ -43,6 +42,9 @@ skia-safe = { version = "0.64.0", features = ["gl"], optional = true }
 slotmap = { version = "1.0.6", optional = true }
 taffy = { version = "0.3.12", optional = true }
 winit = { version = "0.28.6", optional = true }
+generational-box = { git = "https://github.com/dioxuslabs/dioxus" }
+dioxus-logger = "0.4.1"
+log = "0.4.20"
 
 [dependencies.web-sys]
 version = "0.3.64"
@@ -63,7 +65,3 @@ features = [
 [package.metadata.docs.rs]
 features = ["web"]
 rustdoc-args = ["--cfg", "docsrs"]
-
-[[example]]
-name = "native"
-required-features = ["native"]
