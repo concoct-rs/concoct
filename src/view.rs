@@ -9,6 +9,25 @@ pub trait View {
     fn remove(&mut self);
 }
 
+impl<F, V> View for F
+where
+    F: FnMut() -> V + Clone + 'static,
+    V: View + 'static,
+{
+    fn view(&mut self) -> Option<Node> {
+        let mut f = self.clone();
+        Some(Node::Component(Box::new(move || Box::new(f()))))
+    }
+
+    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
+        todo!()
+    }
+
+    fn remove(&mut self) {
+        todo!()
+    }
+}
+
 impl View for Box<dyn View> {
     fn view(&mut self) -> Option<Node> {
         (&mut **self).view()

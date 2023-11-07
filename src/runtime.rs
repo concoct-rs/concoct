@@ -9,7 +9,7 @@ thread_local! {
 #[derive(Default)]
 pub(crate) struct Inner {
     scopes: SlotMap<DefaultKey, Option<Scope>>,
-    pending: Vec<Box<dyn FnOnce() -> Scope>>,
+    pending: Vec<Box<dyn View>>,
     pub(crate) signals: SlotMap<DefaultKey, HashSet<DefaultKey>>,
 }
 
@@ -31,21 +31,12 @@ impl Runtime {
             .unwrap()
     }
 
-    pub fn spawn<V>(&self, component: impl FnMut() -> V + 'static)
-    where
-        V: View + 'static,
-    {
-        let key = self.inner.borrow_mut().scopes.insert(None);
-        self.spawn_with_scope(Box::new(move || Scope::new(key, component)))
-    }
-
-    pub fn spawn_with_scope(&self, component: Box<dyn FnOnce() -> Scope>) {
-        self.inner.borrow_mut().pending.push(component);
+    pub fn spawn(&self, view: impl View + 'static) {
+        self.inner.borrow_mut().pending.push(Box::new(view));
     }
 
     pub fn update(&self, key: DefaultKey) {
         let signals = self.inner.borrow_mut().signals[key].clone();
-
         for scope_key in signals {
             let mut inner = self.inner.borrow_mut();
             let scope = inner.scopes[scope_key].as_mut().unwrap().clone();
@@ -61,10 +52,14 @@ impl Runtime {
             let pending = mem::take(&mut me.pending);
             drop(me);
 
-            for f in pending {
-                let scope = f();
-                let key = scope.inner.borrow().key;
+            for view in pending {
+                log::info!("here");
+                let mut me = self.inner.borrow_mut();
+                let key = me.scopes.insert(None);
+                drop(me);
 
+                let scope = Scope::new(key, view);
+                let key = scope.inner.borrow().key;
                 scope.run();
 
                 let mut me = self.inner.borrow_mut();

@@ -1,7 +1,11 @@
 use crate::{runtime::Runtime, Scope};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    fmt,
+    ops::{AddAssign, SubAssign},
+};
 
 pub fn use_signal<T: 'static>(f: impl FnOnce() -> T) -> Signal<T> {
     let scope = Scope::current();
@@ -51,3 +55,21 @@ impl<T> Clone for Signal<T> {
 }
 
 impl<T> Copy for Signal<T> {}
+
+impl<T: fmt::Display + 'static> fmt::Display for Signal<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.read().fmt(f)
+    }
+}
+
+impl<T: AddAssign + 'static> AddAssign<T> for Signal<T> {
+    fn add_assign(&mut self, rhs: T) {
+        *self.write() += rhs
+    }
+}
+
+impl<T: SubAssign + 'static> SubAssign<T> for Signal<T> {
+    fn sub_assign(&mut self, rhs: T) {
+        *self.write() -= rhs
+    }
+}

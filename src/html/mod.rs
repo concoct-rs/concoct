@@ -7,16 +7,16 @@ pub fn div() -> Div {
 }
 
 pub struct Div {
-    component: Option<Box<dyn FnMut() -> Box<dyn View>>>,
+    view: Option<Box<dyn View>>,
 }
 
 impl Div {
     pub fn new() -> Self {
-        Self { component: None }
+        Self { view: None }
     }
 
-    pub fn view<V: View + 'static>(mut self, mut component: impl FnMut() -> V + 'static) -> Self {
-        self.component = Some(Box::new(move || Box::new(component())));
+    pub fn view(mut self, mut view: impl View + 'static) -> Self {
+        self.view = Some(Box::new(view));
         self
     }
 
@@ -30,8 +30,8 @@ impl View for Div {
         let document = web_sys::window().unwrap().document().unwrap();
         let elem = document.create_element("div").unwrap();
 
-        if let Some(component) = self.component.take() {
-            Runtime::current().spawn(component)
+        if let Some(view) = self.view.take() {
+            Runtime::current().spawn(view)
         }
 
         Some(Node::Element(elem))

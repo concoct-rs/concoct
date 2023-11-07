@@ -10,7 +10,7 @@ use std::{
 
 pub(crate) struct Inner {
     pub owner: Owner,
-    pub component: Rc<RefCell<dyn FnMut() -> Box<dyn View>>>,
+    pub component: Rc<RefCell<dyn View>>,
     pub key: DefaultKey,
     hooks: Vec<GenerationalBox<Box<dyn Any>>>,
     hook_idx: RefCell<usize>,
@@ -26,17 +26,11 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub fn new<V: View + 'static>(
-        key: DefaultKey,
-        mut component: impl FnMut() -> V + 'static,
-    ) -> Self {
+    pub fn new(key: DefaultKey, view: impl View + 'static) -> Self {
         let me = Self {
             inner: Rc::new(RefCell::new(Inner {
                 owner: STORE.try_with(|store| store.owner()).unwrap(),
-                component: Rc::new(RefCell::new(move || {
-                    let view: Box<dyn View> = Box::new(component());
-                    view
-                })),
+                component: Rc::new(RefCell::new(view)),
                 key,
                 hook_idx: RefCell::new(0),
                 hooks: Vec::new(),
@@ -83,7 +77,7 @@ impl Scope {
         *inner.hook_idx.borrow_mut() = 0;
         drop(inner);
 
-        let mut view = component.borrow_mut()();
+        let mut view = component.borrow_mut();
         view.view();
     }
 }
