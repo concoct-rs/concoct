@@ -1,4 +1,4 @@
-use concoct::{html::Div, use_signal, Scope, View};
+use concoct::{html::div, use_signal, Scope, View};
 use gloo_timers::callback::Interval;
 
 fn app() -> impl View {
@@ -6,7 +6,17 @@ fn app() -> impl View {
 
     Scope::current().use_hook(|| Interval::new(500, move || *count.write() += 1));
 
-    Div::new().child(move || format!("High five count: {}", count.read()))
+    div().view(move || {
+        (
+            format!("High five count: {}", count.read()),
+            div()
+                .on_click(move || *count.write() += 1)
+                .view(|| String::from("Up high!")),
+            div()
+                .on_click(move || *count.write() += 1)
+                .view(|| String::from("Down low!")),
+        )
+    })
 }
 
 fn main() {
