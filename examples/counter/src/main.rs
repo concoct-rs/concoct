@@ -3,6 +3,8 @@ use concoct::{html::Div, Signal, View};
 fn app() -> impl View {
     let count = Signal::new(0);
 
+    log::info!("app");
+
     let count_ref = count.read();
     Div::new().view(count_ref.to_string())
 }

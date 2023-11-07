@@ -13,7 +13,7 @@ members = [
 ]
 
 [features]
-web = ["dep:wasm-bindgen", "dep:web-sys"]
+web = ["dep:wasm-bindgen", "dep:web-sys", "dep:slotmap"]
 native = [
     "dep:gl",
     "dep:glutin",
