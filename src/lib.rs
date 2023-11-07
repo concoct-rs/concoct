@@ -3,7 +3,8 @@ use runtime::Runtime;
 
 use web_sys::Element;
 
-pub mod html;
+mod html;
+pub use html::Html;
 
 pub mod runtime;
 

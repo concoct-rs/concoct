@@ -1,4 +1,7 @@
-use crate::Node;
+use wasm_bindgen::JsCast;
+use web_sys::window;
+
+use crate::{html::Parent, use_context, Node, Scope};
 use std::{cell::RefCell, rc::Rc};
 
 pub trait View {
@@ -71,6 +74,84 @@ where
 
     fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
         todo!()
+    }
+
+    fn remove(&mut self) {
+        todo!()
+    }
+}
+
+impl View for String {
+    fn view(&mut self) -> Option<Node> {
+        let parent = use_context::<Parent>()
+            .map(|cx| cx.0.clone())
+            .unwrap_or_else(|| {
+                window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .body()
+                    .unwrap()
+                    .unchecked_into()
+            });
+
+        let elem = Scope::current()
+            .use_hook(|| {
+                let elem = window().unwrap().document().unwrap().create_text_node(self);
+                parent.append_child(&elem).unwrap();
+                Parent(elem.unchecked_into())
+            })
+            .0
+            .clone();
+
+        elem.set_text_content(Some(self));
+
+        let document = web_sys::window().unwrap().document().unwrap();
+        let elem = document.create_text_node(self);
+        Some(Node::Element(elem.unchecked_into()))
+    }
+
+    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
+        None
+    }
+
+    fn remove(&mut self) {
+        todo!()
+    }
+}
+
+impl View for &'static str {
+    fn view(&mut self) -> Option<Node> {
+        let parent = use_context::<Parent>()
+            .map(|cx| cx.0.clone())
+            .unwrap_or_else(|| {
+                window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .body()
+                    .unwrap()
+                    .unchecked_into()
+            });
+
+        let elem = Scope::current()
+            .use_hook(|| {
+                let elem = window().unwrap().document().unwrap().create_text_node(self);
+                parent.append_child(&elem).unwrap();
+                Parent(elem.unchecked_into())
+            })
+            .0
+            .clone();
+
+        elem.set_text_content(Some(self));
+
+        let document = web_sys::window().unwrap().document().unwrap();
+        let elem = document.create_text_node(self);
+        Some(Node::Element(elem.unchecked_into()))
+    }
+
+    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
+        None
     }
 
     fn remove(&mut self) {

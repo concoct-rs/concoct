@@ -27,10 +27,12 @@
 fn app() -> impl View {
     let mut count = use_signal(|| 0);
 
-    div().view((
+    Html::div().view((
         move || format!("High five count: {}", count),
-        div().view("Up high!").on_click(move || count += 1),
-        div().view("Down low!").on_click(move || count -= 1),
+        Html::button().on_click(move || count += 1).view("Up high!"),
+        Html::button()
+            .on_click(move || count -= 1)
+            .view("Down low!"),
     ))
 }
 ```
