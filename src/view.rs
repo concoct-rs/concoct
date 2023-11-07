@@ -15,8 +15,7 @@ where
     V: View + 'static,
 {
     fn view(&mut self) -> Option<Node> {
-        let mut f = self.clone();
-        Some(Node::Component(Box::new(move || Box::new(f()))))
+        self().view()
     }
 
     fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {

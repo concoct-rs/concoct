@@ -22,7 +22,7 @@ thread_local! {
 }
 
 pub enum Node {
-    Component(Box<dyn FnMut() -> Box<dyn View>>),
+    Component(Box<dyn View>),
     Element(Element),
 }
 

@@ -1,4 +1,4 @@
-use crate::{View, STORE};
+use crate::{View, STORE, runtime::Runtime, Node};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
 use std::{
@@ -78,6 +78,12 @@ impl Scope {
         drop(inner);
 
         let mut view = component.borrow_mut();
-        view.view();
+        let node = view.view();
+        if let Some(node) = node {
+            match node {
+                Node::Component(component) => Runtime::current().spawn(component),
+                Node::Element(_) => {},
+            }
+        }
     }
 }
