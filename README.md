@@ -18,7 +18,7 @@
 </div>
 
 <div align="center">
- <a href="https://github.com/concoct-rs/concoct/tree/main/examples">Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Examples</a>
 </div>
 
 ## Rust cross-platform reactive UI framework.

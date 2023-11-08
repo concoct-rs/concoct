@@ -9,7 +9,7 @@ repository = "https://github.com/concoct-rs/concoct"
 [workspace]
 members = [
     ".",
-    "examples",
+    "concoct_examples",
 ]
 
 [features]
