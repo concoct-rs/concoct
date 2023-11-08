@@ -43,6 +43,16 @@ impl View for Rc<RefCell<dyn View>> {
     }
 }
 
+impl View for () {
+    fn view(&mut self) {
+        
+    }
+
+    fn remove(&mut self) {
+       
+    }
+}
+
 impl<A, B, C> View for (A, B, C)
 where
     A: View + Clone + 'static,

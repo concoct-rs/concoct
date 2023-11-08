@@ -1,6 +1,6 @@
 use concoct::{use_signal, Html, View};
 
-fn app() -> impl View {
+pub fn app() -> impl View {
     let mut count = use_signal(|| 0);
 
     Html::div().view((
@@ -12,10 +12,4 @@ fn app() -> impl View {
             .on_click(move |_| count -= 1)
             .view("Down low!"),
     ))
-}
-
-fn main() {
-    console_error_panic_hook::set_once();
-    dioxus_logger::init(log::LevelFilter::Info).expect("failed to init logger");
-    concoct::run(app);
 }

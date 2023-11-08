@@ -1,5 +1,6 @@
 # Concoct Examples
-- [Counter](https://github.com/concoct-rs/concoct/blob/main/examples/counter/src/main.rs)
-- [TodoMVC](https://github.com/concoct-rs/concoct/blob/main/examples/todomvc/src/main.rs)
+- [counter](https://github.com/concoct-rs/concoct/blob/main/examples/src/counter.rs)
+- [text_input](https://github.com/concoct-rs/concoct/blob/main/examples/src/text_input.rs)
 
-Run with `trunk serve` in an example directory, then open `localhost:8080`.
+Run with `trunk serve --features {example_name}`, then open `localhost:8080`.
+

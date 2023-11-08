@@ -36,10 +36,10 @@ pub enum Node {
     Components(Vec<Box<dyn View>>),
 }
 
-pub fn run<V: View + 'static>(component: fn() -> V) {
+pub fn run(view: impl View + 'static) {
     Runtime::default().enter();
 
-    Runtime::current().spawn(component);
+    Runtime::current().spawn(view);
 
     for _ in 0..10 {
         Runtime::current().poll();

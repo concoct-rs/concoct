@@ -9,9 +9,7 @@ repository = "https://github.com/concoct-rs/concoct"
 [workspace]
 members = [
     ".",
-    "examples/counter",
-    "examples/component",
-    "examples/todomvc",
+    "examples",
 ]
 
 [features]
