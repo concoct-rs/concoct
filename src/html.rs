@@ -1,11 +1,9 @@
 use crate::{runtime::Runtime, use_context, use_context_provider, Node, Scope, View};
-
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{window, Element};
+use web_sys::{window, Element, Event, HtmlInputElement};
 
 pub struct Parent(pub Element);
-
 
 macro_rules! html_tags {
     ($($tag:ident),+) => {
@@ -17,24 +15,53 @@ macro_rules! html_tags {
     };
 }
 
-
-
 macro_rules! handlers {
-    ($($fn_name:ident: $name:expr),+) => {
+    ($(($fn_name:ident, $name:expr, $event:ident)),+) => {
         $(
-            pub fn $fn_name(self, handler: impl FnMut() + 'static) -> Self {
-                self.on_event($name, handler)
+            pub fn $fn_name(self, mut handler: impl FnMut($event) + 'static) -> Self {
+                self.on_event("input", move |event| {
+                    handler($event::from(event));
+                })
              }
         )+
     };
 }
 
+pub struct InputEvent {
+    pub event: web_sys::InputEvent,
+}
+
+impl From<web_sys::Event> for InputEvent {
+    fn from(value: web_sys::Event) -> Self {
+        Self {
+            event: value.unchecked_into(),
+        }
+    }
+}
+
+impl InputEvent {
+    pub fn target(&self) -> Option<HtmlInputElement> {
+        self.event.target().map(|target| target.unchecked_into())
+    }
+}
+
+pub struct MouseEvent {
+    pub event: web_sys::MouseEvent,
+}
+
+impl From<web_sys::Event> for MouseEvent {
+    fn from(value: web_sys::Event) -> Self {
+        Self {
+            event: value.unchecked_into(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Html {
     tag: Cow<'static, str>,
     view: Option<Rc<RefCell<dyn View>>>,
-    event_handlers: HashMap<Cow<'static, str>, Rc<RefCell<dyn FnMut()>>>,
+    event_handlers: HashMap<Cow<'static, str>, Rc<RefCell<dyn FnMut(Event)>>>,
 }
 
 impl Html {
@@ -62,12 +89,15 @@ impl Html {
         self
     }
 
-    handlers!(on_click: "click", on_hover: "hover", on_scroll: "scroll");
-    
+    handlers!(
+        (on_click, "click", MouseEvent),
+        (on_input, "input", InputEvent)
+    );
+
     pub fn on_event(
         mut self,
         name: impl Into<Cow<'static, str>>,
-        handler: impl FnMut() + 'static,
+        handler: impl FnMut(Event) + 'static,
     ) -> Self {
         self.event_handlers
             .insert(name.into(), Rc::new(RefCell::new(handler)));
@@ -95,8 +125,8 @@ impl View for Html {
                 .iter()
                 .map(|(name, handler)| {
                     let handler = handler.clone();
-                    let closure: Closure<dyn FnMut()> =
-                        Closure::wrap(Box::new(move || handler.borrow_mut()()));
+                    let closure: Closure<dyn FnMut(Event)> =
+                        Closure::wrap(Box::new(move |event| handler.borrow_mut()(event)));
                     (name.clone(), Rc::new(closure))
                 })
                 .collect::<Vec<_>>()
@@ -139,4 +169,3 @@ impl View for Html {
         todo!()
     }
 }
-

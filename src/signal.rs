@@ -5,7 +5,7 @@ use std::{
     cell::{Ref, RefMut},
     collections::HashSet,
     fmt,
-    ops::{AddAssign, SubAssign, Deref, DerefMut},
+    ops::{AddAssign, Deref, DerefMut, SubAssign},
 };
 
 pub fn use_signal<T: 'static>(f: impl FnOnce() -> T) -> Signal<T> {

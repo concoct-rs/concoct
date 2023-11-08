@@ -11,6 +11,7 @@ members = [
     ".",
     "examples/counter",
     "examples/component",
+    "examples/todomvc",
 ]
 
 [features]
@@ -54,13 +55,15 @@ features = [
     "Event",
     "EventTarget",
     "KeyboardEvent",
+    "InputEvent",
+    "MouseEvent",
     "Node",
     "Document",
     "HtmlCollection",
     "HtmlElement",
     "HtmlInputElement",
     "Window",
-    "Text"
+    "Text",  
 ]
 
 [package.metadata.docs.rs]

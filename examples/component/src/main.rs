@@ -1,7 +1,7 @@
 use concoct::{use_signal, Html, View};
 
-fn button(label: impl View + 'static, on_click: impl FnMut() + 'static) -> impl View {
-    Html::button().on_click(on_click).view(label)
+fn button(label: impl View + 'static, mut on_click: impl FnMut() + 'static) -> impl View {
+    Html::button().on_click(move |_| on_click()).view(label)
 }
 
 fn app() -> impl View {

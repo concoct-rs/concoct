@@ -5,9 +5,11 @@ fn app() -> impl View {
 
     Html::div().view((
         move || format!("High five count: {}", count),
-        Html::button().on_click(move || count += 1).view("Up high!"),
         Html::button()
-            .on_click(move || count -= 1)
+            .on_click(move |_| count += 1)
+            .view("Up high!"),
+        Html::button()
+            .on_click(move |_| count -= 1)
             .view("Down low!"),
     ))
 }
