@@ -1,12 +1,14 @@
 use generational_box::Store;
-use runtime::Runtime;
-
 use web_sys::Element;
+
+mod event;
+pub use self::event::{InputEvent, MouseEvent};
 
 mod html;
 pub use html::Html;
 
 pub mod runtime;
+pub use self::runtime::Runtime;
 
 mod scope;
 pub use scope::Scope;

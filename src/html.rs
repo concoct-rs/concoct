@@ -1,5 +1,5 @@
-use crate::{runtime::Runtime, use_context, use_context_provider, Node, Scope, View};
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
+use crate::{runtime::Runtime, use_context, use_context_provider, Node, Scope, View, MouseEvent, InputEvent};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, ops::{DerefMut, Deref}};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{window, Element, Event, HtmlInputElement};
 
@@ -25,36 +25,6 @@ macro_rules! handlers {
              }
         )+
     };
-}
-
-pub struct InputEvent {
-    pub event: web_sys::InputEvent,
-}
-
-impl From<web_sys::Event> for InputEvent {
-    fn from(value: web_sys::Event) -> Self {
-        Self {
-            event: value.unchecked_into(),
-        }
-    }
-}
-
-impl InputEvent {
-    pub fn target(&self) -> Option<HtmlInputElement> {
-        self.event.target().map(|target| target.unchecked_into())
-    }
-}
-
-pub struct MouseEvent {
-    pub event: web_sys::MouseEvent,
-}
-
-impl From<web_sys::Event> for MouseEvent {
-    fn from(value: web_sys::Event) -> Self {
-        Self {
-            event: value.unchecked_into(),
-        }
-    }
 }
 
 #[derive(Clone)]
