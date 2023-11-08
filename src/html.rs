@@ -1,5 +1,5 @@
 use crate::{
-    runtime::Runtime, use_context, use_context_provider, InputEvent, MouseEvent, Scope, View,
+    runtime::Runtime, use_context, use_context_provider, use_hook, InputEvent, MouseEvent, View,
 };
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -102,8 +102,7 @@ impl View for Html {
                     .unchecked_into()
             });
 
-        let scope = Scope::current();
-        let callbacks = scope.use_hook(|| {
+        let callbacks = use_hook(|| {
             self.event_handlers
                 .iter()
                 .map(|(name, handler)| {

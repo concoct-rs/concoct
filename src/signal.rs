@@ -1,4 +1,4 @@
-use crate::{runtime::Runtime, Scope};
+use crate::{runtime::Runtime, use_hook, Scope};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
 use std::{
@@ -9,9 +9,8 @@ use std::{
 };
 
 pub fn use_signal<T: 'static>(f: impl FnOnce() -> T) -> Signal<T> {
-    let scope = Scope::current();
-
-    let hook = scope.use_hook(|| {
+    let hook = use_hook(|| {
+        let scope = Scope::current();
         let owner = &scope.inner.borrow().owner;
         Signal::new(f(), owner)
     });

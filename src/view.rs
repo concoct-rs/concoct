@@ -1,4 +1,4 @@
-use crate::{html::Parent, use_context, Runtime, Scope};
+use crate::{html::Parent, use_context, use_hook, Runtime};
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsCast;
 use web_sys::window;
@@ -76,14 +76,13 @@ impl View for String {
                     .unchecked_into()
             });
 
-        let elem = Scope::current()
-            .use_hook(|| {
-                let elem = window().unwrap().document().unwrap().create_text_node(self);
-                parent.append_child(&elem).unwrap();
-                Parent(elem.unchecked_into())
-            })
-            .0
-            .clone();
+        let elem = use_hook(|| {
+            let elem = window().unwrap().document().unwrap().create_text_node(self);
+            parent.append_child(&elem).unwrap();
+            Parent(elem.unchecked_into())
+        })
+        .0
+        .clone();
 
         elem.set_text_content(Some(self));
 
@@ -110,14 +109,13 @@ impl View for &'static str {
                     .unchecked_into()
             });
 
-        let elem = Scope::current()
-            .use_hook(|| {
-                let elem = window().unwrap().document().unwrap().create_text_node(self);
-                parent.append_child(&elem).unwrap();
-                Parent(elem.unchecked_into())
-            })
-            .0
-            .clone();
+        let elem = use_hook(|| {
+            let elem = window().unwrap().document().unwrap().create_text_node(self);
+            parent.append_child(&elem).unwrap();
+            Parent(elem.unchecked_into())
+        })
+        .0
+        .clone();
 
         elem.set_text_content(Some(self));
 

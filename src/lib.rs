@@ -22,6 +22,9 @@ pub use view::View;
 mod use_context;
 pub use use_context::{use_context, use_context_provider, UseContext};
 
+mod use_hook;
+pub use use_hook::use_hook;
+
 thread_local! {
  static STORE: Store = Store::default();
 
