@@ -36,7 +36,7 @@ impl<T: 'static> Signal<T> {
         }
     }
 
-    pub fn read(&self) -> std::cell::Ref<'_, T> {
+    pub fn read(&self) -> std::cell::Ref<'static, T> {
         Runtime::current().inner.borrow_mut().signals[self.key]
             .insert(Scope::current().inner.borrow().key);
         self.value.read()
