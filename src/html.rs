@@ -136,8 +136,17 @@ impl View for Html {
         .0
         .clone();
 
+        let mut attrs = use_hook(|| HashMap::<Cow<'static, str>, Cow<'static, str>>::new());
         for (name, value) in self.attributes.iter() {
-            elem.set_attribute(name, value).unwrap();
+            if let Some(last_value) = attrs.get_mut(name) {
+                if value != last_value {
+                    *last_value = value.clone();
+                    elem.set_attribute(name, value).unwrap();
+                }
+            } else {
+                attrs.insert(name.clone(), value.clone());
+                elem.set_attribute(name, value).unwrap();
+            }
         }
 
         if let Some(view) = self.view.take() {
