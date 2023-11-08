@@ -43,7 +43,7 @@ fn app() -> impl View {
  - Cross-platform components
  - Compile-time UI tree
  - Efficient view updates
- - Inspired by the elm and xilem architectures
+ - Inspired by the React, Solid, and Xilem architectures
 
 
 ### Components
