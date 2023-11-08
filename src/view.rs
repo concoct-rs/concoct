@@ -1,7 +1,7 @@
+use crate::{html::Parent, use_context, Runtime, Scope};
+use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsCast;
 use web_sys::window;
-use crate::{html::Parent, use_context, Node, Scope, Runtime};
-use std::{cell::RefCell, rc::Rc};
 
 pub trait View {
     fn view(&mut self);
@@ -18,18 +18,16 @@ where
         self().view()
     }
 
-    
     fn remove(&mut self) {
         self().remove()
     }
 }
 
 impl View for Box<dyn View> {
-    fn view(&mut self)  {
+    fn view(&mut self) {
         (&mut **self).view()
     }
 
-   
     fn remove(&mut self) {
         (&mut **self).remove()
     }
@@ -39,8 +37,6 @@ impl View for Rc<RefCell<dyn View>> {
     fn view(&mut self) {
         self.borrow_mut().view()
     }
-
-    
 
     fn remove(&mut self) {
         self.borrow_mut().remove()
@@ -59,7 +55,6 @@ where
         Runtime::current().spawn(self.2.clone());
     }
 
-   
     fn remove(&mut self) {
         self.0.remove();
         self.1.remove();
@@ -93,11 +88,8 @@ impl View for String {
         elem.set_text_content(Some(self));
 
         let document = web_sys::window().unwrap().document().unwrap();
-       document.create_text_node(self);
-       
+        document.create_text_node(self);
     }
-
-   
 
     fn remove(&mut self) {
         todo!()
@@ -131,10 +123,7 @@ impl View for &'static str {
 
         let document = web_sys::window().unwrap().document().unwrap();
         document.create_text_node(self);
-       
     }
-
-    
 
     fn remove(&mut self) {
         todo!()

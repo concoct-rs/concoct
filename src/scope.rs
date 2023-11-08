@@ -1,4 +1,4 @@
-use crate::{runtime::Runtime, Node, View, STORE};
+use crate::{View, STORE};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
 use std::{
@@ -96,7 +96,6 @@ impl Scope {
         drop(inner);
 
         let mut view = component.borrow_mut();
-        let node = view.view();
-       
+        let _node = view.view();
     }
 }

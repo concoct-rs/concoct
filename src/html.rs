@@ -1,15 +1,9 @@
 use crate::{
-    runtime::Runtime, use_context, use_context_provider, InputEvent, MouseEvent, Node, Scope, View,
+    runtime::Runtime, use_context, use_context_provider, InputEvent, MouseEvent, Scope, View,
 };
-use std::{
-    borrow::Cow,
-    cell::RefCell,
-    collections::HashMap,
-    ops::{Deref, DerefMut},
-    rc::Rc,
-};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{window, Element, Event, HtmlInputElement};
+use web_sys::{window, Element, Event};
 
 pub struct Parent(pub Element);
 
@@ -130,7 +124,6 @@ impl View for Html {
                 .unwrap();
 
             for (name, handler) in callbacks.iter() {
-                log::info!("{name}");
                 elem.add_event_listener_with_callback(
                     name,
                     handler.as_ref().as_ref().unchecked_ref(),

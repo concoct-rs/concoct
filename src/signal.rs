@@ -2,7 +2,7 @@ use crate::{runtime::Runtime, Scope};
 use generational_box::{GenerationalBox, Owner};
 use slotmap::DefaultKey;
 use std::{
-    cell::{Ref, RefMut},
+    cell::RefMut,
     collections::HashSet,
     fmt,
     ops::{AddAssign, Deref, DerefMut, SubAssign},

@@ -3,8 +3,6 @@ use concoct::{use_signal, Html, View};
 fn app() -> impl View {
     let mut count = use_signal(|| 0);
 
-    log::info!("{:?}", count.read());
-
     Html::div().view((
         move || format!("High five count: {}", count),
         Html::button()
