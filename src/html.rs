@@ -1,5 +1,13 @@
-use crate::{runtime::Runtime, use_context, use_context_provider, Node, Scope, View, MouseEvent, InputEvent};
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, ops::{DerefMut, Deref}};
+use crate::{
+    runtime::Runtime, use_context, use_context_provider, InputEvent, MouseEvent, Node, Scope, View,
+};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+    rc::Rc,
+};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{window, Element, Event, HtmlInputElement};
 
@@ -31,6 +39,7 @@ macro_rules! handlers {
 pub struct Html {
     tag: Cow<'static, str>,
     view: Option<Rc<RefCell<dyn View>>>,
+    attributes: HashMap<Cow<'static, str>, Cow<'static, str>>,
     event_handlers: HashMap<Cow<'static, str>, Rc<RefCell<dyn FnMut(Event)>>>,
 }
 
@@ -50,6 +59,7 @@ impl Html {
         Self {
             tag: tag.into(),
             view: None,
+            attributes: HashMap::new(),
             event_handlers: HashMap::new(),
         }
     }
@@ -71,6 +81,15 @@ impl Html {
     ) -> Self {
         self.event_handlers
             .insert(name.into(), Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub fn attr(
+        mut self,
+        name: impl Into<Cow<'static, str>>,
+        value: impl Into<Cow<'static, str>>,
+    ) -> Self {
+        self.attributes.insert(name.into(), value.into());
         self
     }
 }
@@ -110,6 +129,8 @@ impl View for Html {
                 .create_element(&self.tag)
                 .unwrap();
 
+              
+
             for (name, handler) in callbacks.iter() {
                 elem.add_event_listener_with_callback(
                     name,
@@ -117,12 +138,18 @@ impl View for Html {
                 )
                 .unwrap();
             }
+            
 
             parent.append_child(&elem).unwrap();
             Parent(elem)
         })
         .0
         .clone();
+
+        for (name, value) in self.attributes.iter() {
+            elem.set_attribute(name, value)
+            .unwrap();
+        }
 
         if let Some(view) = self.view.take() {
             Runtime::current().spawn(view)
