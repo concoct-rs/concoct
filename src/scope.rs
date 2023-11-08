@@ -97,16 +97,6 @@ impl Scope {
 
         let mut view = component.borrow_mut();
         let node = view.view();
-        if let Some(node) = node {
-            match node {
-                Node::Component(component) => Runtime::current().spawn(component),
-                Node::Components(components) => {
-                    for component in components {
-                        Runtime::current().spawn(component)
-                    }
-                }
-                Node::Element(_) => {}
-            }
-        }
+       
     }
 }

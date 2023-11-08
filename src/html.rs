@@ -27,7 +27,7 @@ macro_rules! handlers {
     ($(($fn_name:ident, $name:expr, $event:ident)),+) => {
         $(
             pub fn $fn_name(self, mut handler: impl FnMut($event) + 'static) -> Self {
-                self.on_event("input", move |event| {
+                self.on_event($name, move |event| {
                     handler($event::from(event));
                 })
              }
@@ -95,7 +95,7 @@ impl Html {
 }
 
 impl View for Html {
-    fn view(&mut self) -> Option<Node> {
+    fn view(&mut self) {
         let parent = use_context::<Parent>()
             .map(|cx| cx.0.clone())
             .unwrap_or_else(|| {
@@ -129,16 +129,14 @@ impl View for Html {
                 .create_element(&self.tag)
                 .unwrap();
 
-              
-
             for (name, handler) in callbacks.iter() {
+                log::info!("{name}");
                 elem.add_event_listener_with_callback(
                     name,
                     handler.as_ref().as_ref().unchecked_ref(),
                 )
                 .unwrap();
             }
-            
 
             parent.append_child(&elem).unwrap();
             Parent(elem)
@@ -147,19 +145,12 @@ impl View for Html {
         .clone();
 
         for (name, value) in self.attributes.iter() {
-            elem.set_attribute(name, value)
-            .unwrap();
+            elem.set_attribute(name, value).unwrap();
         }
 
         if let Some(view) = self.view.take() {
             Runtime::current().spawn(view)
         }
-
-        Some(Node::Element(elem))
-    }
-
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        todo!()
     }
 
     fn remove(&mut self) {

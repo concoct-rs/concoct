@@ -1,13 +1,10 @@
 use wasm_bindgen::JsCast;
 use web_sys::window;
-
-use crate::{html::Parent, use_context, Node, Scope};
+use crate::{html::Parent, use_context, Node, Scope, Runtime};
 use std::{cell::RefCell, rc::Rc};
 
 pub trait View {
-    fn view(&mut self) -> Option<Node>;
-
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>>;
+    fn view(&mut self);
 
     fn remove(&mut self);
 }
@@ -17,44 +14,36 @@ where
     F: FnMut() -> V + Clone + 'static,
     V: View + 'static,
 {
-    fn view(&mut self) -> Option<Node> {
+    fn view(&mut self) {
         self().view()
     }
 
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        todo!()
-    }
-
+    
     fn remove(&mut self) {
-        todo!()
+        self().remove()
     }
 }
 
 impl View for Box<dyn View> {
-    fn view(&mut self) -> Option<Node> {
+    fn view(&mut self)  {
         (&mut **self).view()
     }
 
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        todo!()
-    }
-
+   
     fn remove(&mut self) {
-        todo!()
+        (&mut **self).remove()
     }
 }
 
 impl View for Rc<RefCell<dyn View>> {
-    fn view(&mut self) -> Option<Node> {
+    fn view(&mut self) {
         self.borrow_mut().view()
     }
 
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        todo!()
-    }
+    
 
     fn remove(&mut self) {
-        todo!()
+        self.borrow_mut().remove()
     }
 }
 
@@ -64,25 +53,22 @@ where
     B: View + Clone + 'static,
     C: View + Clone + 'static,
 {
-    fn view(&mut self) -> Option<Node> {
-        Some(Node::Components(vec![
-            Box::new(self.0.clone()),
-            Box::new(self.1.clone()),
-            Box::new(self.2.clone()),
-        ]))
+    fn view(&mut self) {
+        Runtime::current().spawn(self.0.clone());
+        Runtime::current().spawn(self.1.clone());
+        Runtime::current().spawn(self.2.clone());
     }
 
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        todo!()
-    }
-
+   
     fn remove(&mut self) {
-        todo!()
+        self.0.remove();
+        self.1.remove();
+        self.2.remove();
     }
 }
 
 impl View for String {
-    fn view(&mut self) -> Option<Node> {
+    fn view(&mut self) {
         let parent = use_context::<Parent>()
             .map(|cx| cx.0.clone())
             .unwrap_or_else(|| {
@@ -107,13 +93,11 @@ impl View for String {
         elem.set_text_content(Some(self));
 
         let document = web_sys::window().unwrap().document().unwrap();
-        let elem = document.create_text_node(self);
-        Some(Node::Element(elem.unchecked_into()))
+       document.create_text_node(self);
+       
     }
 
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        None
-    }
+   
 
     fn remove(&mut self) {
         todo!()
@@ -121,7 +105,7 @@ impl View for String {
 }
 
 impl View for &'static str {
-    fn view(&mut self) -> Option<Node> {
+    fn view(&mut self) {
         let parent = use_context::<Parent>()
             .map(|cx| cx.0.clone())
             .unwrap_or_else(|| {
@@ -146,13 +130,11 @@ impl View for &'static str {
         elem.set_text_content(Some(self));
 
         let document = web_sys::window().unwrap().document().unwrap();
-        let elem = document.create_text_node(self);
-        Some(Node::Element(elem.unchecked_into()))
+        document.create_text_node(self);
+       
     }
 
-    fn child(&mut self) -> Option<Rc<RefCell<Box<dyn View>>>> {
-        None
-    }
+    
 
     fn remove(&mut self) {
         todo!()

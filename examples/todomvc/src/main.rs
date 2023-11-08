@@ -4,6 +4,7 @@ fn app() -> impl View {
     let label = use_signal(|| String::new());
     let value = label.read();
 
+   
     Html::input()
         .attr("value", value.clone())
         .on_input(move |event| {
