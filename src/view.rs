@@ -44,33 +44,13 @@ impl View for Rc<RefCell<dyn View>> {
 }
 
 impl View for () {
-    fn view(&mut self) {
-        
-    }
+    fn view(&mut self) {}
 
-    fn remove(&mut self) {
-       
-    }
+    fn remove(&mut self) {}
 }
 
-impl<A, B, C> View for (A, B, C)
-where
-    A: View + Clone + 'static,
-    B: View + Clone + 'static,
-    C: View + Clone + 'static,
-{
-    fn view(&mut self) {
-        Runtime::current().spawn(self.0.clone());
-        Runtime::current().spawn(self.1.clone());
-        Runtime::current().spawn(self.2.clone());
-    }
 
-    fn remove(&mut self) {
-        self.0.remove();
-        self.1.remove();
-        self.2.remove();
-    }
-}
+
 
 impl View for String {
     fn view(&mut self) {
@@ -137,3 +117,38 @@ impl View for &'static str {
         todo!()
     }
 }
+
+macro_rules! impl_view_for_tuple {
+    ( $( $name:ident ),+ ) => {
+        impl<$($name: View + Clone + 'static),+> View for ($($name,)+)
+        {
+            fn view(&mut self) {
+                let ($($name,)+) = self;
+                $(Runtime::current().spawn($name.clone()));+
+            }
+
+            fn remove(&mut self) {
+                let ($($name,)+) = self;
+                $($name.remove();)+
+            }
+        }
+    };
+}
+
+impl_view_for_tuple!(A);
+impl_view_for_tuple!(A, B);
+impl_view_for_tuple!(A, B, C);
+impl_view_for_tuple!(A, B, C, D);
+impl_view_for_tuple!(A, B, C, D, E);
+impl_view_for_tuple!(A, B, C, D, E, F);
+impl_view_for_tuple!(A, B, C, D, E, F, G);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
+impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+
