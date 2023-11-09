@@ -153,8 +153,4 @@ impl View for Html {
             Runtime::current().spawn(view)
         }
     }
-
-    fn remove(&mut self) {
-        todo!()
-    }
 }

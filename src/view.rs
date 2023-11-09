@@ -5,8 +5,6 @@ use web_sys::window;
 
 pub trait View {
     fn view(&mut self);
-
-    fn remove(&mut self);
 }
 
 impl<F, V> View for F
@@ -17,19 +15,11 @@ where
     fn view(&mut self) {
         self().view()
     }
-
-    fn remove(&mut self) {
-        self().remove()
-    }
 }
 
 impl View for Box<dyn View> {
     fn view(&mut self) {
         (&mut **self).view()
-    }
-
-    fn remove(&mut self) {
-        (&mut **self).remove()
     }
 }
 
@@ -37,20 +27,11 @@ impl View for Rc<RefCell<dyn View>> {
     fn view(&mut self) {
         self.borrow_mut().view()
     }
-
-    fn remove(&mut self) {
-        self.borrow_mut().remove()
-    }
 }
 
 impl View for () {
     fn view(&mut self) {}
-
-    fn remove(&mut self) {}
 }
-
-
-
 
 impl View for String {
     fn view(&mut self) {
@@ -78,10 +59,6 @@ impl View for String {
 
         let document = web_sys::window().unwrap().document().unwrap();
         document.create_text_node(self);
-    }
-
-    fn remove(&mut self) {
-        todo!()
     }
 }
 
@@ -112,10 +89,6 @@ impl View for &'static str {
         let document = web_sys::window().unwrap().document().unwrap();
         document.create_text_node(self);
     }
-
-    fn remove(&mut self) {
-        todo!()
-    }
 }
 
 macro_rules! impl_view_for_tuple {
@@ -125,11 +98,6 @@ macro_rules! impl_view_for_tuple {
             fn view(&mut self) {
                 let ($($name,)+) = self;
                 $(Runtime::current().spawn($name.clone()));+
-            }
-
-            fn remove(&mut self) {
-                let ($($name,)+) = self;
-                $($name.remove();)+
             }
         }
     };
@@ -151,4 +119,3 @@ impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M);
 impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_view_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
-
