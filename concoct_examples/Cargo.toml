@@ -6,7 +6,10 @@ edition = "2018"
 
 [features]
 counter = []
+drop = []
 text_input = []
+full = ["counter", "drop", "text_input"]
+default = []
 
 [dependencies]
 concoct = { path = "../", features = ["web"] }

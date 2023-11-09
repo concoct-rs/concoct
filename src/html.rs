@@ -136,7 +136,7 @@ impl View for Html {
         .0
         .clone();
 
-        let mut attrs = use_hook(|| HashMap::<Cow<'static, str>, Cow<'static, str>>::new());
+        let mut attrs = use_hook(|| HashMap::new());
         for (name, value) in self.attributes.iter() {
             if let Some(last_value) = attrs.get_mut(name) {
                 if value != last_value {
@@ -149,8 +149,11 @@ impl View for Html {
             }
         }
 
+        let mut child = use_hook(|| None);
         if let Some(view) = self.view.take() {
-            Runtime::current().spawn(view)
+            *child = Some(Runtime::current().spawn(view));
+        } else {
+            *child = None;
         }
     }
 }

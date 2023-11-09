@@ -2,4 +2,4 @@
     "rust-analyzer.cargo.features": [
         "full"
     ],
-  }
+   }

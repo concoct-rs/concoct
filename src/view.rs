@@ -91,13 +91,30 @@ impl View for &'static str {
     }
 }
 
+impl<V> View for Option<V>
+where
+    V: View + Clone + 'static,
+{
+    fn view(&mut self) {
+        let mut last = use_hook(|| self.clone());
+        let mut handle = use_hook(|| None);
+
+        if let Some(view) = self {
+            *handle = Some(Runtime::current().spawn(view.clone()));
+        } else if let Some(_) = &*last {
+            *last = None;
+            *handle = None;
+        }
+    }
+}
+
 macro_rules! impl_view_for_tuple {
     ( $( $name:ident ),+ ) => {
         impl<$($name: View + Clone + 'static),+> View for ($($name,)+)
         {
             fn view(&mut self) {
                 let ($($name,)+) = self;
-                $(Runtime::current().spawn($name.clone()));+
+                use_hook(|| ($(Runtime::current().spawn($name.clone()),)+));
             }
         }
     };

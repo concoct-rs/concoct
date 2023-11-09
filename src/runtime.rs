@@ -6,10 +6,24 @@ thread_local! {
     static CURRENT: RefCell<Option<Runtime>> = RefCell::new(None);
 }
 
+pub struct Handle {
+    scope_key: DefaultKey,
+}
+
+impl Drop for Handle {
+    fn drop(&mut self) {
+        Runtime::current()
+            .inner
+            .borrow_mut()
+            .scopes
+            .remove(self.scope_key);
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct Inner {
     scopes: SlotMap<DefaultKey, Option<Scope>>,
-    pending: Vec<(Box<dyn View>, Option<DefaultKey>)>,
+    pending: Vec<(Box<dyn View>, DefaultKey, Option<DefaultKey>)>,
     pub(crate) signals: SlotMap<DefaultKey, HashSet<DefaultKey>>,
 }
 
@@ -37,12 +51,14 @@ impl Runtime {
             .unwrap()
     }
 
-    pub fn spawn(&self, view: impl View + 'static) {
+    pub fn spawn(&self, view: impl View + 'static) -> Handle {
         let parent_key = Scope::try_current().map(|scope| scope.inner.borrow().key);
+        let key = self.inner.borrow_mut().scopes.insert(None);
         self.inner
             .borrow_mut()
             .pending
-            .push((Box::new(view), parent_key));
+            .push((Box::new(view), key, parent_key));
+        Handle { scope_key: key }
     }
 
     pub fn update(&self, key: DefaultKey) {
@@ -62,9 +78,8 @@ impl Runtime {
             let pending = mem::take(&mut me.pending);
             drop(me);
 
-            for (view, parent_key) in pending {
+            for (view, key, parent_key) in pending {
                 let mut me = self.inner.borrow_mut();
-                let key = me.scopes.insert(None);
 
                 let contexts = parent_key
                     .map(|parent_key| {

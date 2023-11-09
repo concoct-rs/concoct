@@ -25,6 +25,9 @@ pub use use_context::{use_context, use_context_provider, UseContext};
 mod use_hook;
 pub use use_hook::use_hook;
 
+mod use_on_drop;
+pub use use_on_drop::use_on_drop;
+
 thread_local! {
  static STORE: Store = Store::default();
 
@@ -39,7 +42,7 @@ pub enum Node {
 pub fn run(view: impl View + 'static) {
     Runtime::default().enter();
 
-    Runtime::current().spawn(view);
+    std::mem::forget(Runtime::current().spawn(view));
 
     for _ in 0..10 {
         Runtime::current().poll();
