@@ -21,25 +21,34 @@
  <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Examples</a>
 </div>
 
-## An incremental computation framework for Rust.
+Concoct is an incremental computation framework for Rust.
+This library provides a generic diffing engine for user-interfaces and other reactive systems.
+
+This crate is inspired by React, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 ```rust
-fn counter() -> impl Composable {
-    let mut count = use_state(|| 0);
+fn counter(initial_value: i32) -> impl Composable {
+    let mut count = use_state(|| initial_value);
 
     use_future(|| async move {
         loop {
-            count += 1;
             time::sleep(Duration::from_millis(500)).await;
+            count += 1;
         }
     });
 
     Debugger::new(count)
 }
 
-fn main() {
-    let mut composition = Composition::new(counter);
+fn app() -> impl Composable {
+    (|| counter(0), || counter(100))
+}
+
+#[tokio::main]
+async fn main() {
+    let mut composition = Composition::new(app);
     composition.build();
-    composition.rebuild();
+    composition.rebuild().await;
+    composition.rebuild().await;
 }
 ```
