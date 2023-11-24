@@ -1,18 +1,43 @@
-use crate::{use_hook, TASK_CONTEXT};
+use crate::{use_hook, UseHook, TASK_CONTEXT};
 use futures::Future;
-use tokio::task;
+use tokio::task::{self, JoinHandle};
 
-pub fn use_future<F: Future + 'static>(f: impl FnOnce() -> F) {
-    use_hook(|| {
+pub fn use_future<F>(f: impl FnOnce() -> F) -> UseFuture<F::Output>
+where
+    F: Future + 'static,
+{
+    let handle = use_hook(|| {
         let future = f();
-        TASK_CONTEXT.try_with(|cx| {
-            let guard = cx.borrow_mut();
-            let cx = guard.as_ref().unwrap();
-            let tx = cx.tx.clone();
-            task::spawn_local(async move {
-                future.await;
-                tx.send(Box::new(())).unwrap();
-            });
-        })
+        TASK_CONTEXT
+            .try_with(|cx| {
+                let guard = cx.borrow_mut();
+                let cx = guard.as_ref().unwrap();
+                let tx = cx.tx.clone();
+                task::spawn_local(async move {
+                    let output = future.await;
+                    tx.send(Box::new(())).unwrap();
+                    output
+                })
+            })
+            .unwrap()
     });
+    UseFuture { handle }
 }
+
+pub struct UseFuture<T> {
+    handle: UseHook<JoinHandle<T>>,
+}
+
+impl<T: 'static> UseFuture<T> {
+    pub fn abort(&self) {
+        self.handle.get().abort()
+    }
+}
+
+impl<T> Clone for UseFuture<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> Copy for UseFuture<T> {}

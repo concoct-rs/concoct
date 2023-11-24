@@ -1,5 +1,4 @@
 use crate::BuildContext;
-use std::fmt;
 
 pub trait Composable {
     type State: 'static;
@@ -37,24 +36,10 @@ impl<A: Composable, B: Composable> Composable for (A, B) {
     }
 }
 
-pub struct Debugger<T> {
-    value: T,
-}
-
-impl<T> Debugger<T> {
-    pub fn new(value: T) -> Self {
-        Self { value }
-    }
-}
-
-impl<T: fmt::Debug> Composable for Debugger<T> {
+impl Composable for () {
     type State = ();
 
-    fn build(&mut self, _cx: &mut BuildContext) -> Self::State {
-        dbg!(&self.value);
-    }
+    fn build(&mut self, _cx: &mut BuildContext) -> Self::State {}
 
-    fn rebuild(&mut self, _state: &mut Self::State) {
-        dbg!(&self.value);
-    }
+    fn rebuild(&mut self, _state: &mut Self::State) {}
 }

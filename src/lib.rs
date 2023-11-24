@@ -6,7 +6,7 @@ mod any_composable;
 pub use any_composable::AnyComposable;
 
 mod composable;
-pub use composable::{Composable, Debugger};
+pub use composable::Composable;
 
 mod composition;
 pub use composition::Composition;
@@ -15,13 +15,13 @@ mod node;
 pub use node::Node;
 
 mod use_hook;
-pub use use_hook::use_hook;
+pub use use_hook::{use_hook, UseHook};
 
 mod use_future;
-pub use use_future::use_future;
+pub use use_future::{use_future, UseFuture};
 
 mod use_state;
-pub use use_state::{use_state, State};
+pub use use_state::{use_state, UseState};
 
 #[derive(Default)]
 struct GlobalContext {

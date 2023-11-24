@@ -1,50 +1,34 @@
-use crate::{use_hook, GLOBAL_CONTEXT, TASK_CONTEXT};
-use slotmap::DefaultKey;
+use crate::{
+    use_hook::{use_hook, UseHook},
+    GLOBAL_CONTEXT, TASK_CONTEXT,
+};
 use std::{
-    cell::{Ref, RefCell},
-    fmt,
-    marker::PhantomData,
-    mem,
+    cell::Ref,
+    fmt, mem,
     ops::{Add, AddAssign},
-    rc::Rc,
 };
 
-pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> State<T> {
-    let rc = use_hook(|| {
-        GLOBAL_CONTEXT
-            .try_with(|cx| {
-                cx.borrow_mut()
-                    .values
-                    .insert(Rc::new(RefCell::new(make_value())))
-            })
-            .unwrap()
-    });
-    let guard = rc.borrow();
-    let key: &DefaultKey = guard.downcast_ref().unwrap();
-
-    State {
-        key: *key,
-        _marker: PhantomData,
-    }
+pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> UseState<T> {
+    let hook = use_hook(make_value);
+    UseState { hook }
 }
 
-pub struct State<T> {
-    key: DefaultKey,
-    _marker: PhantomData<T>,
+pub struct UseState<T> {
+    hook: UseHook<T>,
 }
 
-impl<T> Clone for State<T> {
+impl<T> Clone for UseState<T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<T> Copy for State<T> {}
+impl<T> Copy for UseState<T> {}
 
-impl<T: 'static> State<T> {
+impl<T: 'static> UseState<T> {
     pub fn get(self) -> Ref<'static, T> {
         let rc = GLOBAL_CONTEXT
-            .try_with(|cx| cx.borrow_mut().values[self.key].clone())
+            .try_with(|cx| cx.borrow_mut().values[self.hook.key].clone())
             .unwrap();
         let output: Ref<'_, T> = Ref::map(rc.borrow(), |value| value.downcast_ref().unwrap());
         unsafe { mem::transmute(output) }
@@ -53,7 +37,7 @@ impl<T: 'static> State<T> {
     pub fn set(&self, value: T) {
         GLOBAL_CONTEXT
             .try_with(|cx| {
-                *cx.borrow_mut().values[self.key]
+                *cx.borrow_mut().values[self.hook.key]
                     .borrow_mut()
                     .downcast_mut()
                     .unwrap() = value
@@ -78,7 +62,7 @@ impl<T: 'static> State<T> {
     }
 }
 
-impl<T> fmt::Debug for State<T>
+impl<T> fmt::Debug for UseState<T>
 where
     T: fmt::Debug + 'static,
 {
@@ -87,7 +71,7 @@ where
     }
 }
 
-impl<T> AddAssign<T> for State<T>
+impl<T> AddAssign<T> for UseState<T>
 where
     T: Add<Output = T> + Clone + 'static,
 {

@@ -37,7 +37,7 @@ fn counter(initial_value: i32) -> impl Composable {
         }
     });
 
-    Debugger::new(count)
+    dbg!(count);
 }
 
 fn app() -> impl Composable {

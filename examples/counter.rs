@@ -1,4 +1,4 @@
-use concoct::{use_future, use_state, Composable, Composition, Debugger};
+use concoct::{use_future, use_state, Composable, Composition};
 use std::time::Duration;
 use tokio::time;
 
@@ -12,7 +12,7 @@ fn counter(initial_value: i32) -> impl Composable {
         }
     });
 
-    Debugger::new(count)
+    dbg!(count);
 }
 
 fn app() -> impl Composable {
