@@ -1,15 +1,23 @@
-use concoct::{use_state, Composable, Composition, Debugger};
+use concoct::{use_future, use_state, Composable, Composition, Debugger};
+use std::time::Duration;
+use tokio::time;
 
 fn counter() -> impl Composable {
-    let (count, set_count) = use_state(|| 0);
+    let mut count = use_state(|| 0);
 
-    set_count(count.cloned() + 1);
+    use_future(|| async move {
+        loop {
+            count += 1;
+            time::sleep(Duration::from_millis(500)).await;
+        }
+    });
 
     Debugger::new(count)
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut composition = Composition::new(counter);
     composition.build();
-    composition.rebuild();
+    composition.rebuild().await;
 }

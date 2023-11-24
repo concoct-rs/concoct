@@ -55,7 +55,7 @@ impl Composition {
         node.state = Some(state);
     }
 
-    pub fn rebuild(&mut self) {
+    pub async fn rebuild(&mut self) {
         let node = &mut self.nodes[self.root];
 
         let cx = LocalContext {

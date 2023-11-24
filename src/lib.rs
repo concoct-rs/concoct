@@ -4,6 +4,8 @@ use std::{
     any::Any,
     cell::{Ref, RefCell},
     marker::PhantomData,
+    mem::{self},
+    ops::AddAssign,
     rc::Rc,
 };
 
@@ -15,6 +17,15 @@ pub use composition::Composition;
 
 mod node;
 pub use node::Node;
+
+#[derive(Default)]
+struct GlobalContext {
+    values: SlotMap<DefaultKey, Rc<RefCell<dyn Any>>>,
+}
+
+thread_local! {
+    static GLOBAL_CONTEXT: RefCell<GlobalContext> = RefCell::default();
+}
 
 pub struct BuildContext<'a> {
     nodes: &'a mut SlotMap<DefaultKey, Node>,
@@ -89,16 +100,39 @@ pub fn use_hook<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<dyn An
 }
 
 pub struct State<T> {
-    value: Rc<RefCell<dyn Any>>,
+    key: DefaultKey,
     _marker: PhantomData<T>,
 }
 
+impl<T> Clone for State<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> Copy for State<T> {}
+
 impl<T: 'static> State<T> {
-    pub fn get(&self) -> Ref<T> {
-        Ref::map(self.value.borrow(), |value| value.downcast_ref().unwrap())
+    pub fn get(self) -> Ref<'static, T> {
+        let rc = GLOBAL_CONTEXT
+            .try_with(|cx| cx.borrow_mut().values[self.key].clone())
+            .unwrap();
+        let output: Ref<'_, T> = Ref::map(rc.borrow(), |value| value.downcast_ref().unwrap());
+        unsafe { mem::transmute(output) }
     }
 
-    pub fn cloned(&self) -> T
+    pub fn set(&self, value: T) {
+        GLOBAL_CONTEXT
+            .try_with(|cx| {
+                *cx.borrow_mut().values[self.key]
+                    .borrow_mut()
+                    .downcast_mut()
+                    .unwrap() = value
+            })
+            .unwrap();
+    }
+
+    pub fn cloned(self) -> T
     where
         T: Clone,
     {
@@ -111,20 +145,33 @@ where
     T: fmt::Debug + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.value.borrow().downcast_ref::<T>().unwrap().fmt(f)
+        self.get().fmt(f)
     }
 }
 
-pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> (State<T>, impl Fn(T)) {
-    let value = use_hook(make_value);
-    let value_clone = value.clone();
-    (
-        State {
-            value,
-            _marker: PhantomData,
-        },
-        move |new_value| {
-            *value_clone.borrow_mut().downcast_mut().unwrap() = new_value;
-        },
-    )
+impl<T: AddAssign + 'static> AddAssign<T> for State<T> {
+    fn add_assign(&mut self, _rhs: T) {
+        todo!()
+    }
 }
+
+pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> State<T> {
+    let rc = use_hook(|| {
+        GLOBAL_CONTEXT
+            .try_with(|cx| {
+                cx.borrow_mut()
+                    .values
+                    .insert(Rc::new(RefCell::new(make_value())))
+            })
+            .unwrap()
+    });
+    let guard = rc.borrow();
+    let key: &DefaultKey = guard.downcast_ref().unwrap();
+
+    State {
+        key: *key,
+        _marker: PhantomData,
+    }
+}
+
+pub fn use_future<F>(_f: impl FnOnce() -> F) {}

@@ -25,9 +25,14 @@
 
 ```rust
 fn counter() -> impl Composable {
-    let (count, set_count) = use_state(|| 0);
+    let mut count = use_state(|| 0);
 
-    set_count(count + 1);
+    use_future(|| async move {
+        loop {
+            count += 1;
+            time::sleep(Duration::from_millis(500)).await;
+        }
+    });
 
     Debugger::new(count)
 }
