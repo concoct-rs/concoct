@@ -1,50 +1,184 @@
-use generational_box::Store;
-use web_sys::Element;
+use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
+use std::{any::Any, cell::RefCell, rc::Rc};
 
-mod event;
-pub use self::event::{InputEvent, MouseEvent};
+pub struct BuildContext<'a> {
+    nodes: &'a mut SlotMap<DefaultKey, Node>,
+}
 
-mod html;
-pub use html::Html;
+impl<'a> BuildContext<'a> {
+    pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>) {
+        let node = Node {
+            make_composable,
+            composable: None,
+            state: None,
+            hooks: Rc::default(),
+        };
+    }
+}
 
-pub mod runtime;
-pub use self::runtime::Runtime;
+pub trait Composable {
+    type State: 'static;
 
-mod scope;
-pub use scope::Scope;
+    fn build(&mut self, cx: &mut BuildContext) -> Self::State;
 
-mod signal;
-pub use signal::{use_signal, Signal};
+    fn rebuild(&mut self, state: &mut Self::State);
+}
 
-mod view;
-pub use view::View;
+impl<F: FnMut() -> C, C: Composable> Composable for F {
+    type State = C::State;
 
-mod use_context;
-pub use use_context::{use_context, use_context_provider, UseContext};
+    fn build(&mut self, cx: &mut BuildContext) -> Self::State {
+        todo!()
+    }
 
-mod use_hook;
-pub use use_hook::use_hook;
+    fn rebuild(&mut self, state: &mut Self::State) {
+        todo!()
+    }
+}
 
-mod use_on_drop;
-pub use use_on_drop::use_on_drop;
+impl<A: Composable, B: Composable> Composable for (A, B) {
+    type State = (A::State, B::State);
+
+    fn build(&mut self, cx: &mut BuildContext) -> Self::State {
+        ((self.0).build(cx), (self.1).build(cx))
+    }
+
+    fn rebuild(&mut self, state: &mut Self::State) {
+        (self.0).rebuild(&mut state.0);
+        (self.1).rebuild(&mut state.1);
+    }
+}
+
+pub trait AnyComposable {
+    fn any_build(&mut self, cx: &mut BuildContext) -> Box<dyn Any>;
+
+    fn any_rebuild(&mut self, state: &mut dyn Any);
+}
+
+impl<C: Composable> AnyComposable for C {
+    fn any_build(&mut self, cx: &mut BuildContext) -> Box<dyn Any> {
+        Box::new(self.build(cx))
+    }
+
+    fn any_rebuild(&mut self, state: &mut dyn Any) {
+        self.rebuild(state.downcast_mut().unwrap())
+    }
+}
+
+struct Node {
+    make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>,
+    composable: Option<Box<dyn AnyComposable>>,
+    state: Option<Box<dyn Any>>,
+    hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
+}
+
+pub struct Composition {
+    nodes: SlotMap<DefaultKey, Node>,
+    children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
+    root: DefaultKey,
+}
+
+impl Composition {
+    pub fn new<C>(content: fn() -> C) -> Self
+    where
+        C: Composable + 'static,
+    {
+        let mut composables = SlotMap::new();
+        let make_composable = Box::new(move || {
+            let composable: Box<dyn AnyComposable> = Box::new(content());
+            composable
+        });
+        let node = Node {
+            make_composable,
+            composable: None,
+            state: None,
+            hooks: Rc::default(),
+        };
+        let root = composables.insert(node);
+
+        Self {
+            nodes: composables,
+            children: SparseSecondaryMap::new(),
+            root,
+        }
+    }
+
+    pub fn build(&mut self) {
+        let node = &mut self.nodes[self.root];
+
+        let cx = LocalContext {
+            inner: Rc::new(RefCell::new(Inner {
+                hooks: node.hooks.clone(),
+                idx: 0,
+            })),
+        };
+        cx.enter();
+        let mut composable = (node.make_composable)();
+
+        let mut build_cx = BuildContext {
+            nodes: &mut self.nodes,
+        };
+        let state = composable.any_build(&mut build_cx);
+
+        let node = &mut self.nodes[self.root];
+        node.composable = Some(composable);
+        node.state = Some(state);
+    }
+
+    pub fn rebuild(&mut self) {
+        let node = &mut self.nodes[self.root];
+
+        let cx = LocalContext {
+            inner: Rc::new(RefCell::new(Inner {
+                hooks: node.hooks.clone(),
+                idx: 0,
+            })),
+        };
+        cx.enter();
+        let mut composable = (node.make_composable)();
+        let state = node.state.as_mut().unwrap();
+        composable.any_rebuild(&mut **state);
+        node.composable = Some(composable);
+    }
+}
+
+struct Inner {
+    hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
+    idx: usize,
+}
 
 thread_local! {
- static STORE: Store = Store::default();
-
+    static LOCAL_CONTEXT: RefCell<Option<LocalContext>> = RefCell::default();
 }
 
-pub enum Node {
-    Component(Box<dyn View>),
-    Element(Element),
-    Components(Vec<Box<dyn View>>),
+#[derive(Clone)]
+pub struct LocalContext {
+    inner: Rc<RefCell<Inner>>,
 }
 
-pub fn run(view: impl View + 'static) {
-    Runtime::default().enter();
+impl LocalContext {
+    pub fn current() -> Self {
+        LOCAL_CONTEXT
+            .try_with(|cx| cx.borrow().as_ref().unwrap().clone())
+            .unwrap()
+    }
 
-    std::mem::forget(Runtime::current().spawn(view));
+    pub fn enter(self) {
+        LOCAL_CONTEXT
+            .try_with(|cx| *cx.borrow_mut() = Some(self))
+            .unwrap()
+    }
+}
 
-    for _ in 0..10 {
-        Runtime::current().poll();
+pub fn use_hook<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<dyn Any>> {
+    let cx = LocalContext::current();
+    let inner = cx.inner.borrow_mut();
+    let mut hooks = inner.hooks.borrow_mut();
+
+    if let Some(hook) = hooks.get(inner.idx) {
+        hook.clone()
+    } else {
+        hooks.push(Rc::new(RefCell::new(make_value())));
+        hooks.last().as_deref().unwrap().clone()
     }
 }
