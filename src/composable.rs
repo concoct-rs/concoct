@@ -31,12 +31,12 @@ impl Composable for Tuple {
     for_tuples!( type State = ( #( Tuple::State ),* ); );
 
     fn build(&mut self, cx: &mut BuildContext) -> Self::State {
-        for_tuples!( ( #( Tuple::build(&mut self.Tuple, cx) ),* ) )
+        for_tuples!( ( #( self.Tuple.build(cx) ),* ) )
     }
 
     fn rebuild(&mut self, state: &mut Self::State) {
         {
-            for_tuples!( ( #( Tuple::rebuild(&mut self.Tuple, &mut state.Tuple) ),* ) )
+            for_tuples!(#( self.Tuple.rebuild(&mut state.Tuple); )* )
         };
     }
 }

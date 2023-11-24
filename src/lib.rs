@@ -15,7 +15,7 @@ mod node;
 use node::Node;
 
 mod use_ref;
-pub use use_ref::{use_ref, UseRef};
+pub use use_ref::{use_ref, Ref, RefMut, UseRef};
 
 mod use_future;
 pub use use_future::{use_future, UseFuture};

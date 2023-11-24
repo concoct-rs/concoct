@@ -35,12 +35,10 @@ pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<
     let mut hooks = inner.hooks.borrow_mut();
 
     let value = if let Some(hook) = hooks.get(inner.idx) {
-        let value = hook.clone();
-
-        value
+        hook.clone()
     } else {
         hooks.push(Rc::new(RefCell::new(make_value())));
-        hooks.last().as_deref().unwrap().clone()
+        hooks.last().unwrap().clone()
     };
 
     drop(hooks);
@@ -94,7 +92,7 @@ impl<T> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &*self.value
+        &self.value
     }
 }
 
