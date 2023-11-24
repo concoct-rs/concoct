@@ -1,14 +1,13 @@
-use concoct::{use_hook, AnyComposable, Composable, Composition};
-use std::any::Any;
+use concoct::{use_hook, Composable, Composition};
 
 struct Text {}
 
 impl Composable for Text {
     type State = ();
 
-    fn build(&mut self, cx: &mut concoct::BuildContext) -> Self::State {}
+    fn build(&mut self, _cx: &mut concoct::BuildContext) -> Self::State {}
 
-    fn rebuild(&mut self, state: &mut Self::State) {}
+    fn rebuild(&mut self, _state: &mut Self::State) {}
 }
 
 fn counter() -> impl Composable {

@@ -1,5 +1,11 @@
-use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
+use slotmap::{DefaultKey, SlotMap};
 use std::{any::Any, cell::RefCell, rc::Rc};
+
+mod composition;
+pub use composition::Composition;
+
+mod node;
+pub use node::Node;
 
 pub struct BuildContext<'a> {
     nodes: &'a mut SlotMap<DefaultKey, Node>,
@@ -7,7 +13,7 @@ pub struct BuildContext<'a> {
 
 impl<'a> BuildContext<'a> {
     pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>) {
-        let node = Node {
+        let _node = Node {
             make_composable,
             composable: None,
             state: None,
@@ -24,16 +30,19 @@ pub trait Composable {
     fn rebuild(&mut self, state: &mut Self::State);
 }
 
-impl<F: FnMut() -> C, C: Composable> Composable for F {
-    type State = C::State;
+impl<F, C> Composable for F
+where
+    F: FnMut() -> C + Clone + 'static,
+    C: Composable + 'static,
+{
+    type State = ();
 
     fn build(&mut self, cx: &mut BuildContext) -> Self::State {
-        todo!()
+        let mut f = self.clone();
+        cx.insert(Box::new(move || Box::new(f())));
     }
 
-    fn rebuild(&mut self, state: &mut Self::State) {
-        todo!()
-    }
+    fn rebuild(&mut self, _state: &mut Self::State) {}
 }
 
 impl<A: Composable, B: Composable> Composable for (A, B) {
@@ -65,95 +74,18 @@ impl<C: Composable> AnyComposable for C {
     }
 }
 
-struct Node {
-    make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>,
-    composable: Option<Box<dyn AnyComposable>>,
-    state: Option<Box<dyn Any>>,
-    hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
-}
-
-pub struct Composition {
-    nodes: SlotMap<DefaultKey, Node>,
-    children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
-    root: DefaultKey,
-}
-
-impl Composition {
-    pub fn new<C>(content: fn() -> C) -> Self
-    where
-        C: Composable + 'static,
-    {
-        let mut composables = SlotMap::new();
-        let make_composable = Box::new(move || {
-            let composable: Box<dyn AnyComposable> = Box::new(content());
-            composable
-        });
-        let node = Node {
-            make_composable,
-            composable: None,
-            state: None,
-            hooks: Rc::default(),
-        };
-        let root = composables.insert(node);
-
-        Self {
-            nodes: composables,
-            children: SparseSecondaryMap::new(),
-            root,
-        }
-    }
-
-    pub fn build(&mut self) {
-        let node = &mut self.nodes[self.root];
-
-        let cx = LocalContext {
-            inner: Rc::new(RefCell::new(Inner {
-                hooks: node.hooks.clone(),
-                idx: 0,
-            })),
-        };
-        cx.enter();
-        let mut composable = (node.make_composable)();
-
-        let mut build_cx = BuildContext {
-            nodes: &mut self.nodes,
-        };
-        let state = composable.any_build(&mut build_cx);
-
-        let node = &mut self.nodes[self.root];
-        node.composable = Some(composable);
-        node.state = Some(state);
-    }
-
-    pub fn rebuild(&mut self) {
-        let node = &mut self.nodes[self.root];
-
-        let cx = LocalContext {
-            inner: Rc::new(RefCell::new(Inner {
-                hooks: node.hooks.clone(),
-                idx: 0,
-            })),
-        };
-        cx.enter();
-        let mut composable = (node.make_composable)();
-        let state = node.state.as_mut().unwrap();
-        composable.any_rebuild(&mut **state);
-        node.composable = Some(composable);
-    }
-}
-
 struct Inner {
     hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
     idx: usize,
 }
 
-thread_local! {
-    static LOCAL_CONTEXT: RefCell<Option<LocalContext>> = RefCell::default();
-}
-
 #[derive(Clone)]
 pub struct LocalContext {
     inner: Rc<RefCell<Inner>>,
+}
+
+thread_local! {
+    static LOCAL_CONTEXT: RefCell<Option<LocalContext>> = RefCell::default();
 }
 
 impl LocalContext {
