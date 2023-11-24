@@ -1,3 +1,5 @@
+use impl_trait_for_tuples::impl_for_tuples;
+
 use crate::BuildContext;
 
 /// Composable object that handles diffing.
@@ -24,23 +26,17 @@ where
     fn rebuild(&mut self, _state: &mut Self::State) {}
 }
 
-impl<A: Composable, B: Composable> Composable for (A, B) {
-    type State = (A::State, B::State);
+#[impl_for_tuples(16)]
+impl Composable for Tuple {
+    for_tuples!( type State = ( #( Tuple::State ),* ); );
 
     fn build(&mut self, cx: &mut BuildContext) -> Self::State {
-        ((self.0).build(cx), (self.1).build(cx))
+        for_tuples!( ( #( Tuple::build(&mut self.Tuple, cx) ),* ) )
     }
 
     fn rebuild(&mut self, state: &mut Self::State) {
-        (self.0).rebuild(&mut state.0);
-        (self.1).rebuild(&mut state.1);
+        {
+            for_tuples!( ( #( Tuple::rebuild(&mut self.Tuple, &mut state.Tuple) ),* ) )
+        };
     }
-}
-
-impl Composable for () {
-    type State = ();
-
-    fn build(&mut self, _cx: &mut BuildContext) -> Self::State {}
-
-    fn rebuild(&mut self, _state: &mut Self::State) {}
 }

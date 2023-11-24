@@ -48,7 +48,7 @@ pub struct BuildContext<'a> {
 }
 
 impl<'a> BuildContext<'a> {
-    pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>) {
+    pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>) -> DefaultKey {
         let node = Node {
             make_composable,
             composable: None,
@@ -62,6 +62,8 @@ impl<'a> BuildContext<'a> {
         } else {
             self.children.insert(self.parent_key, vec![key]);
         }
+
+        key
     }
 }
 
