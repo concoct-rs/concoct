@@ -8,7 +8,8 @@ use std::{
     rc::Rc,
 };
 
-pub fn use_hook<T: 'static>(make_value: impl FnOnce() -> T) -> UseHook<T> {
+/// A hook that lets you reference a value that’s not needed for rendering.
+pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> UseRef<T> {
     let rc = use_hook_value(|| {
         GLOBAL_CONTEXT
             .try_with(|cx| {
@@ -21,7 +22,7 @@ pub fn use_hook<T: 'static>(make_value: impl FnOnce() -> T) -> UseHook<T> {
     let guard = rc.borrow();
     let key: &DefaultKey = guard.downcast_ref().unwrap();
 
-    UseHook {
+    UseRef {
         key: *key,
         _marker: PhantomData,
     }
@@ -47,20 +48,20 @@ pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<
     value
 }
 
-pub struct UseHook<T> {
+pub struct UseRef<T> {
     pub key: DefaultKey,
     _marker: PhantomData<T>,
 }
 
-impl<T> Clone for UseHook<T> {
+impl<T> Clone for UseRef<T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<T> Copy for UseHook<T> {}
+impl<T> Copy for UseRef<T> {}
 
-impl<T: 'static> UseHook<T> {
+impl<T: 'static> UseRef<T> {
     pub fn get(self) -> Ref<'static, T> {
         let rc = GLOBAL_CONTEXT
             .try_with(|cx| cx.borrow_mut().values[self.key].clone())

@@ -1,12 +1,13 @@
-use crate::{use_hook, UseHook, TASK_CONTEXT};
+use crate::{use_ref, UseRef, TASK_CONTEXT};
 use futures::Future;
 use tokio::task::{self, JoinHandle};
 
+/// A hook that spawns a local future on current thread.
 pub fn use_future<F>(f: impl FnOnce() -> F) -> UseFuture<F::Output>
 where
     F: Future + 'static,
 {
-    let handle = use_hook(|| {
+    let handle = use_ref(|| {
         let future = f();
         TASK_CONTEXT
             .try_with(|cx| {
@@ -25,7 +26,7 @@ where
 }
 
 pub struct UseFuture<T> {
-    handle: UseHook<JoinHandle<T>>,
+    handle: UseRef<JoinHandle<T>>,
 }
 
 impl<T: 'static> UseFuture<T> {

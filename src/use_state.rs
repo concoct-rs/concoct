@@ -1,5 +1,5 @@
 use crate::{
-    use_hook::{use_hook, UseHook},
+    use_ref::{use_ref, UseRef},
     GLOBAL_CONTEXT, TASK_CONTEXT,
 };
 use std::{
@@ -8,13 +8,14 @@ use std::{
     ops::{Add, AddAssign},
 };
 
+/// A hook that lets you add a state variable to your composable.
 pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> UseState<T> {
-    let hook = use_hook(make_value);
+    let hook = use_ref(make_value);
     UseState { hook }
 }
 
 pub struct UseState<T> {
-    hook: UseHook<T>,
+    hook: UseRef<T>,
 }
 
 impl<T> Clone for UseState<T> {

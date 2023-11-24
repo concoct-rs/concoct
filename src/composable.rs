@@ -1,5 +1,6 @@
 use crate::BuildContext;
 
+/// Composable object that handles diffing.
 pub trait Composable {
     type State: 'static;
 

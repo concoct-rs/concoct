@@ -12,10 +12,10 @@ mod composition;
 pub use composition::Composition;
 
 mod node;
-pub use node::Node;
+use node::Node;
 
-mod use_hook;
-pub use use_hook::{use_hook, UseHook};
+mod use_ref;
+pub use use_ref::{use_ref, UseRef};
 
 mod use_future;
 pub use use_future::{use_future, UseFuture};
@@ -71,7 +71,7 @@ struct Inner {
 }
 
 #[derive(Clone)]
-pub struct LocalContext {
+struct LocalContext {
     inner: Rc<RefCell<Inner>>,
 }
 

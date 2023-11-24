@@ -6,6 +6,7 @@ use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{any::Any, cell::RefCell, rc::Rc};
 use tokio::{sync::mpsc, task::LocalSet};
 
+/// A composition of composables.
 pub struct Composition {
     nodes: SlotMap<DefaultKey, Node>,
     children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
@@ -16,6 +17,7 @@ pub struct Composition {
 }
 
 impl Composition {
+    /// Create a new composition from it's root composable function.
     pub fn new<C>(content: fn() -> C) -> Self
     where
         C: Composable + 'static,
@@ -48,6 +50,7 @@ impl Composition {
         }
     }
 
+    /// Build the initial composition.
     pub fn build(&mut self) {
         TASK_CONTEXT
             .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
@@ -108,6 +111,7 @@ impl Composition {
         TASK_CONTEXT.try_with(|cx| *cx.borrow_mut() = None).unwrap();
     }
 
+    /// Rebuild the composition from it's previous state.
     pub async fn rebuild(&mut self) {
         TASK_CONTEXT
             .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
