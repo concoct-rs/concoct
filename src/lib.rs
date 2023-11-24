@@ -1,5 +1,5 @@
 use core::fmt;
-use slotmap::{DefaultKey, SlotMap};
+use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{
     any::Any,
     cell::{Ref, RefCell},
@@ -28,17 +28,26 @@ thread_local! {
 }
 
 pub struct BuildContext<'a> {
+    parent_key: DefaultKey,
     nodes: &'a mut SlotMap<DefaultKey, Node>,
+    children: &'a mut SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
 }
 
 impl<'a> BuildContext<'a> {
     pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>) {
-        let _node = Node {
+        let node = Node {
             make_composable,
             composable: None,
             state: None,
             hooks: Rc::default(),
         };
+        let key = self.nodes.insert(node);
+
+        if let Some(children) = self.children.get_mut(self.parent_key) {
+            children.push(key);
+        } else {
+            self.children.insert(self.parent_key, vec![key]);
+        }
     }
 }
 

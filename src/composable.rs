@@ -1,6 +1,5 @@
-use std::fmt;
-
 use crate::BuildContext;
+use std::fmt;
 
 pub trait Composable {
     type State: 'static;
