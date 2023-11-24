@@ -48,7 +48,10 @@ pub struct BuildContext<'a> {
 }
 
 impl<'a> BuildContext<'a> {
-    pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>) -> DefaultKey {
+    pub fn insert(
+        &mut self,
+        make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>,
+    ) -> DefaultKey {
         let node = Node {
             make_composable,
             composable: None,

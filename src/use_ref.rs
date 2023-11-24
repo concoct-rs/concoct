@@ -2,9 +2,10 @@ use crate::{LocalContext, GLOBAL_CONTEXT};
 use slotmap::DefaultKey;
 use std::{
     any::Any,
-    cell::{Ref, RefCell},
+    cell::RefCell,
     marker::PhantomData,
     mem,
+    ops::{Deref, DerefMut},
     rc::Rc,
 };
 
@@ -62,18 +63,56 @@ impl<T> Clone for UseRef<T> {
 impl<T> Copy for UseRef<T> {}
 
 impl<T: 'static> UseRef<T> {
-    pub fn get(self) -> Ref<'static, T> {
+    pub fn get(self) -> Ref<T> {
         let rc = GLOBAL_CONTEXT
             .try_with(|cx| cx.borrow_mut().values[self.key].clone())
             .unwrap();
-        let output: Ref<'_, T> = Ref::map(rc.borrow(), |value| value.downcast_ref().unwrap());
-        unsafe { mem::transmute(output) }
+        let value = std::cell::Ref::map(rc.borrow(), |cell| cell.downcast_ref::<T>().unwrap());
+        let value = unsafe { mem::transmute(value) };
+
+        Ref { _rc: rc, value }
     }
 
-    pub fn cloned(self) -> T
-    where
-        T: Clone,
-    {
-        self.get().clone()
+    pub fn get_mut(self) -> Ref<T> {
+        let rc = GLOBAL_CONTEXT
+            .try_with(|cx| cx.borrow_mut().values[self.key].clone())
+            .unwrap();
+        let value =
+            std::cell::RefMut::map(rc.borrow_mut(), |cell| cell.downcast_mut::<T>().unwrap());
+        let value = unsafe { mem::transmute(value) };
+
+        Ref { _rc: rc, value }
+    }
+}
+
+pub struct Ref<T: 'static> {
+    value: std::cell::Ref<'static, T>,
+    _rc: Rc<RefCell<dyn Any>>,
+}
+
+impl<T> Deref for Ref<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.value
+    }
+}
+
+pub struct RefMut<T: 'static> {
+    value: std::cell::RefMut<'static, T>,
+    _rc: Rc<RefCell<dyn Any>>,
+}
+
+impl<T> Deref for RefMut<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T> DerefMut for RefMut<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }
