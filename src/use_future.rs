@@ -1,5 +1,6 @@
 use crate::{use_hook, TASK_CONTEXT};
 use futures::Future;
+use tokio::task;
 
 pub fn use_future<F: Future + 'static>(f: impl FnOnce() -> F) {
     use_hook(|| {
@@ -8,7 +9,7 @@ pub fn use_future<F: Future + 'static>(f: impl FnOnce() -> F) {
             let guard = cx.borrow_mut();
             let cx = guard.as_ref().unwrap();
             let tx = cx.tx.clone();
-            cx.local_set.borrow_mut().spawn_local(async move {
+            task::spawn_local(async move {
                 future.await;
                 tx.send(Box::new(())).unwrap();
             });

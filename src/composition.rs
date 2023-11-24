@@ -4,7 +4,7 @@ use crate::{
 use futures::pending;
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{any::Any, cell::RefCell, rc::Rc};
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task::LocalSet};
 
 pub struct Composition {
     nodes: SlotMap<DefaultKey, Node>,
@@ -19,6 +19,9 @@ impl Composition {
     where
         C: Composable + 'static,
     {
+        let local_set = LocalSet::new();
+        local_set.enter();
+
         let mut composables = SlotMap::new();
         let make_composable = Box::new(move || {
             let composable: Box<dyn AnyComposable> = Box::new(content());
@@ -39,7 +42,7 @@ impl Composition {
             children: SparseSecondaryMap::new(),
             root,
             task_cx: TaskContext {
-                local_set: Default::default(),
+                local_set: Rc::new(RefCell::new(local_set)),
                 tx,
             },
             rx,
@@ -59,7 +62,10 @@ impl Composition {
             })),
         };
         cx.enter();
+
+        let g = self.task_cx.local_set.borrow().enter();
         let mut composable = (node.make_composable)();
+        drop(g);
 
         let mut build_cx = BuildContext {
             parent_key: self.root,
@@ -82,7 +88,10 @@ impl Composition {
                     })),
                 };
                 cx.enter();
+
+                let g = self.task_cx.local_set.borrow().enter();
                 let mut composable = (node.make_composable)();
+                drop(g);
 
                 let mut build_cx = BuildContext {
                     parent_key: child_key,
@@ -108,8 +117,23 @@ impl Composition {
         let local_set = TASK_CONTEXT
             .try_with(|local_set| local_set.clone())
             .unwrap();
+        local_set
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .local_set
+            .borrow()
+            .enter();
 
         loop {
+            let fut = async {
+                self.rx.recv().await;
+            };
+
+            if futures::poll!(Box::pin(fut)).is_ready() {
+                break;
+            }
+
             let fut = async {
                 let mut g = local_set.borrow_mut();
                 let fut = &mut *g.as_mut().unwrap().local_set.borrow_mut();
@@ -122,8 +146,6 @@ impl Composition {
             }
         }
 
-        self.rx.recv().await;
-
         let node = &mut self.nodes[self.root];
         let cx = LocalContext {
             inner: Rc::new(RefCell::new(Inner {
@@ -133,7 +155,10 @@ impl Composition {
         };
         cx.enter();
 
+        let g = self.task_cx.local_set.borrow().enter();
         let mut composable = (node.make_composable)();
+        drop(g);
+
         let state = node.state.as_mut().unwrap();
         composable.any_rebuild(&mut **state);
         node.composable = Some(composable);

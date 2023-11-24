@@ -1,5 +1,6 @@
 use crate::{use_hook, GLOBAL_CONTEXT, TASK_CONTEXT};
 use slotmap::DefaultKey;
+
 use std::{
     cell::{Ref, RefCell},
     fmt,
@@ -65,9 +66,7 @@ impl<T: 'static> State<T> {
                 let guard = cx.borrow_mut();
                 let cx = guard.as_ref().unwrap();
                 let tx = cx.tx.clone();
-                cx.local_set.borrow_mut().spawn_local(async move {
-                    tx.send(Box::new(())).unwrap();
-                });
+                tx.send(Box::new(())).unwrap();
             })
             .unwrap();
     }
