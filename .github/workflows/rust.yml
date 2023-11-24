@@ -18,6 +18,6 @@ jobs:
     - name: Build core features
       run: cargo build --verbose
     - name: Build all features
-      run: cargo build --verbose --features web
+      run: cargo build --verbose --features full
     - name: Run tests
-      run: cargo test --verbose --features native
+      run: cargo test --verbose --features full
