@@ -48,7 +48,8 @@ fn app() -> impl Composable {
 async fn main() {
     let mut composition = Composition::new(app);
     composition.build();
-    composition.rebuild().await;
-    composition.rebuild().await;
+    loop {
+        composition.rebuild().await;
+    }
 }
 ```

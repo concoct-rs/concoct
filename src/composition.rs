@@ -169,6 +169,7 @@ impl Composition {
                 drop(g);
 
                 composable.any_rebuild(&mut **state);
+                node.composable = Some(composable);
             }
         }
 
