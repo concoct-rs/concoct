@@ -1,6 +1,5 @@
 use crate::{use_hook, GLOBAL_CONTEXT, TASK_CONTEXT};
 use slotmap::DefaultKey;
-
 use std::{
     cell::{Ref, RefCell},
     fmt,

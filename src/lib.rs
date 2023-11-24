@@ -1,6 +1,6 @@
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{any::Any, cell::RefCell, rc::Rc};
-use tokio::{sync::mpsc, task::LocalSet};
+use tokio::sync::mpsc;
 
 mod any_composable;
 pub use any_composable::AnyComposable;
@@ -34,7 +34,6 @@ thread_local! {
 
 #[derive(Clone)]
 struct TaskContext {
-    local_set: Rc<RefCell<LocalSet>>,
     tx: mpsc::UnboundedSender<Box<dyn Any>>,
 }
 
