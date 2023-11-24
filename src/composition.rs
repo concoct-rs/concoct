@@ -146,9 +146,31 @@ impl Composition {
         let mut composable = (node.make_composable)();
         drop(g);
 
+        let node = &mut self.nodes[self.root];
         let state = node.state.as_mut().unwrap();
+
         composable.any_rebuild(&mut **state);
         node.composable = Some(composable);
+
+        if let Some(children) = self.children.get(self.root) {
+            for child_key in children.clone() {
+                let node = &mut self.nodes[child_key];
+                let state = node.state.as_mut().unwrap();
+                let cx = LocalContext {
+                    inner: Rc::new(RefCell::new(Inner {
+                        hooks: node.hooks.clone(),
+                        idx: 0,
+                    })),
+                };
+                cx.enter();
+
+                let g = self.local_set.enter();
+                let mut composable = (node.make_composable)();
+                drop(g);
+
+                composable.any_rebuild(&mut **state);
+            }
+        }
 
         TASK_CONTEXT.try_with(|cx| *cx.borrow_mut() = None).unwrap();
     }

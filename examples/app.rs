@@ -2,8 +2,8 @@ use concoct::{use_future, use_state, Composable, Composition, Debugger};
 use std::time::Duration;
 use tokio::time;
 
-fn app() -> impl Composable {
-    let mut count = use_state(|| 0);
+fn counter(initial_value: i32) -> impl Composable {
+    let mut count = use_state(|| initial_value);
 
     use_future(|| async move {
         loop {
@@ -13,6 +13,10 @@ fn app() -> impl Composable {
     });
 
     Debugger::new(count)
+}
+
+fn app() -> impl Composable {
+    (|| counter(0), || counter(100))
 }
 
 #[tokio::main]
