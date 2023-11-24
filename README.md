@@ -30,6 +30,7 @@ This crate is inspired by React, [xilem](https://github.com/linebender/xilem), a
 fn counter(initial_value: i32) -> impl Composable {
     let mut count = use_state(|| initial_value);
 
+    // Spawn a task to update the count
     use_future(|| async move {
         loop {
             time::sleep(Duration::from_millis(500)).await;
@@ -41,6 +42,7 @@ fn counter(initial_value: i32) -> impl Composable {
 }
 
 fn app() -> impl Composable {
+    // Create 2 counters
     (|| counter(0), || counter(100))
 }
 
