@@ -1,15 +1,9 @@
-use core::fmt;
-use futures::Future;
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
-use std::{
-    any::Any,
-    cell::{Ref, RefCell},
-    marker::PhantomData,
-    mem::{self},
-    ops::{Add, AddAssign},
-    rc::Rc,
-};
+use std::{any::Any, cell::RefCell, rc::Rc};
 use tokio::{sync::mpsc, task::LocalSet};
+
+mod any_composable;
+pub use any_composable::AnyComposable;
 
 mod composable;
 pub use composable::{Composable, Debugger};
@@ -19,6 +13,15 @@ pub use composition::Composition;
 
 mod node;
 pub use node::Node;
+
+mod use_hook;
+pub use use_hook::use_hook;
+
+mod use_future;
+pub use use_future::use_future;
+
+mod use_state;
+pub use use_state::{use_state, State};
 
 #[derive(Default)]
 struct GlobalContext {
@@ -63,22 +66,6 @@ impl<'a> BuildContext<'a> {
     }
 }
 
-pub trait AnyComposable {
-    fn any_build(&mut self, cx: &mut BuildContext) -> Box<dyn Any>;
-
-    fn any_rebuild(&mut self, state: &mut dyn Any);
-}
-
-impl<C: Composable> AnyComposable for C {
-    fn any_build(&mut self, cx: &mut BuildContext) -> Box<dyn Any> {
-        Box::new(self.build(cx))
-    }
-
-    fn any_rebuild(&mut self, state: &mut dyn Any) {
-        self.rebuild(state.downcast_mut().unwrap())
-    }
-}
-
 struct Inner {
     hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
     idx: usize,
@@ -105,128 +92,4 @@ impl LocalContext {
             .try_with(|cx| *cx.borrow_mut() = Some(self))
             .unwrap()
     }
-}
-
-pub fn use_hook<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<dyn Any>> {
-    let cx = LocalContext::current();
-    let mut inner = cx.inner.borrow_mut();
-    let mut hooks = inner.hooks.borrow_mut();
-
-    let value = if let Some(hook) = hooks.get(inner.idx) {
-        let value = hook.clone();
-
-        value
-    } else {
-        hooks.push(Rc::new(RefCell::new(make_value())));
-        hooks.last().as_deref().unwrap().clone()
-    };
-
-    drop(hooks);
-    inner.idx += 1;
-
-    value
-}
-
-pub struct State<T> {
-    key: DefaultKey,
-    _marker: PhantomData<T>,
-}
-
-impl<T> Clone for State<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<T> Copy for State<T> {}
-
-impl<T: 'static> State<T> {
-    pub fn get(self) -> Ref<'static, T> {
-        let rc = GLOBAL_CONTEXT
-            .try_with(|cx| cx.borrow_mut().values[self.key].clone())
-            .unwrap();
-        let output: Ref<'_, T> = Ref::map(rc.borrow(), |value| value.downcast_ref().unwrap());
-        unsafe { mem::transmute(output) }
-    }
-
-    pub fn set(&self, value: T) {
-        GLOBAL_CONTEXT
-            .try_with(|cx| {
-                *cx.borrow_mut().values[self.key]
-                    .borrow_mut()
-                    .downcast_mut()
-                    .unwrap() = value
-            })
-            .unwrap();
-
-        TASK_CONTEXT
-            .try_with(|cx| {
-                let guard = cx.borrow_mut();
-                let cx = guard.as_ref().unwrap();
-                let tx = cx.tx.clone();
-                cx.local_set.borrow_mut().spawn_local(async move {
-                    tx.send(Box::new(())).unwrap();
-                });
-            })
-            .unwrap();
-    }
-
-    pub fn cloned(self) -> T
-    where
-        T: Clone,
-    {
-        self.get().clone()
-    }
-}
-
-impl<T> fmt::Debug for State<T>
-where
-    T: fmt::Debug + 'static,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.get().fmt(f)
-    }
-}
-
-impl<T> AddAssign<T> for State<T>
-where
-    T: Add<Output = T> + Clone + 'static,
-{
-    fn add_assign(&mut self, rhs: T) {
-        self.set(self.cloned() + rhs)
-    }
-}
-
-pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> State<T> {
-    let rc = use_hook(|| {
-        GLOBAL_CONTEXT
-            .try_with(|cx| {
-                cx.borrow_mut()
-                    .values
-                    .insert(Rc::new(RefCell::new(make_value())))
-            })
-            .unwrap()
-    });
-    let guard = rc.borrow();
-    let key: &DefaultKey = guard.downcast_ref().unwrap();
-
-    State {
-        key: *key,
-        _marker: PhantomData,
-    }
-}
-
-pub fn use_future<F: Future + 'static>(f: impl FnOnce() -> F) {
-    use_hook(|| {
-        let future = f();
-        TASK_CONTEXT.try_with(|cx| {
-            let guard = cx.borrow_mut();
-            let cx = guard.as_ref().unwrap();
-            let tx = cx.tx.clone();
-            cx.local_set.borrow_mut().spawn_local(async move {
-                future.await;
-                tx.send(Box::new(())).unwrap();
-            });
-        })
-    });
 }
