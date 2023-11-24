@@ -21,94 +21,20 @@
  <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Examples</a>
 </div>
 
-## Rust cross-platform reactive UI framework.
+## An incremental computation framework for Rust.
 
 ```rust
-fn app() -> impl View {
-    let mut count = use_signal(|| 0);
+fn counter() -> impl Composable {
+    let (count, set_count) = use_state(|| 0);
 
-    Html::div().view((
-        move || format!("High five count: {}", count),
-        Html::button()
-            .on_click(move |_| count += 1)
-            .view("Up high!"),
-        Html::button()
-            .on_click(move |_| count -= 1)
-            .view("Down low!"),
-    ))
-}
-```
+    set_count(count + 1);
 
-## Features
- - Cross-platform components
- - Compile-time UI tree
- - Efficient view updates
- - Inspired by the React, Solid, and Xilem architectures
-
-
-### Components
-
-```rust
-fn button(label: impl View + 'static, on_click: impl FnMut() + 'static) -> impl View {
-    Html::button().on_click(on_click).view(label)
-}
-
-fn app() -> impl View {
-    let selection = use_signal(|| "A");
-
-    Html::div().view((
-        move || button("A", move || *selection.write() = "A"),
-        move || button("B", move || *selection.write() = "B"),
-        move || button("C", move || *selection.write() = "C"),
-    ))
-}
-```
-
-### Input
-```rust
-fn app() -> impl View {
-    let label = use_signal(|| String::new());
-    
-    Html::input()
-        .attr("value", label.read().clone())
-        .on_input(move |event| {
-            event.prevent_default();
-            *label.write() = event.target().unwrap().value();
-        })
-}
-```
-
-## Getting started
-### Web
-Install [`trunk`](https://trunkrs.dev) or `wasm-pack` (this tutorial will show serving with trunk).
-
-```
-cargo add concoct --features web
-```
-
-Create an index.html file in the crate root
-```html
-<html>
-    <body></body>
-</html>
-```
-
-Create a main view and run it with Concoct
-```rust
-fn app(_state: &()) -> impl View<Web<()>> {
-    Html::h1((), "Hello World!"),
+    Debugger::new(count)
 }
 
 fn main() {
-    concoct::web::run(
-        0,
-        |_state, _event| {},
-        app,
-    );
+    let mut composition = Composition::new(counter);
+    composition.build();
+    composition.rebuild();
 }
 ```
-
-```
-trunk serve
-````
-All done! Check it out at `http://localhost:8080`

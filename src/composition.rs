@@ -1,8 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
-
-use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
-
 use crate::{AnyComposable, BuildContext, Composable, Inner, LocalContext, Node};
+use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
+use std::{cell::RefCell, rc::Rc};
 
 pub struct Composition {
     nodes: SlotMap<DefaultKey, Node>,
