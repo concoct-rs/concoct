@@ -1,31 +1,15 @@
-use concoct::{use_hook, Composable, Composition};
-
-struct Text {}
-
-impl Composable for Text {
-    type State = ();
-
-    fn build(&mut self, _cx: &mut concoct::BuildContext) -> Self::State {}
-
-    fn rebuild(&mut self, _state: &mut Self::State) {}
-}
+use concoct::{use_state, Composable, Composition, Debugger};
 
 fn counter() -> impl Composable {
-    let count = use_hook(|| 0);
+    let (count, set_count) = use_state(|| 0);
 
-    dbg!(count.borrow().downcast_ref::<i32>());
+    set_count(count.cloned() + 1);
 
-    *count.borrow_mut().downcast_mut::<i32>().unwrap() += 1;
-
-    Text {}
-}
-
-fn app() -> impl Composable {
-    (counter, counter)
+    Debugger::new(count)
 }
 
 fn main() {
-    let mut composition = Composition::new(app);
+    let mut composition = Composition::new(counter);
     composition.build();
     composition.rebuild();
 }

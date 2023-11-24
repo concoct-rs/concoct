@@ -1,5 +1,14 @@
+use core::fmt;
 use slotmap::{DefaultKey, SlotMap};
-use std::{any::Any, cell::RefCell, rc::Rc};
+use std::{
+    any::Any,
+    cell::{Ref, RefCell},
+    marker::PhantomData,
+    rc::Rc,
+};
+
+mod composable;
+pub use composable::{Composable, Debugger};
 
 mod composition;
 pub use composition::Composition;
@@ -19,42 +28,6 @@ impl<'a> BuildContext<'a> {
             state: None,
             hooks: Rc::default(),
         };
-    }
-}
-
-pub trait Composable {
-    type State: 'static;
-
-    fn build(&mut self, cx: &mut BuildContext) -> Self::State;
-
-    fn rebuild(&mut self, state: &mut Self::State);
-}
-
-impl<F, C> Composable for F
-where
-    F: FnMut() -> C + Clone + 'static,
-    C: Composable + 'static,
-{
-    type State = ();
-
-    fn build(&mut self, cx: &mut BuildContext) -> Self::State {
-        let mut f = self.clone();
-        cx.insert(Box::new(move || Box::new(f())));
-    }
-
-    fn rebuild(&mut self, _state: &mut Self::State) {}
-}
-
-impl<A: Composable, B: Composable> Composable for (A, B) {
-    type State = (A::State, B::State);
-
-    fn build(&mut self, cx: &mut BuildContext) -> Self::State {
-        ((self.0).build(cx), (self.1).build(cx))
-    }
-
-    fn rebuild(&mut self, state: &mut Self::State) {
-        (self.0).rebuild(&mut state.0);
-        (self.1).rebuild(&mut state.1);
     }
 }
 
@@ -113,4 +86,45 @@ pub fn use_hook<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<dyn An
         hooks.push(Rc::new(RefCell::new(make_value())));
         hooks.last().as_deref().unwrap().clone()
     }
+}
+
+pub struct State<T> {
+    value: Rc<RefCell<dyn Any>>,
+    _marker: PhantomData<T>,
+}
+
+impl<T: 'static> State<T> {
+    pub fn get(&self) -> Ref<T> {
+        Ref::map(self.value.borrow(), |value| value.downcast_ref().unwrap())
+    }
+
+    pub fn cloned(&self) -> T
+    where
+        T: Clone,
+    {
+        self.get().clone()
+    }
+}
+
+impl<T> fmt::Debug for State<T>
+where
+    T: fmt::Debug + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.value.borrow().downcast_ref::<T>().unwrap().fmt(f)
+    }
+}
+
+pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> (State<T>, impl Fn(T)) {
+    let value = use_hook(make_value);
+    let value_clone = value.clone();
+    (
+        State {
+            value,
+            _marker: PhantomData,
+        },
+        move |new_value| {
+            *value_clone.borrow_mut().downcast_mut().unwrap() = new_value;
+        },
+    )
 }
