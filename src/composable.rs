@@ -11,19 +11,34 @@ impl Composable for () {
 
 impl<A: Composable + Clone, B: Composable + Clone> Composable for (A, B) {
     fn compose(&mut self) -> impl Composable {
-        use_ref(|| {
+        let (a_key, b_key) = *use_ref(|| {
             BUILD_CONTEXT
                 .try_with(|cx| {
                     let mut g = cx.borrow_mut();
                     let mut cx = g.as_mut().unwrap().borrow_mut();
 
                     let a = self.0.clone();
-                    cx.insert(Box::new(move || Box::new(a.clone())));
+                    let a_key = cx.insert(Box::new(move || Box::new(a.clone())));
 
                     let b = self.1.clone();
-                    cx.insert(Box::new(move || Box::new(b.clone())));
+                    let b_key = cx.insert(Box::new(move || Box::new(b.clone())));
+
+                    (a_key, b_key)
                 })
-                .unwrap();
-        });
+                .unwrap()
+        })
+        .get();
+
+        BUILD_CONTEXT
+            .try_with(|cx| {
+                let mut g = cx.borrow_mut();
+                let mut cx = g.as_mut().unwrap().borrow_mut();
+
+                let a = self.0.clone();
+                let b = self.1.clone();
+                cx.nodes[a_key].make_composable = Box::new(move || Box::new(a.clone()));
+                cx.nodes[b_key].make_composable = Box::new(move || Box::new(b.clone()));
+            })
+            .unwrap();
     }
 }

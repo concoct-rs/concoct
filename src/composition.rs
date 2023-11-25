@@ -84,7 +84,13 @@ impl Composition {
             let mut build_cx = self.build_cx.borrow_mut();
             let node = &mut build_cx.nodes[key];
             if let Some(ref composable) = node.composable {
-                composable.clone()
+                let new_composable = (node.make_composable)();
+                if new_composable.any_eq(composable.borrow().as_any()) {
+                    return;
+                } else {
+                    *composable.borrow_mut() = new_composable;
+                    node.composable.as_ref().unwrap().clone()
+                }
             } else {
                 node.composable = Some(Rc::new(RefCell::new((node.make_composable)())));
                 node.composable.as_ref().unwrap().clone()
@@ -114,7 +120,13 @@ impl Composition {
                 let composable = {
                     let node = &mut build_cx.nodes[child_key];
                     if let Some(ref composable) = node.composable {
-                        composable.clone()
+                        let new_composable = (node.make_composable)();
+                        if new_composable.any_eq(composable.borrow().as_any()) {
+                            continue;
+                        } else {
+                            *composable.borrow_mut() = new_composable;
+                            node.composable.as_ref().unwrap().clone()
+                        }
                     } else {
                         node.composable = Some(Rc::new(RefCell::new((node.make_composable)())));
                         node.composable.as_ref().unwrap().clone()
