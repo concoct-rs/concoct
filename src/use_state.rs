@@ -1,6 +1,6 @@
 use crate::{
     use_ref::{use_ref, UseRef},
-    GLOBAL_CONTEXT, TASK_CONTEXT,
+    BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
 };
 use std::{
     cell::Ref,
@@ -28,6 +28,16 @@ impl<T> Copy for UseState<T> {}
 
 impl<T: 'static> UseState<T> {
     pub fn get(self) -> Ref<'static, T> {
+        BUILD_CONTEXT
+            .try_with(|cx| {
+                if let Some(cx) = cx.borrow_mut().as_mut() {
+                    let mut cx = cx.borrow_mut();
+                    let key = cx.parent_key;
+                    cx.tracked.insert(key, vec![self.hook.key]);
+                }
+            })
+            .unwrap();
+
         let rc = GLOBAL_CONTEXT
             .try_with(|cx| cx.borrow_mut().values[self.hook.key].clone())
             .unwrap();
@@ -38,6 +48,7 @@ impl<T: 'static> UseState<T> {
     pub fn set(&self, value: T) {
         GLOBAL_CONTEXT
             .try_with(|cx| {
+                cx.borrow_mut().dirty.insert(self.hook.key);
                 *cx.borrow_mut().values[self.hook.key]
                     .borrow_mut()
                     .downcast_mut()

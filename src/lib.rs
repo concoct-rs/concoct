@@ -1,5 +1,5 @@
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
-use std::{any::Any, cell::RefCell, rc::Rc};
+use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 use tokio::sync::mpsc;
 
 mod any_composable;
@@ -26,6 +26,7 @@ pub use use_state::{use_state, UseState};
 #[derive(Default)]
 struct GlobalContext {
     values: SlotMap<DefaultKey, Rc<RefCell<dyn Any>>>,
+    dirty: HashSet<DefaultKey>,
 }
 
 thread_local! {
@@ -48,6 +49,7 @@ pub struct BuildContext {
     parent_key: DefaultKey,
     nodes: SlotMap<DefaultKey, Rc<RefCell<Node>>>,
     children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
+    tracked: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
 }
 
 impl BuildContext {
