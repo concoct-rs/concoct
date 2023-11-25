@@ -5,8 +5,8 @@ use tokio::sync::mpsc;
 mod any_composable;
 pub use any_composable::AnyComposable;
 
-pub mod composable;
-pub use composable::{Composable, Group};
+mod composable;
+pub use composable::{Composable, IntoComposable};
 
 mod composition;
 pub use composition::Composition;
@@ -46,7 +46,7 @@ thread_local! {
 #[derive(Default)]
 pub struct BuildContext {
     parent_key: DefaultKey,
-    nodes: SlotMap<DefaultKey, Node>,
+    nodes: SlotMap<DefaultKey, Rc<RefCell<Node>>>,
     children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
 }
 
@@ -60,7 +60,7 @@ impl BuildContext {
             composable: None,
             hooks: Rc::default(),
         };
-        let key = self.nodes.insert(node);
+        let key = self.nodes.insert(Rc::new(RefCell::new(node)));
 
         if let Some(children) = self.children.get_mut(self.parent_key) {
             children.push(key);

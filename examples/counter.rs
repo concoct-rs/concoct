@@ -1,4 +1,4 @@
-use concoct::{composable::group, use_future, use_state, Composable, Composition};
+use concoct::{use_future, use_state, Composable, Composition, IntoComposable};
 use std::time::Duration;
 use tokio::time;
 
@@ -8,7 +8,7 @@ struct Counter {
 }
 
 impl Composable for Counter {
-    fn compose(&mut self) -> impl Composable {
+    fn compose(&mut self) -> impl IntoComposable {
         let mut count = use_state(|| self.initial_value);
 
         use_future(|| async move {
@@ -22,8 +22,8 @@ impl Composable for Counter {
     }
 }
 
-fn app() -> impl Composable {
-    group((Counter { initial_value: 0 }, Counter { initial_value: 100 }))
+fn app() -> impl IntoComposable {
+    (Counter { initial_value: 0 }, Counter { initial_value: 100 })
 }
 
 #[tokio::main]

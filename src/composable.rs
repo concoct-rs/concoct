@@ -2,38 +2,33 @@ use crate::{use_ref, BUILD_CONTEXT};
 
 /// Composable object that handles diffing.
 pub trait Composable: PartialEq + 'static {
-    fn compose(&mut self) -> impl Composable;
+    fn compose(&mut self) -> impl IntoComposable;
 }
 
 impl Composable for () {
-    fn compose(&mut self) -> impl Composable {}
+    fn compose(&mut self) -> impl IntoComposable {}
 }
 
-pub fn group<T>(composables: T) -> Group<T> {
-    Group::new(composables)
+pub trait IntoComposable {
+    fn into_composer(self) -> impl Composable;
 }
 
-#[derive(PartialEq)]
-pub struct Group<T> {
-    composables: Option<T>,
-}
-impl<T> Group<T> {
-    pub fn new(composables: T) -> Self {
-        Self {
-            composables: Some(composables),
-        }
+impl<C: Composable> IntoComposable for C {
+    fn into_composer(self) -> impl Composable {
+        self
     }
 }
 
-impl<A: Composable, B: Composable> Composable for Group<(A, B)> {
-    fn compose(&mut self) -> impl Composable {
+impl<A: Composable, B: Composable> IntoComposable for (A, B) {
+    fn into_composer(self) -> impl Composable {
+        let mut composables = Some(self);
         let (a_key, b_key) = *use_ref(|| {
             BUILD_CONTEXT
                 .try_with(|cx| {
                     let mut g = cx.borrow_mut();
                     let mut cx = g.as_mut().unwrap().borrow_mut();
 
-                    let composables = self.composables.take().unwrap();
+                    let composables = composables.take().unwrap();
                     let mut a = Some(composables.0);
                     let a_key = cx.insert(Box::new(move || Box::new(a.take().unwrap())));
 
@@ -46,17 +41,19 @@ impl<A: Composable, B: Composable> Composable for Group<(A, B)> {
         })
         .get();
 
-        if let Some(composables) = self.composables.take() {
+        if let Some(composables) = composables.take() {
             BUILD_CONTEXT
                 .try_with(|cx| {
                     let mut g = cx.borrow_mut();
-                    let mut cx = g.as_mut().unwrap().borrow_mut();
+                    let cx = g.as_mut().unwrap().borrow_mut();
 
                     let mut a = Some(composables.0);
-                    cx.nodes[a_key].make_composable = Box::new(move || Box::new(a.take().unwrap()));
+                    cx.nodes[a_key].borrow_mut().make_composable =
+                        Box::new(move || Box::new(a.take().unwrap()));
 
                     let mut b = Some(composables.1);
-                    cx.nodes[b_key].make_composable = Box::new(move || Box::new(b.take().unwrap()));
+                    cx.nodes[b_key].borrow_mut().make_composable =
+                        Box::new(move || Box::new(b.take().unwrap()));
                 })
                 .unwrap();
         }

@@ -1,4 +1,4 @@
-use concoct::{composable, Composable, Composition};
+use concoct::{Composable, Composition, IntoComposable};
 
 #[test]
 fn it_creates_new_scopes_for_multiple_composables() {
@@ -8,8 +8,8 @@ fn it_creates_new_scopes_for_multiple_composables() {
         fn compose(&mut self) {}
     }
 
-    fn app() -> impl Composable {
-        composable::group((Component, Component))
+    fn app() -> impl IntoComposable {
+        (Component, Component)
     }
 
     let mut composition = Composition::new(app);

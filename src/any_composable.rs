@@ -1,4 +1,4 @@
-use crate::Composable;
+use crate::{composable::IntoComposable, Composable};
 use std::any::Any;
 
 pub trait AnyComposable {
@@ -15,7 +15,7 @@ impl<C: Composable> AnyComposable for C {
     }
 
     fn any_build(&mut self) -> Box<dyn Any> {
-        Box::new(self.compose())
+        Box::new(self.compose().into_composer())
     }
 
     fn any_eq(&self, other: &dyn Any) -> bool {
