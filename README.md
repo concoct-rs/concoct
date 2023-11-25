@@ -60,3 +60,10 @@ async fn main() {
     }
 }
 ```
+
+## Installation
+This crate currently requires rust nightly.
+You can install concoct by running:
+```
+cargo add concoct --features full
+```
