@@ -27,7 +27,7 @@ This library provides a generic diffing engine for user-interfaces and other rea
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 ```rust
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 struct Counter {
     initial_value: i32,
 }
@@ -48,13 +48,14 @@ impl Composable for Counter {
 }
 
 fn app() -> impl Composable {
-    (Counter { initial_value: 0 }, Counter { initial_value: 100 })
+    group((Counter { initial_value: 0 }, Counter { initial_value: 100 }))
 }
 
 #[tokio::main]
 async fn main() {
     let mut composition = Composition::new(app);
     composition.build();
+
     loop {
         composition.rebuild().await;
     }

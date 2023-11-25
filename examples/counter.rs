@@ -1,8 +1,8 @@
-use concoct::{use_future, use_state, Composable, Composition};
+use concoct::{composable::group, use_future, use_state, Composable, Composition};
 use std::time::Duration;
 use tokio::time;
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 struct Counter {
     initial_value: i32,
 }
@@ -23,7 +23,7 @@ impl Composable for Counter {
 }
 
 fn app() -> impl Composable {
-    (Counter { initial_value: 0 }, Counter { initial_value: 100 })
+    group((Counter { initial_value: 0 }, Counter { initial_value: 100 }))
 }
 
 #[tokio::main]

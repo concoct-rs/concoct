@@ -9,7 +9,23 @@ impl Composable for () {
     fn compose(&mut self) -> impl Composable {}
 }
 
-impl<A: Composable + Clone, B: Composable + Clone> Composable for (A, B) {
+pub fn group<T>(composables: T) -> Group<T> {
+    Group::new(composables)
+}
+
+#[derive(PartialEq)]
+pub struct Group<T> {
+    composables: Option<T>,
+}
+impl<T> Group<T> {
+    pub fn new(composables: T) -> Self {
+        Self {
+            composables: Some(composables),
+        }
+    }
+}
+
+impl<A: Composable, B: Composable> Composable for Group<(A, B)> {
     fn compose(&mut self) -> impl Composable {
         let (a_key, b_key) = *use_ref(|| {
             BUILD_CONTEXT
@@ -17,11 +33,12 @@ impl<A: Composable + Clone, B: Composable + Clone> Composable for (A, B) {
                     let mut g = cx.borrow_mut();
                     let mut cx = g.as_mut().unwrap().borrow_mut();
 
-                    let a = self.0.clone();
-                    let a_key = cx.insert(Box::new(move || Box::new(a.clone())));
+                    let composables = self.composables.take().unwrap();
+                    let mut a = Some(composables.0);
+                    let a_key = cx.insert(Box::new(move || Box::new(a.take().unwrap())));
 
-                    let b = self.1.clone();
-                    let b_key = cx.insert(Box::new(move || Box::new(b.clone())));
+                    let mut b = Some(composables.1);
+                    let b_key = cx.insert(Box::new(move || Box::new(b.take().unwrap())));
 
                     (a_key, b_key)
                 })
@@ -29,16 +46,19 @@ impl<A: Composable + Clone, B: Composable + Clone> Composable for (A, B) {
         })
         .get();
 
-        BUILD_CONTEXT
-            .try_with(|cx| {
-                let mut g = cx.borrow_mut();
-                let mut cx = g.as_mut().unwrap().borrow_mut();
+        if let Some(composables) = self.composables.take() {
+            BUILD_CONTEXT
+                .try_with(|cx| {
+                    let mut g = cx.borrow_mut();
+                    let mut cx = g.as_mut().unwrap().borrow_mut();
 
-                let a = self.0.clone();
-                let b = self.1.clone();
-                cx.nodes[a_key].make_composable = Box::new(move || Box::new(a.clone()));
-                cx.nodes[b_key].make_composable = Box::new(move || Box::new(b.clone()));
-            })
-            .unwrap();
+                    let mut a = Some(composables.0);
+                    cx.nodes[a_key].make_composable = Box::new(move || Box::new(a.take().unwrap()));
+
+                    let mut b = Some(composables.1);
+                    cx.nodes[b_key].make_composable = Box::new(move || Box::new(b.take().unwrap()));
+                })
+                .unwrap();
+        }
     }
 }

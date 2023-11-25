@@ -5,8 +5,8 @@ use tokio::sync::mpsc;
 mod any_composable;
 pub use any_composable::AnyComposable;
 
-mod composable;
-pub use composable::Composable;
+pub mod composable;
+pub use composable::{Composable, Group};
 
 mod composition;
 pub use composition::Composition;
