@@ -39,6 +39,7 @@ struct TaskContext {
 
 thread_local! {
     static TASK_CONTEXT: RefCell<Option<TaskContext>> = RefCell::default();
+
 }
 
 pub struct BuildContext<'a> {

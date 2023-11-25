@@ -2,21 +2,28 @@ use concoct::{use_future, use_state, Composable, Composition};
 use std::time::Duration;
 use tokio::time;
 
-fn counter(initial_value: i32) -> impl Composable {
-    let mut count = use_state(|| initial_value);
+#[derive(PartialEq)]
+struct Counter {
+    initial_value: i32,
+}
 
-    use_future(|| async move {
-        loop {
-            time::sleep(Duration::from_millis(500)).await;
-            count += 1;
-        }
-    });
+impl Composable for Counter {
+    fn compose(&mut self) {
+        let mut count = use_state(|| self.initial_value);
 
-    dbg!(count);
+        use_future(|| async move {
+            loop {
+                time::sleep(Duration::from_millis(500)).await;
+                count += 1;
+            }
+        });
+
+        dbg!(count);
+    }
 }
 
 fn app() -> impl Composable {
-    (|| counter(0), || counter(100))
+    Counter { initial_value: 0 }
 }
 
 #[tokio::main]

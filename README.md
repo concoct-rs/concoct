@@ -27,23 +27,28 @@ This library provides a generic diffing engine for user-interfaces and other rea
 This crate is inspired by React, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 ```rust
-fn counter(initial_value: i32) -> impl Composable {
-    let mut count = use_state(|| initial_value);
+#[derive(PartialEq)]
+struct Counter {
+    initial_value: i32,
+}
 
-    // Spawn a task to update the count
-    use_future(|| async move {
-        loop {
-            time::sleep(Duration::from_millis(500)).await;
-            count += 1;
-        }
-    });
+impl Composable for Counter {
+    fn compose(&mut self) {
+        let mut count = use_state(|| self.initial_value);
 
-    dbg!(count);
+        use_future(|| async move {
+            loop {
+                time::sleep(Duration::from_millis(500)).await;
+                count += 1;
+            }
+        });
+
+        dbg!(count);
+    }
 }
 
 fn app() -> impl Composable {
-    // Create 2 counters
-    (|| counter(0), || counter(100))
+    Counter { initial_value: 0 }
 }
 
 #[tokio::main]

@@ -1,6 +1,4 @@
-use crate::{
-    AnyComposable, BuildContext, Composable, Inner, LocalContext, Node, TaskContext, TASK_CONTEXT,
-};
+use crate::{AnyComposable, Composable, Inner, LocalContext, Node, TaskContext, TASK_CONTEXT};
 use futures::pending;
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{any::Any, cell::RefCell, rc::Rc};
@@ -67,14 +65,8 @@ impl Composition {
 
         let g = self.local_set.enter();
         let mut composable = (node.make_composable)();
+        composable.any_build();
         drop(g);
-
-        let mut build_cx = BuildContext {
-            parent_key: self.root,
-            nodes: &mut self.nodes,
-            children: &mut self.children,
-        };
-        let _state = composable.any_build(&mut build_cx);
 
         let node = &mut self.nodes[self.root];
         node.composable = Some(composable);
@@ -94,12 +86,7 @@ impl Composition {
                 let mut composable = (node.make_composable)();
                 drop(g);
 
-                let mut build_cx = BuildContext {
-                    parent_key: child_key,
-                    nodes: &mut self.nodes,
-                    children: &mut self.children,
-                };
-                let _state = composable.any_build(&mut build_cx);
+                composable.any_build();
 
                 let node = &mut self.nodes[child_key];
                 node.composable = Some(composable);
@@ -148,12 +135,7 @@ impl Composition {
         let mut composable = (node.make_composable)();
         drop(g);
 
-        let mut build_cx = BuildContext {
-            parent_key: self.root,
-            nodes: &mut self.nodes,
-            children: &mut self.children,
-        };
-        composable.any_build(&mut build_cx);
+        composable.any_build();
 
         let node = &mut self.nodes[self.root];
 
@@ -173,14 +155,8 @@ impl Composition {
 
                 let g = self.local_set.enter();
                 let mut composable = (node.make_composable)();
+                composable.any_build();
                 drop(g);
-
-                let mut build_cx = BuildContext {
-                    parent_key: child_key,
-                    nodes: &mut self.nodes,
-                    children: &mut self.children,
-                };
-                composable.any_build(&mut build_cx);
 
                 let node = &mut self.nodes[child_key];
                 node.composable = Some(composable);
