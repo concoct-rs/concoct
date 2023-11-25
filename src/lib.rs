@@ -1,6 +1,7 @@
+use futures::channel::mpsc;
+use futures::executor::LocalPool;
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
-use tokio::sync::mpsc;
 
 mod any_composable;
 pub use any_composable::AnyComposable;
@@ -18,10 +19,13 @@ mod use_ref;
 pub use use_ref::{use_ref, Ref, RefMut, UseRef};
 
 mod use_future;
-pub use use_future::{use_future, UseFuture};
+pub use use_future::use_future;
 
 mod use_state;
 pub use use_state::{use_state, UseState};
+
+#[cfg(feature = "html")]
+pub mod html;
 
 #[derive(Default)]
 struct GlobalContext {
@@ -35,6 +39,7 @@ thread_local! {
 
 #[derive(Clone)]
 struct TaskContext {
+    local_pool: Rc<RefCell<LocalPool>>,
     tx: mpsc::UnboundedSender<Box<dyn Any>>,
 }
 

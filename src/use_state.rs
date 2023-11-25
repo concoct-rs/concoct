@@ -61,7 +61,7 @@ impl<T: 'static> UseState<T> {
                 let guard = cx.borrow_mut();
                 let cx = guard.as_ref().unwrap();
                 let tx = cx.tx.clone();
-                tx.send(Box::new(())).unwrap();
+                tx.unbounded_send(Box::new(())).unwrap();
             })
             .unwrap();
     }

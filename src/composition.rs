@@ -2,16 +2,17 @@ use crate::{
     composable::IntoComposable, AnyComposable, BuildContext, LocalContext, Node, Scope,
     TaskContext, BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
 };
-use futures::pending;
+use futures::channel::mpsc;
+use futures::executor::LocalPool;
+use futures::StreamExt;
 use slotmap::DefaultKey;
 use std::{any::Any, cell::RefCell, rc::Rc};
-use tokio::{sync::mpsc, task::LocalSet};
 
 /// A composition of composables.
 pub struct Composition {
     build_cx: Rc<RefCell<BuildContext>>,
     root: DefaultKey,
-    local_set: LocalSet,
+
     task_cx: TaskContext,
     rx: mpsc::UnboundedReceiver<Box<dyn Any>>,
 }
@@ -22,8 +23,12 @@ impl Composition {
     where
         C: IntoComposable + 'static,
     {
-        let local_set = LocalSet::new();
-        local_set.enter();
+        let local_set = LocalPool::new();
+        let (tx, rx) = mpsc::unbounded();
+        let task_cx = TaskContext {
+            tx,
+            local_pool: Rc::new(RefCell::new(local_set)),
+        };
 
         {
             let build_cx = Rc::new(RefCell::new(BuildContext::default()));
@@ -47,13 +52,11 @@ impl Composition {
             .borrow_mut()
             .nodes
             .insert(Rc::new(RefCell::new(node)));
-        let (tx, rx) = mpsc::unbounded_channel();
 
         Self {
             build_cx,
             root,
-            local_set: LocalSet::new(),
-            task_cx: TaskContext { tx },
+            task_cx,
             rx,
         }
     }
@@ -73,8 +76,6 @@ impl Composition {
             BUILD_CONTEXT
                 .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
                 .unwrap();
-
-            let g = self.local_set.enter();
 
             {
                 let cx = self.build_cx.borrow_mut();
@@ -127,8 +128,6 @@ impl Composition {
             };
             composable.borrow_mut().any_build();
 
-            drop(g);
-
             self.build_cx.borrow().children.get(key).cloned()
         };
 
@@ -157,22 +156,14 @@ impl Composition {
 
         loop {
             let fut = async {
-                self.rx.recv().await;
+                self.rx.next().await;
             };
 
             if futures::poll!(Box::pin(fut)).is_ready() {
                 break;
             }
 
-            let fut = async {
-                let fut = &mut self.local_set;
-                fut.await;
-            };
-            if futures::poll!(Box::pin(fut)).is_pending() {
-                pending!()
-            } else {
-                break;
-            }
+            self.task_cx.local_pool.borrow_mut().run_until_stalled();
         }
 
         self.compose(self.root);
