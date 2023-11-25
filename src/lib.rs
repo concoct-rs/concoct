@@ -74,14 +74,14 @@ impl BuildContext {
     }
 }
 
-struct Inner {
+struct Scope {
     hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
     idx: usize,
 }
 
 #[derive(Clone)]
 struct LocalContext {
-    inner: Rc<RefCell<Inner>>,
+    scope: Rc<RefCell<Scope>>,
 }
 
 thread_local! {

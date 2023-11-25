@@ -1,5 +1,5 @@
 use crate::{
-    composable::IntoComposable, AnyComposable, BuildContext, Composable, Inner, LocalContext, Node,
+    composable::IntoComposable, AnyComposable, BuildContext, LocalContext, Node, Scope,
     TaskContext, BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
 };
 use futures::pending;
@@ -80,7 +80,7 @@ impl Composition {
                 let cx = self.build_cx.borrow_mut();
                 let node = cx.nodes[key].borrow_mut();
                 let cx = LocalContext {
-                    inner: Rc::new(RefCell::new(Inner {
+                    scope: Rc::new(RefCell::new(Scope {
                         hooks: node.hooks.clone(),
                         idx: 0,
                     })),

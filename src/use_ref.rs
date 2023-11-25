@@ -31,7 +31,7 @@ pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> UseRef<T> {
 
 pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<dyn Any>> {
     let cx = LocalContext::current();
-    let mut inner = cx.inner.borrow_mut();
+    let mut inner = cx.scope.borrow_mut();
     let mut hooks = inner.hooks.borrow_mut();
 
     let value = if let Some(hook) = hooks.get(inner.idx) {
