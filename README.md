@@ -18,7 +18,8 @@
 </div>
 
 <div align="center">
- <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Native Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Web Examples</a>
 </div>
 
 Concoct is an incremental computation framework for Rust.
@@ -30,10 +31,11 @@ This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender
 ```rust
 fn app() -> impl IntoComposable {
     let mut count = use_state(|| 0);
+
     (
-        "High five count: ",
-        html("Up High").on_click(|| count += 1),
-        html("Down low").on_click(|| count -= 1)
+        format!("High five count: {count}"),
+        button("Up High").on_click(|| count += 1),
+        button("Down low").on_click(|| count -= 1)
     )
 }
 
