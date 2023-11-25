@@ -19,43 +19,66 @@ impl<C: Composable> IntoComposable for C {
     }
 }
 
-impl<A: Composable, B: Composable> IntoComposable for (A, B) {
-    fn into_composer(self) -> impl Composable {
-        let mut composables = Some(self);
-        let (a_key, b_key) = *use_ref(|| {
-            BUILD_CONTEXT
-                .try_with(|cx| {
-                    let mut g = cx.borrow_mut();
-                    let mut cx = g.as_mut().unwrap().borrow_mut();
+macro_rules! impl_composable_for_tuple {
+    ($($a:ident: $b:tt),*) => {
+        impl<$($a: Composable),*> IntoComposable for ($($a),*) {
+            fn into_composer(self) -> impl Composable {
+                let mut composables = Some(self);
+                let keys = *use_ref(|| {
+                    BUILD_CONTEXT
+                        .try_with(|cx| {
+                            let mut g = cx.borrow_mut();
+                            let mut cx = g.as_mut().unwrap().borrow_mut();
+                            let composables = composables.take().unwrap();
 
-                    let composables = composables.take().unwrap();
-                    let mut a = Some(composables.0);
-                    let a_key = cx.insert(Box::new(move || Box::new(a.take().unwrap())));
-
-                    let mut b = Some(composables.1);
-                    let b_key = cx.insert(Box::new(move || Box::new(b.take().unwrap())));
-
-                    (a_key, b_key)
+                            ($({
+                                let mut a = Some(composables.$b);
+                                cx.insert(Box::new(move || Box::new(a.take().unwrap())))
+                            }),*)
+                        })
+                        .unwrap()
                 })
-                .unwrap()
-        })
-        .get();
+                .get();
 
-        if let Some(composables) = composables.take() {
-            BUILD_CONTEXT
-                .try_with(|cx| {
-                    let mut g = cx.borrow_mut();
-                    let cx = g.as_mut().unwrap().borrow_mut();
+                if let Some(composables) = composables.take() {
+                    BUILD_CONTEXT
+                        .try_with(|cx| {
+                            let mut g = cx.borrow_mut();
+                            let cx = g.as_mut().unwrap().borrow_mut();
 
-                    let mut a = Some(composables.0);
-                    cx.nodes[a_key].borrow_mut().make_composable =
-                        Box::new(move || Box::new(a.take().unwrap()));
-
-                    let mut b = Some(composables.1);
-                    cx.nodes[b_key].borrow_mut().make_composable =
-                        Box::new(move || Box::new(b.take().unwrap()));
-                })
-                .unwrap();
+                            ($({
+                                let mut a = Some(composables.$b);
+                                cx.nodes[keys.$b].borrow_mut().make_composable =
+                                    Box::new(move || Box::new(a.take().unwrap()));
+                            }),*)
+                        })
+                        .unwrap();
+                }
+            }
         }
-    }
+    };
 }
+
+macro_rules! impl_composable_for_tuples {
+    ($( ( $( $a:tt: $b:tt ),* ) ), * ) => {
+        $(impl_composable_for_tuple!($($a: $b),*);)*
+    };
+}
+
+impl_composable_for_tuples!(
+    (A: 0, B: 1),
+    (A: 0, B: 1, C: 2),
+    (A: 0, B: 1, C: 2, D: 3),
+    (A: 0, B: 1, C: 2, D: 3, E: 4),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11, M: 12),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11, M: 12, N: 13),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11, M: 12, N: 13, O: 14),
+    (A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11, M: 12, N: 13, O: 14, P: 15)
+);
