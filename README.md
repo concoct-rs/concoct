@@ -26,6 +26,23 @@ This library provides a generic diffing engine for user-interfaces and other rea
 
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
+## Web
+```
+fn app() -> impl IntoComposable {
+    let mut count = use_state(|| 0);
+    (
+        "High five count: ",
+        html("Up High").on_click(|| count += 1),
+        html("Down low").on_click(|| count -= 1)
+    )
+}
+
+fn main() {
+    concoct::web::run(app)
+}
+```
+
+## Custom backend
 ```rust
 #[derive(PartialEq)]
 struct Counter {

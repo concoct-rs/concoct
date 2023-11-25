@@ -52,15 +52,35 @@ thread_local! {
     static BUILD_CONTEXT: RefCell<Option<Rc<RefCell<BuildContext>>>> = RefCell::default();
 }
 
-#[derive(Default)]
+pub trait Platform {
+    fn from_str(&mut self, s: &str) -> Box<dyn AnyComposable>;
+}
+
+impl Platform for () {
+    fn from_str(&mut self, _s: &str) -> Box<dyn AnyComposable> {
+        Box::new(())
+    }
+}
+
 pub struct BuildContext {
     parent_key: DefaultKey,
     nodes: SlotMap<DefaultKey, Rc<RefCell<Node>>>,
     children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
     tracked: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
+    platform: Box<dyn Platform>,
 }
 
 impl BuildContext {
+    pub fn new(platform: impl Platform + 'static) -> Self {
+        Self {
+            parent_key: Default::default(),
+            nodes: Default::default(),
+            children: Default::default(),
+            tracked: Default::default(),
+            platform: Box::new(platform),
+        }
+    }
+
     pub fn insert(
         &mut self,
         make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>,

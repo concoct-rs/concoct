@@ -1,5 +1,5 @@
 use crate::{
-    composable::IntoComposable, AnyComposable, BuildContext, LocalContext, Node, Scope,
+    composable::IntoComposable, AnyComposable, BuildContext, LocalContext, Node, Platform, Scope,
     TaskContext, BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
 };
 use futures::channel::mpsc;
@@ -12,14 +12,13 @@ use std::{any::Any, cell::RefCell, rc::Rc};
 pub struct Composition {
     build_cx: Rc<RefCell<BuildContext>>,
     root: DefaultKey,
-
     task_cx: TaskContext,
     rx: mpsc::UnboundedReceiver<Box<dyn Any>>,
 }
 
 impl Composition {
     /// Create a new composition from it's root composable function.
-    pub fn new<C>(content: fn() -> C) -> Self
+    pub fn new<C>(platform: impl Platform + 'static, content: fn() -> C) -> Self
     where
         C: IntoComposable + 'static,
     {
@@ -30,19 +29,16 @@ impl Composition {
             local_pool: Rc::new(RefCell::new(local_set)),
         };
 
-        {
-            let build_cx = Rc::new(RefCell::new(BuildContext::default()));
-            BUILD_CONTEXT
-                .try_with(|cx| *cx.borrow_mut() = Some(build_cx.clone()))
-                .unwrap();
-        }
+        let build_cx = Rc::new(RefCell::new(BuildContext::new(platform)));
+        BUILD_CONTEXT
+            .try_with(|cx| *cx.borrow_mut() = Some(build_cx.clone()))
+            .unwrap();
 
         let make_composable = Box::new(move || {
             let composable: Box<dyn AnyComposable> = Box::new(content().into_composer());
             composable
         });
 
-        let build_cx = Rc::new(RefCell::new(BuildContext::default()));
         let node = Node {
             make_composable,
             composable: None,

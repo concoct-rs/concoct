@@ -1,7 +1,7 @@
 use crate::{Composable, IntoComposable};
 use std::borrow::Cow;
 
-pub trait Platform: Sized {
+pub trait HtmlPlatform: Sized {
     fn html(&mut self, html: &mut Builder) -> impl IntoComposable;
 }
 
@@ -10,17 +10,18 @@ pub struct Builder {
     pub attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
 }
 
-#[derive(PartialEq, Eq)]
-pub struct Html<P> {
+pub struct Html<P, C> {
     platform: P,
     builder: Builder,
+    child: C,
 }
 
-impl<P> Html<P> {
-    pub fn new(platform: P) -> Self {
+impl<P, C> Html<P, C> {
+    pub fn new(platform: P, child: C) -> Self {
         Self {
             platform,
             builder: Builder::default(),
+            child,
         }
     }
 
@@ -32,13 +33,24 @@ impl<P> Html<P> {
         self.builder.attrs.push((name.into(), value.into()));
         self
     }
+
+    pub fn on_click(self, _f: impl FnMut()) -> Self {
+        self
+    }
 }
 
-impl<P> Composable for Html<P>
+impl<P, C> PartialEq for Html<P, C> {
+    fn eq(&self, other: &Self) -> bool {
+        self.builder == other.builder
+    }
+}
+
+impl<P, C> IntoComposable for Html<P, C>
 where
-    P: Platform + PartialEq + 'static,
+    P: HtmlPlatform + 'static,
+    C: IntoComposable,
 {
-    fn compose(&mut self) -> impl IntoComposable {
-        self.platform.html(&mut self.builder)
+    fn into_composer(self) -> impl Composable {
+        self.child.into_composer()
     }
 }

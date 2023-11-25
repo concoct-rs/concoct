@@ -1,4 +1,4 @@
-use crate::{use_ref, BUILD_CONTEXT};
+use crate::{use_ref, AnyComposable, BUILD_CONTEXT};
 
 /// Composable object that handles diffing.
 pub trait Composable: PartialEq + 'static {
@@ -9,7 +9,7 @@ impl Composable for () {
     fn compose(&mut self) -> impl IntoComposable {}
 }
 
-pub trait IntoComposable {
+pub trait IntoComposable: 'static {
     fn into_composer(self) -> impl Composable;
 }
 
@@ -21,7 +21,7 @@ impl<C: Composable> IntoComposable for C {
 
 macro_rules! impl_composable_for_tuple {
     ($($a:ident: $b:tt),*) => {
-        impl<$($a: Composable),*> IntoComposable for ($($a),*) {
+        impl<$($a: IntoComposable),*> IntoComposable for ($($a),*) {
             fn into_composer(self) -> impl Composable {
                 let mut composables = Some(self);
                 let keys = *use_ref(|| {
@@ -33,7 +33,7 @@ macro_rules! impl_composable_for_tuple {
 
                             ($({
                                 let mut a = Some(composables.$b);
-                                cx.insert(Box::new(move || Box::new(a.take().unwrap())))
+                                cx.insert(Box::new(move || Box::new(a.take().unwrap().into_composer())))
                             }),*)
                         })
                         .unwrap()
@@ -49,7 +49,7 @@ macro_rules! impl_composable_for_tuple {
                             ($({
                                 let mut a = Some(composables.$b);
                                 cx.nodes[keys.$b].borrow_mut().make_composable =
-                                    Box::new(move || Box::new(a.take().unwrap()));
+                                    Box::new(move || Box::new(a.take().unwrap().into_composer()));
                             }),*)
                         })
                         .unwrap();
@@ -57,6 +57,18 @@ macro_rules! impl_composable_for_tuple {
             }
         }
     };
+}
+
+impl Composable for &'static str {
+    fn compose(&mut self) -> impl IntoComposable {
+        BUILD_CONTEXT
+            .try_with(|cx| {
+                let g = cx.borrow();
+                let mut cx = g.as_ref().unwrap().borrow_mut();
+                cx.platform.from_str(self).any_build()
+            })
+            .unwrap();
+    }
 }
 
 macro_rules! impl_composable_for_tuples {

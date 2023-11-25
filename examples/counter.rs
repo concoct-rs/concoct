@@ -1,5 +1,4 @@
-use concoct::{use_future, use_state, Composable, Composition, IntoComposable};
-use futures::executor::block_on;
+use concoct::{use_future, use_state, Composable, IntoComposable};
 
 #[derive(PartialEq)]
 struct Counter {
@@ -25,13 +24,4 @@ fn app() -> impl IntoComposable {
     (Counter { initial_value: 0 }, Counter { initial_value: 100 })
 }
 
-fn main() {
-    let mut composition = Composition::new(app);
-    composition.build();
-
-    block_on(async move {
-        loop {
-            composition.rebuild().await;
-        }
-    });
-}
+fn main() {}

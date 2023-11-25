@@ -2,8 +2,8 @@ use std::{cell::RefCell, rc::Rc};
 use web_sys::{Document, HtmlElement};
 
 use crate::{
-    html::{Builder, Html, Platform},
-    Composition, IntoComposable,
+    html::{Builder, Html, HtmlPlatform},
+    Composition, IntoComposable, Platform,
 };
 
 thread_local! {
@@ -43,14 +43,14 @@ impl WebContext {
     }
 }
 
-pub fn html() -> Html<WebHtml> {
-    Html::new(WebHtml {})
+pub fn html<C>(child: C) -> Html<WebHtml, C> {
+    Html::new(WebHtml {}, child)
 }
 
 #[derive(PartialEq, Eq)]
 pub struct WebHtml {}
 
-impl Platform for WebHtml {
+impl HtmlPlatform for WebHtml {
     fn html(&mut self, html: &mut Builder) -> impl IntoComposable {
         let cx = WebContext::current();
         let inner = cx.inner.borrow_mut();
@@ -64,6 +64,20 @@ impl Platform for WebHtml {
     }
 }
 
+pub struct Web;
+
+impl Platform for Web {
+    fn from_str(&mut self, s: &str) -> Box<dyn crate::AnyComposable> {
+        let cx = WebContext::current();
+        let inner = cx.inner.borrow_mut();
+        let node = inner.document.create_text_node(s);
+
+        inner.body.append_child(&node).unwrap();
+
+        Box::new(())
+    }
+}
+
 pub fn run<C>(content: fn() -> C)
 where
     C: IntoComposable + 'static,
@@ -71,6 +85,6 @@ where
     let cx = WebContext::new();
     cx.enter();
 
-    let mut composition = Composition::new(content);
+    let mut composition = Composition::new(Web, content);
     composition.build()
 }

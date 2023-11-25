@@ -5,7 +5,7 @@ use crate::{
 use std::{
     cell::Ref,
     fmt, mem,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 /// A hook that lets you add a state variable to your composable.
@@ -89,5 +89,14 @@ where
 {
     fn add_assign(&mut self, rhs: T) {
         self.set(self.cloned() + rhs)
+    }
+}
+
+impl<T> SubAssign<T> for UseState<T>
+where
+    T: Sub<Output = T> + Clone + 'static,
+{
+    fn sub_assign(&mut self, rhs: T) {
+        self.set(self.cloned() - rhs)
     }
 }
