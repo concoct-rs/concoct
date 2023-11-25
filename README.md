@@ -31,8 +31,9 @@ This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender
 ```rust
 fn app() -> impl IntoComposable {
     let mut count = use_state(|| 0);
+
     (
-        "High five count: ",
+        format!("High five count: {count}"),
         button("Up High").on_click(|| count += 1),
         button("Down low").on_click(|| count -= 1)
     )
