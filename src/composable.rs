@@ -1,4 +1,5 @@
-use crate::{use_ref, AnyComposable, BUILD_CONTEXT};
+use std::{cell::RefCell, rc::Rc};
+use crate::{use_ref, BUILD_CONTEXT};
 
 /// Composable object that handles diffing.
 pub trait Composable: PartialEq + 'static {
@@ -16,6 +17,29 @@ pub trait IntoComposable: 'static {
 impl<C: Composable> IntoComposable for C {
     fn into_composer(self) -> impl Composable {
         self
+    }
+}
+
+
+pub struct Child<C> {
+    cell: Rc<RefCell<Option<C>>>
+}
+
+impl<C> Child<C>{ 
+    pub fn new(composable: C) -> Self {
+        Self { cell: Rc::new(RefCell::new(Some(composable))) }
+    }
+}
+
+impl<C> Clone for Child<C> {
+    fn clone(&self) -> Self {
+        Self { cell: self.cell.clone() }
+    }
+}
+
+impl<C: IntoComposable> IntoComposable for Child<C> {
+    fn into_composer( self) -> impl Composable {
+       self.cell.take().unwrap().into_composer()
     }
 }
 

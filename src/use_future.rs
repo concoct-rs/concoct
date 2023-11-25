@@ -17,7 +17,7 @@ where
                 cx.local_pool.borrow().spawner().spawn_local(async move {
                     let _output = future.await;
                     tx.unbounded_send(Box::new(())).unwrap();
-                });
+                }).unwrap();
             })
             .unwrap()
     });

@@ -7,7 +7,7 @@ mod any_composable;
 pub use any_composable::AnyComposable;
 
 mod composable;
-pub use composable::{Composable, IntoComposable};
+pub use composable::{Composable, IntoComposable, Child};
 
 mod composition;
 pub use composition::Composition;

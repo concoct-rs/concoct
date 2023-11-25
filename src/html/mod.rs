@@ -1,4 +1,4 @@
-use crate::{Composable, IntoComposable};
+use crate::{Child, Composable, IntoComposable};
 use std::borrow::Cow;
 
 pub trait HtmlPlatform: Sized {
@@ -13,7 +13,7 @@ pub struct Builder {
 pub struct Html<P, C> {
     platform: P,
     builder: Builder,
-    child: C,
+    child: Child<C>,
 }
 
 impl<P, C> Html<P, C> {
@@ -21,7 +21,7 @@ impl<P, C> Html<P, C> {
         Self {
             platform,
             builder: Builder::default(),
-            child,
+            child: Child::new(child),
         }
     }
 
@@ -45,12 +45,12 @@ impl<P, C> PartialEq for Html<P, C> {
     }
 }
 
-impl<P, C> IntoComposable for Html<P, C>
+impl<P, C> Composable for Html<P, C>
 where
     P: HtmlPlatform + 'static,
     C: IntoComposable,
 {
-    fn into_composer(self) -> impl Composable {
-        self.child.into_composer()
+    fn compose(&mut self) -> impl IntoComposable {
+        (self.platform.html(&mut self.builder), self.child.clone())
     }
 }
