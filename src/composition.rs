@@ -57,20 +57,20 @@ impl Composition {
         self.build_cx.borrow().nodes.len()
     }
 
-    /// Build the initial composition.
-    pub fn build(&mut self) {
+    pub fn compose(&mut self, key: DefaultKey) {
         TASK_CONTEXT
             .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
             .unwrap();
 
+        self.build_cx.borrow_mut().parent_key = key;
         BUILD_CONTEXT
             .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
             .unwrap();
 
         let g = self.local_set.enter();
-        let mut composable = {
-            let mut build_cx = self.build_cx.borrow_mut();
-            let node = &mut build_cx.nodes[self.root];
+
+        {
+            let node = &mut self.build_cx.borrow_mut().nodes[key];
             let cx = LocalContext {
                 inner: Rc::new(RefCell::new(Inner {
                     hooks: node.hooks.clone(),
@@ -78,31 +78,30 @@ impl Composition {
                 })),
             };
             cx.enter();
+        }
 
-            (node.make_composable)()
+        let composable = {
+            let mut build_cx = self.build_cx.borrow_mut();
+            let node = &mut build_cx.nodes[key];
+            if let Some(ref composable) = node.composable {
+                composable.clone()
+            } else {
+                node.composable = Some(Rc::new(RefCell::new((node.make_composable)())));
+                node.composable.as_ref().unwrap().clone()
+            }
         };
+        composable.borrow_mut().any_build();
 
-        composable.any_build();
-        drop(g);
-
-        let mut build_cx = self.build_cx.borrow_mut();
-        let node = &mut build_cx.nodes[self.root];
-        node.composable = Some(composable);
-
-        if let Some(children) = build_cx.children.get(self.root) {
-            for child_key in children.clone() {
-                let node = &mut build_cx.nodes[child_key];
-                let cx = LocalContext {
-                    inner: Rc::new(RefCell::new(Inner {
-                        hooks: node.hooks.clone(),
-                        idx: 0,
-                    })),
-                };
-                cx.enter();
+        let children = self.build_cx.borrow().children.get(key).cloned();
+        if let Some(children) = children {
+            for child_key in children {
+                let mut build_cx = self.build_cx.borrow_mut();
+                build_cx.parent_key = child_key;
 
                 let g = self.local_set.enter();
-                let mut composable = {
-                    let node = &mut build_cx.nodes[self.root];
+
+                {
+                    let node = &mut build_cx.nodes[child_key];
                     let cx = LocalContext {
                         inner: Rc::new(RefCell::new(Inner {
                             hooks: node.hooks.clone(),
@@ -110,19 +109,30 @@ impl Composition {
                         })),
                     };
                     cx.enter();
+                }
 
-                    (node.make_composable)()
+                let composable = {
+                    let node = &mut build_cx.nodes[child_key];
+                    if let Some(ref composable) = node.composable {
+                        composable.clone()
+                    } else {
+                        node.composable = Some(Rc::new(RefCell::new((node.make_composable)())));
+                        node.composable.as_ref().unwrap().clone()
+                    }
                 };
+
                 drop(g);
-
-                composable.any_build();
-
-                let node = &mut build_cx.nodes[child_key];
-                node.composable = Some(composable);
+                composable.borrow_mut().any_build();
             }
         }
 
+        drop(g);
         TASK_CONTEXT.try_with(|cx| *cx.borrow_mut() = None).unwrap();
+    }
+
+    /// Build the initial composition.
+    pub fn build(&mut self) {
+        self.compose(self.root);
     }
 
     /// Rebuild the composition from it's previous state.
@@ -151,53 +161,6 @@ impl Composition {
             }
         }
 
-        BUILD_CONTEXT
-            .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
-            .unwrap();
-
-        let g = self.local_set.enter();
-        let mut composable = {
-            let mut build_cx = self.build_cx.borrow_mut();
-            let node = &mut build_cx.nodes[self.root];
-            let cx = LocalContext {
-                inner: Rc::new(RefCell::new(Inner {
-                    hooks: node.hooks.clone(),
-                    idx: 0,
-                })),
-            };
-            cx.enter();
-
-            (node.make_composable)()
-        };
-        composable.any_build();
-        drop(g);
-
-        let mut build_cx = self.build_cx.borrow_mut();
-        let node = &mut build_cx.nodes[self.root];
-        node.composable = Some(composable);
-
-        if let Some(children) = build_cx.children.get(self.root) {
-            for child_key in children.clone() {
-                let node = &mut build_cx.nodes[child_key];
-
-                let cx = LocalContext {
-                    inner: Rc::new(RefCell::new(Inner {
-                        hooks: node.hooks.clone(),
-                        idx: 0,
-                    })),
-                };
-                cx.enter();
-
-                let g = self.local_set.enter();
-                let mut composable = (node.make_composable)();
-                composable.any_build();
-                drop(g);
-
-                let node = &mut build_cx.nodes[child_key];
-                node.composable = Some(composable);
-            }
-        }
-
-        TASK_CONTEXT.try_with(|cx| *cx.borrow_mut() = None).unwrap();
+        self.compose(self.root);
     }
 }
