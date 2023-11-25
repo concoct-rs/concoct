@@ -24,7 +24,7 @@
 Concoct is an incremental computation framework for Rust.
 This library provides a generic diffing engine for user-interfaces and other reactive systems.
 
-This crate is inspired by React, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
+This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 ```rust
 #[derive(Clone, PartialEq)]
