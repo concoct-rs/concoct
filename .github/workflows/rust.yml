@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: Swatinem/rust-cache@v2
+    - run: rustup toolchain install nightly --profile minimal
     - name: Build core features
-      run: cargo build --verbose
+      run: cargo +nightly build --verbose
     - name: Build all features
-      run: cargo build --verbose --features full
+      run: cargo +nightly build --verbose --features full
     - name: Run tests
-      run: cargo test --verbose --features full
+      run: cargo +nightly test --verbose --features full
