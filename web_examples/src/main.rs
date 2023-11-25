@@ -1,9 +1,9 @@
-use concoct::{html::Html, IntoComposable};
+use concoct::{web::html, IntoComposable};
 
 fn app() -> impl IntoComposable {
-    Html {}
+    html().attr("class", "main")
 }
 
 fn main() {
-    concoct::html::run(app)
+    concoct::web::run(app)
 }

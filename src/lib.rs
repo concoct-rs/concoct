@@ -27,6 +27,9 @@ pub use use_state::{use_state, UseState};
 #[cfg(feature = "html")]
 pub mod html;
 
+#[cfg(feature = "web")]
+pub mod web;
+
 #[derive(Default)]
 struct GlobalContext {
     values: SlotMap<DefaultKey, Rc<RefCell<dyn Any>>>,
