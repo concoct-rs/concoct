@@ -1,13 +1,15 @@
-use crate::{AnyComposable, Composable, Inner, LocalContext, Node, TaskContext, TASK_CONTEXT};
+use crate::{
+    AnyComposable, BuildContext, Composable, Inner, LocalContext, Node, TaskContext, BUILD_CONTEXT,
+    TASK_CONTEXT,
+};
 use futures::pending;
-use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
+use slotmap::DefaultKey;
 use std::{any::Any, cell::RefCell, rc::Rc};
 use tokio::{sync::mpsc, task::LocalSet};
 
 /// A composition of composables.
 pub struct Composition {
-    nodes: SlotMap<DefaultKey, Node>,
-    children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
+    build_cx: Rc<RefCell<BuildContext>>,
     root: DefaultKey,
     local_set: LocalSet,
     task_cx: TaskContext,
@@ -23,7 +25,11 @@ impl Composition {
         let local_set = LocalSet::new();
         local_set.enter();
 
-        let mut composables = SlotMap::new();
+        let build_cx = Rc::new(RefCell::new(BuildContext::default()));
+        BUILD_CONTEXT
+            .try_with(|cx| *cx.borrow_mut() = Some(build_cx.clone()))
+            .unwrap();
+
         let make_composable = Box::new(move || {
             let composable: Box<dyn AnyComposable> = Box::new(content());
             composable
@@ -34,18 +40,21 @@ impl Composition {
 
             hooks: Rc::default(),
         };
-        let root = composables.insert(node);
+        let root = build_cx.borrow_mut().nodes.insert(node);
 
         let (tx, rx) = mpsc::unbounded_channel();
 
         Self {
-            nodes: composables,
-            children: SparseSecondaryMap::new(),
+            build_cx,
             root,
             local_set: LocalSet::new(),
             task_cx: TaskContext { tx },
             rx,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.build_cx.borrow().nodes.len()
     }
 
     /// Build the initial composition.
@@ -54,26 +63,35 @@ impl Composition {
             .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
             .unwrap();
 
-        let node = &mut self.nodes[self.root];
-        let cx = LocalContext {
-            inner: Rc::new(RefCell::new(Inner {
-                hooks: node.hooks.clone(),
-                idx: 0,
-            })),
-        };
-        cx.enter();
+        BUILD_CONTEXT
+            .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
+            .unwrap();
 
         let g = self.local_set.enter();
-        let mut composable = (node.make_composable)();
+        let mut composable = {
+            let mut build_cx = self.build_cx.borrow_mut();
+            let node = &mut build_cx.nodes[self.root];
+            let cx = LocalContext {
+                inner: Rc::new(RefCell::new(Inner {
+                    hooks: node.hooks.clone(),
+                    idx: 0,
+                })),
+            };
+            cx.enter();
+
+            (node.make_composable)()
+        };
+
         composable.any_build();
         drop(g);
 
-        let node = &mut self.nodes[self.root];
+        let mut build_cx = self.build_cx.borrow_mut();
+        let node = &mut build_cx.nodes[self.root];
         node.composable = Some(composable);
 
-        if let Some(children) = self.children.get(self.root) {
+        if let Some(children) = build_cx.children.get(self.root) {
             for child_key in children.clone() {
-                let node = &mut self.nodes[child_key];
+                let node = &mut build_cx.nodes[child_key];
                 let cx = LocalContext {
                     inner: Rc::new(RefCell::new(Inner {
                         hooks: node.hooks.clone(),
@@ -83,12 +101,23 @@ impl Composition {
                 cx.enter();
 
                 let g = self.local_set.enter();
-                let mut composable = (node.make_composable)();
+                let mut composable = {
+                    let node = &mut build_cx.nodes[self.root];
+                    let cx = LocalContext {
+                        inner: Rc::new(RefCell::new(Inner {
+                            hooks: node.hooks.clone(),
+                            idx: 0,
+                        })),
+                    };
+                    cx.enter();
+
+                    (node.make_composable)()
+                };
                 drop(g);
 
                 composable.any_build();
 
-                let node = &mut self.nodes[child_key];
+                let node = &mut build_cx.nodes[child_key];
                 node.composable = Some(composable);
             }
         }
@@ -122,28 +151,34 @@ impl Composition {
             }
         }
 
-        let node = &mut self.nodes[self.root];
-        let cx = LocalContext {
-            inner: Rc::new(RefCell::new(Inner {
-                hooks: node.hooks.clone(),
-                idx: 0,
-            })),
-        };
-        cx.enter();
+        BUILD_CONTEXT
+            .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
+            .unwrap();
 
         let g = self.local_set.enter();
-        let mut composable = (node.make_composable)();
+        let mut composable = {
+            let mut build_cx = self.build_cx.borrow_mut();
+            let node = &mut build_cx.nodes[self.root];
+            let cx = LocalContext {
+                inner: Rc::new(RefCell::new(Inner {
+                    hooks: node.hooks.clone(),
+                    idx: 0,
+                })),
+            };
+            cx.enter();
+
+            (node.make_composable)()
+        };
+        composable.any_build();
         drop(g);
 
-        composable.any_build();
-
-        let node = &mut self.nodes[self.root];
-
+        let mut build_cx = self.build_cx.borrow_mut();
+        let node = &mut build_cx.nodes[self.root];
         node.composable = Some(composable);
 
-        if let Some(children) = self.children.get(self.root) {
+        if let Some(children) = build_cx.children.get(self.root) {
             for child_key in children.clone() {
-                let node = &mut self.nodes[child_key];
+                let node = &mut build_cx.nodes[child_key];
 
                 let cx = LocalContext {
                     inner: Rc::new(RefCell::new(Inner {
@@ -158,7 +193,7 @@ impl Composition {
                 composable.any_build();
                 drop(g);
 
-                let node = &mut self.nodes[child_key];
+                let node = &mut build_cx.nodes[child_key];
                 node.composable = Some(composable);
             }
         }

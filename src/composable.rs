@@ -1,30 +1,27 @@
-use crate::use_ref;
-use impl_trait_for_tuples::impl_for_tuples;
+use crate::BUILD_CONTEXT;
 
 /// Composable object that handles diffing.
-pub trait Composable: PartialEq {
-    fn compose(&mut self);
+pub trait Composable: PartialEq + 'static {
+    fn compose(&mut self) -> impl Composable;
 }
 
-impl<F, C> Composable for F
-where
-    F: FnMut() -> C + PartialEq + Clone + 'static,
-    C: Composable + 'static,
-{
-    fn compose(&mut self) {
-        let _f = self.clone();
-        use_ref(|| {
-            // cx.insert(Box::new(move || Box::new(f())));
-        });
-    }
+impl Composable for () {
+    fn compose(&mut self) -> impl Composable {}
 }
 
-#[impl_for_tuples(16)]
-impl Composable for Tuple
-where
-    Self: PartialEq,
-{
-    fn compose(&mut self) {
-        for_tuples!(#( self.Tuple.compose(); )*)
+impl<A: Composable + Clone, B: Composable + Clone> Composable for (A, B) {
+    fn compose(&mut self) -> impl Composable {
+        BUILD_CONTEXT
+            .try_with(|cx| {
+                let mut g = cx.borrow_mut();
+                let mut cx = g.as_mut().unwrap().borrow_mut();
+
+                let a = self.0.clone();
+                cx.insert(Box::new(move || Box::new(a.clone())));
+
+                let b = self.1.clone();
+                cx.insert(Box::new(move || Box::new(b.clone())));
+            })
+            .unwrap();
     }
 }

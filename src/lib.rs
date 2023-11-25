@@ -40,15 +40,17 @@ struct TaskContext {
 thread_local! {
     static TASK_CONTEXT: RefCell<Option<TaskContext>> = RefCell::default();
 
+    static BUILD_CONTEXT: RefCell<Option<Rc<RefCell<BuildContext>>>> = RefCell::default();
 }
 
-pub struct BuildContext<'a> {
+#[derive(Default)]
+pub struct BuildContext {
     parent_key: DefaultKey,
-    nodes: &'a mut SlotMap<DefaultKey, Node>,
-    children: &'a mut SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
+    nodes: SlotMap<DefaultKey, Node>,
+    children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
 }
 
-impl<'a> BuildContext<'a> {
+impl BuildContext {
     pub fn insert(
         &mut self,
         make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>,
