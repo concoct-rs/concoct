@@ -18,7 +18,8 @@
 </div>
 
 <div align="center">
- <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Native Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Web Examples</a>
 </div>
 
 Concoct is an incremental computation framework for Rust.
