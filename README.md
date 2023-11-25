@@ -27,7 +27,7 @@ This library provides a generic diffing engine for user-interfaces and other rea
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 ## Web
-```
+```rust
 fn app() -> impl IntoComposable {
     let mut count = use_state(|| 0);
     (
