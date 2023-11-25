@@ -55,7 +55,6 @@ impl<'a> BuildContext<'a> {
         let node = Node {
             make_composable,
             composable: None,
-            state: None,
             hooks: Rc::default(),
         };
         let key = self.nodes.insert(node);

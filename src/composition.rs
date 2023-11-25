@@ -33,7 +33,7 @@ impl Composition {
         let node = Node {
             make_composable,
             composable: None,
-            state: None,
+
             hooks: Rc::default(),
         };
         let root = composables.insert(node);
@@ -74,11 +74,10 @@ impl Composition {
             nodes: &mut self.nodes,
             children: &mut self.children,
         };
-        let state = composable.any_build(&mut build_cx);
+        let _state = composable.any_build(&mut build_cx);
 
         let node = &mut self.nodes[self.root];
         node.composable = Some(composable);
-        node.state = Some(state);
 
         if let Some(children) = self.children.get(self.root) {
             for child_key in children.clone() {
@@ -100,11 +99,10 @@ impl Composition {
                     nodes: &mut self.nodes,
                     children: &mut self.children,
                 };
-                let state = composable.any_build(&mut build_cx);
+                let _state = composable.any_build(&mut build_cx);
 
                 let node = &mut self.nodes[child_key];
                 node.composable = Some(composable);
-                node.state = Some(state);
             }
         }
 
@@ -150,16 +148,21 @@ impl Composition {
         let mut composable = (node.make_composable)();
         drop(g);
 
-        let node = &mut self.nodes[self.root];
-        let state = node.state.as_mut().unwrap();
+        let mut build_cx = BuildContext {
+            parent_key: self.root,
+            nodes: &mut self.nodes,
+            children: &mut self.children,
+        };
+        composable.any_build(&mut build_cx);
 
-        composable.any_rebuild(&mut **state);
+        let node = &mut self.nodes[self.root];
+
         node.composable = Some(composable);
 
         if let Some(children) = self.children.get(self.root) {
             for child_key in children.clone() {
                 let node = &mut self.nodes[child_key];
-                let state = node.state.as_mut().unwrap();
+
                 let cx = LocalContext {
                     inner: Rc::new(RefCell::new(Inner {
                         hooks: node.hooks.clone(),
@@ -172,7 +175,14 @@ impl Composition {
                 let mut composable = (node.make_composable)();
                 drop(g);
 
-                composable.any_rebuild(&mut **state);
+                let mut build_cx = BuildContext {
+                    parent_key: child_key,
+                    nodes: &mut self.nodes,
+                    children: &mut self.children,
+                };
+                composable.any_build(&mut build_cx);
+
+                let node = &mut self.nodes[child_key];
                 node.composable = Some(composable);
             }
         }
