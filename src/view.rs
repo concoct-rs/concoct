@@ -1,7 +1,7 @@
 use crate::{into_view::IntoView, BUILD_CONTEXT};
 use std::{cell::RefCell, rc::Rc};
 
-/// view object that handles diffing.
+/// Viewable element that handles diffing.
 pub trait View: PartialEq + 'static {
     fn view(&mut self) -> impl IntoView;
 }
@@ -10,31 +10,7 @@ impl View for () {
     fn view(&mut self) -> impl IntoView {}
 }
 
-pub struct Child<C> {
-    cell: Rc<RefCell<Option<C>>>,
-}
 
-impl<C> Child<C> {
-    pub fn new(view: C) -> Self {
-        Self {
-            cell: Rc::new(RefCell::new(Some(view))),
-        }
-    }
-}
-
-impl<C> Clone for Child<C> {
-    fn clone(&self) -> Self {
-        Self {
-            cell: self.cell.clone(),
-        }
-    }
-}
-
-impl<C: IntoView> IntoView for Child<C> {
-    fn into_view(self) -> impl View {
-        self.cell.take().unwrap().into_view()
-    }
-}
 
 impl View for &'static str {
     fn view(&mut self) -> impl IntoView {

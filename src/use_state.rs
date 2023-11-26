@@ -83,6 +83,15 @@ where
     }
 }
 
+impl<T> fmt::Display for UseState<T>
+where
+    T: fmt::Debug + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.get().fmt(f)
+    }
+}
+
 impl<T> AddAssign<T> for UseState<T>
 where
     T: Add<Output = T> + Clone + 'static,

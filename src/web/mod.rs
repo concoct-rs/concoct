@@ -1,10 +1,9 @@
-use std::{cell::RefCell, rc::Rc};
-use web_sys::{Document, HtmlElement};
-
 use crate::{
     html::{Builder, Html, HtmlPlatform},
-    Tree, IntoView, Platform,
+    IntoView, Platform, Tree,
 };
+use std::{cell::RefCell, rc::Rc};
+use web_sys::{Document, HtmlElement};
 
 thread_local! {
     static HTML_CONTEXT: RefCell<Option<WebContext>> = RefCell::default();
@@ -43,7 +42,7 @@ impl WebContext {
     }
 }
 
-pub fn html<C>(child: C) -> Html<WebHtml, C> {
+pub fn div<C>(child: C) -> Html<WebHtml, C> {
     Html::new(WebHtml {}, child)
 }
 

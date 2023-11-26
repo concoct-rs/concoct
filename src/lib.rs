@@ -6,8 +6,11 @@ use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 mod any_view;
 pub use any_view::AnyView;
 
+mod child;
+pub use self::child::Child;
+
 mod view;
-pub use view::{Child, View};
+pub use view::{ View};
 
 mod tree;
 pub use tree::Tree;

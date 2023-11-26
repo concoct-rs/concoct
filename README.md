@@ -38,9 +38,9 @@ impl View for Counter {
     fn view(&mut self) -> impl IntoView {
         let mut count = use_state(|| self.initial_value);
         (
-            "High five count: ",
-            html("Up High").on_click(|| count += 1),
-            html("Down low").on_click(|| count -= 1),
+            "High five count: {count}",
+            div("Up High").on_click(|| count += 1),
+            div("Down low").on_click(|| count -= 1),
         )
     }
 }
