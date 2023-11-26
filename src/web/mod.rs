@@ -3,7 +3,7 @@ use web_sys::{Document, HtmlElement};
 
 use crate::{
     html::{Builder, Html, HtmlPlatform},
-    Composition, IntoView, Platform,
+    Tree, IntoView, Platform,
 };
 
 thread_local! {
@@ -78,13 +78,10 @@ impl Platform for Web {
     }
 }
 
-pub fn run<C>(content: fn() -> C)
-where
-    C: IntoView + 'static,
-{
+pub fn run(content: impl IntoView) {
     let cx = WebContext::new();
     cx.enter();
 
-    let mut composition = Composition::new(Web, content);
+    let mut composition = Tree::new(Web, content);
     composition.build()
 }

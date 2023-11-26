@@ -1,7 +1,7 @@
 use crate::{into_view::IntoView, BUILD_CONTEXT};
 use std::{cell::RefCell, rc::Rc};
 
-/// Composable object that handles diffing.
+/// view object that handles diffing.
 pub trait View: PartialEq + 'static {
     fn view(&mut self) -> impl IntoView;
 }
@@ -15,9 +15,9 @@ pub struct Child<C> {
 }
 
 impl<C> Child<C> {
-    pub fn new(composable: C) -> Self {
+    pub fn new(view: C) -> Self {
         Self {
-            cell: Rc::new(RefCell::new(Some(composable))),
+            cell: Rc::new(RefCell::new(Some(view))),
         }
     }
 }

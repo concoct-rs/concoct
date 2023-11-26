@@ -8,20 +8,17 @@ use futures::StreamExt;
 use slotmap::DefaultKey;
 use std::{any::Any, cell::RefCell, rc::Rc};
 
-/// A composition of composables.
-pub struct Composition {
+/// A composition of views.
+pub struct Tree {
     build_cx: Rc<RefCell<BuildContext>>,
     root: DefaultKey,
     task_cx: TaskContext,
     rx: mpsc::UnboundedReceiver<Box<dyn Any>>,
 }
 
-impl Composition {
-    /// Create a new composition from it's root composable function.
-    pub fn new<C>(platform: impl Platform + 'static, content: fn() -> C) -> Self
-    where
-        C: IntoView + 'static,
-    {
+impl Tree {
+    /// Create a new composition from it's root view function.
+    pub fn new(platform: impl Platform + 'static, content: impl IntoView) -> Self {
         let local_set = LocalPool::new();
         let (tx, rx) = mpsc::unbounded();
         let task_cx = TaskContext {
@@ -34,14 +31,15 @@ impl Composition {
             .try_with(|cx| *cx.borrow_mut() = Some(build_cx.clone()))
             .unwrap();
 
-        let make_composable = Box::new(move || {
-            let composable: Box<dyn AnyView> = Box::new(content().into_view());
-            composable
+        let mut content = Some(content);
+        let make_view = Box::new(move || {
+            let view: Box<dyn AnyView> = Box::new(content.take().unwrap().into_view());
+            view
         });
 
         let node = Node {
-            make_composable,
-            composable: None,
+            make_view,
+            view: None,
             hooks: Rc::default(),
         };
         let root = build_cx
@@ -85,17 +83,17 @@ impl Composition {
                 cx.enter();
             }
 
-            let composable = {
+            let view = {
                 let node = {
                     let build_cx = self.build_cx.borrow_mut();
                     build_cx.nodes[key].clone()
                 };
                 let mut node = node.borrow_mut();
-                let new_composable = (node.make_composable)();
+                let new_view = (node.make_view)();
 
-                if let Some(ref composable) = node.composable {
+                if let Some(ref view) = node.view {
                     let mut is_dirty = false;
-                    if new_composable.any_eq(composable.borrow().as_any()) {
+                    if new_view.any_eq(view.borrow().as_any()) {
                         if let Some(tracked) = self.build_cx.borrow_mut().tracked.get(key) {
                             for tracked_key in tracked {
                                 if GLOBAL_CONTEXT
@@ -112,17 +110,17 @@ impl Composition {
                     }
 
                     if is_dirty {
-                        *composable.borrow_mut() = new_composable;
-                        node.composable.as_ref().unwrap().clone()
+                        *view.borrow_mut() = new_view;
+                        node.view.as_ref().unwrap().clone()
                     } else {
                         return;
                     }
                 } else {
-                    node.composable = Some(Rc::new(RefCell::new(new_composable)));
-                    node.composable.as_ref().unwrap().clone()
+                    node.view = Some(Rc::new(RefCell::new(new_view)));
+                    node.view.as_ref().unwrap().clone()
                 }
             };
-            composable.borrow_mut().any_view();
+            view.borrow_mut().any_view();
 
             self.build_cx.borrow().children.get(key).cloned()
         };

@@ -6,11 +6,11 @@ use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 mod any_view;
 pub use any_view::AnyView;
 
-mod composable;
-pub use composable::{Child, View};
+mod view;
+pub use view::{Child, View};
 
-mod composition;
-pub use composition::Composition;
+mod tree;
+pub use tree::Tree;
 
 mod into_view;
 pub use self::into_view::IntoView;
@@ -84,10 +84,10 @@ impl BuildContext {
         }
     }
 
-    pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyView>>) -> DefaultKey {
+    pub fn insert(&mut self, make_view: Box<dyn FnMut() -> Box<dyn AnyView>>) -> DefaultKey {
         let node = Node {
-            make_composable,
-            composable: None,
+            make_view,
+            view: None,
             hooks: Rc::default(),
         };
         let key = self.nodes.insert(Rc::new(RefCell::new(node)));

@@ -8,7 +8,7 @@ use std::{
     ops::{Add, AddAssign, Sub, SubAssign},
 };
 
-/// A hook that lets you add a state variable to your composable.
+/// A hook that lets you add a state variable to your view.
 pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> UseState<T> {
     let hook = use_ref(make_value);
     UseState { hook }

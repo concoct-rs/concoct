@@ -29,23 +29,6 @@ This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender
 
 ## Web
 ```rust
-fn app() -> impl IntoView {
-    let mut count = use_state(|| 0);
-
-    (
-        format!("High five count: {count}"),
-        button("Up High").on_click(|| count += 1),
-        button("Down low").on_click(|| count -= 1)
-    )
-}
-
-fn main() {
-    concoct::web::run(app)
-}
-```
-
-## Custom backend
-```rust
 #[derive(PartialEq)]
 struct Counter {
     initial_value: i32,
@@ -54,33 +37,16 @@ struct Counter {
 impl View for Counter {
     fn view(&mut self) -> impl IntoView {
         let mut count = use_state(|| self.initial_value);
-
-        use_future(|| async move {
-            loop {
-                time::sleep(Duration::from_millis(500)).await;
-                count += 1;
-            }
-        });
-
-        dbg!(count);
+        (
+            "High five count: ",
+            html("Up High").on_click(|| count += 1),
+            html("Down low").on_click(|| count -= 1),
+        )
     }
 }
 
-fn app() -> impl IntoView {
-    (
-        Counter { initial_value: 0 },
-        Counter { initial_value: 100 }
-    )
-}
-
-#[tokio::main]
-async fn main() {
-    let mut composition = Composition::new(app);
-    composition.build();
-
-    loop {
-        composition.rebuild().await;
-    }
+fn main() {
+    concoct::web::run(Counter { initial_value: 0 })
 }
 ```
 

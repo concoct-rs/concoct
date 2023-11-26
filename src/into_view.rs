@@ -11,20 +11,20 @@ impl<C: View> IntoView for C {
     }
 }
 
-macro_rules! impl_composable_for_tuple {
+macro_rules! impl_view_for_tuple {
     ($($a:ident: $b:tt),*) => {
         impl<$($a: IntoView),*> IntoView for ($($a),*) {
             fn into_view(self) -> impl View {
-                let mut composables = Some(self);
+                let mut views = Some(self);
                 let keys = *use_ref(|| {
                     BUILD_CONTEXT
                         .try_with(|cx| {
                             let mut g = cx.borrow_mut();
                             let mut cx = g.as_mut().unwrap().borrow_mut();
-                            let composables = composables.take().unwrap();
+                            let views = views.take().unwrap();
 
                             ($({
-                                let mut a = Some(composables.$b);
+                                let mut a = Some(views.$b);
                                 cx.insert(Box::new(move || Box::new(a.take().unwrap().into_view())))
                             }),*)
                         })
@@ -32,15 +32,15 @@ macro_rules! impl_composable_for_tuple {
                 })
                 .get();
 
-                if let Some(composables) = composables.take() {
+                if let Some(views) = views.take() {
                     BUILD_CONTEXT
                         .try_with(|cx| {
                             let mut g = cx.borrow_mut();
                             let cx = g.as_mut().unwrap().borrow_mut();
 
                             ($({
-                                let mut a = Some(composables.$b);
-                                cx.nodes[keys.$b].borrow_mut().make_composable =
+                                let mut a = Some(views.$b);
+                                cx.nodes[keys.$b].borrow_mut().make_view =
                                     Box::new(move || Box::new(a.take().unwrap().into_view()));
                             }),*)
                         })
@@ -51,13 +51,13 @@ macro_rules! impl_composable_for_tuple {
     };
 }
 
-macro_rules! impl_composable_for_tuples {
+macro_rules! impl_view_for_tuples {
     ($( ( $( $a:tt: $b:tt ),* ) ), * ) => {
-        $(impl_composable_for_tuple!($($a: $b),*);)*
+        $(impl_view_for_tuple!($($a: $b),*);)*
     };
 }
 
-impl_composable_for_tuples!(
+impl_view_for_tuples!(
     (A: 0, B: 1),
     (A: 0, B: 1, C: 2),
     (A: 0, B: 1, C: 2, D: 3),
