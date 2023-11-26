@@ -44,15 +44,27 @@ impl WebViewContext {
     }
 }
 
-pub fn div<C>(child: C) -> Html<WebHtml, C> {
-    Html::new(WebHtml {}, child)
+pub fn div<C>(child: C) -> Html<WebViewHtml, C> {
+    Html::new(WebViewHtml {}, child)
 }
 
 #[derive(PartialEq, Eq)]
-pub struct WebHtml {}
+pub struct WebViewHtml {}
 
-impl HtmlPlatform for WebHtml {
-    fn html(&mut self, html: &mut Builder) -> impl IntoView {}
+impl HtmlPlatform for WebViewHtml {
+    fn html(&mut self, html: &mut Builder) -> impl IntoView {
+        WebViewContext::current()
+            .inner
+            .borrow()
+            .web_view
+            .evaluate_script(&format!(
+                r#"
+                var element = document.createElement("div");
+                document.body.appendChild(element);
+            "#
+            ))
+            .unwrap();
+    }
 }
 
 pub struct WebView;
