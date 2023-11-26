@@ -8,6 +8,7 @@ struct Counter {
 impl View for Counter {
     fn view(&mut self) -> impl IntoView {
         let mut count = use_state(|| self.initial_value);
+
         (
             "High five count: {count}",
             div("Up High").on_click(|| count += 1),

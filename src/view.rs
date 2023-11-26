@@ -1,5 +1,4 @@
 use crate::{into_view::IntoView, BUILD_CONTEXT};
-use std::{cell::RefCell, rc::Rc};
 
 /// Viewable element that handles diffing.
 pub trait View: PartialEq + 'static {
@@ -9,8 +8,6 @@ pub trait View: PartialEq + 'static {
 impl View for () {
     fn view(&mut self) -> impl IntoView {}
 }
-
-
 
 impl View for &'static str {
     fn view(&mut self) -> impl IntoView {

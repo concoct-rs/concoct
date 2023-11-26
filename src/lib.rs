@@ -10,7 +10,7 @@ mod child;
 pub use self::child::Child;
 
 mod view;
-pub use view::{ View};
+pub use view::View;
 
 mod tree;
 pub use tree::Tree;
@@ -35,6 +35,9 @@ pub mod html;
 
 #[cfg(feature = "web")]
 pub mod web;
+
+#[cfg(feature = "webview")]
+pub mod webview;
 
 #[derive(Default)]
 struct GlobalContext {
