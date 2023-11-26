@@ -12,20 +12,22 @@ use winit::{
 use wry::WebViewBuilder;
 
 thread_local! {
-    static HTML_CONTEXT: RefCell<Option<WebContext>> = RefCell::default();
+    static HTML_CONTEXT: RefCell<Option<WebViewContext>> = RefCell::default();
 }
 
-struct Inner {}
+struct Inner {
+    web_view: wry::WebView,
+}
 
 #[derive(Clone)]
-pub struct WebContext {
+pub struct WebViewContext {
     inner: Rc<RefCell<Inner>>,
 }
 
-impl WebContext {
-    pub fn new() -> Self {
+impl WebViewContext {
+    pub fn new(web_view: wry::WebView) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(Inner {})),
+            inner: Rc::new(RefCell::new(Inner { web_view })),
         }
     }
 
@@ -53,21 +55,26 @@ impl HtmlPlatform for WebHtml {
     fn html(&mut self, html: &mut Builder) -> impl IntoView {}
 }
 
-pub struct Web;
+pub struct WebView;
 
-impl Platform for Web {
+impl Platform for WebView {
     fn from_str(&mut self, s: &str) -> Box<dyn crate::AnyView> {
+        WebViewContext::current()
+            .inner
+            .borrow()
+            .web_view
+            .evaluate_script(&format!(
+                r#"
+                    var node = document.createTextNode("{s}");
+                    document.body.appendChild(node);
+                "#
+            ))
+            .unwrap();
         Box::new(())
     }
 }
 
 pub fn run(content: impl IntoView) {
-    let cx = WebContext::new();
-    cx.enter();
-
-    let mut composition = Tree::new(Web, content);
-    composition.build();
-
     let event_loop = EventLoop::new().unwrap();
     let window =
         WindowBuilder::new()
@@ -77,11 +84,17 @@ pub fn run(content: impl IntoView) {
 
     #[allow(unused_mut)]
     let mut builder = WebViewBuilder::new(&window);
-    let _webview = builder
-        .with_url("https://tauri.app")
+    let web_view = builder
+        .with_html("<html><body></body></html>")
         .unwrap()
         .build()
         .unwrap();
+
+    let cx = WebViewContext::new(web_view);
+    cx.enter();
+
+    let mut composition = Tree::new(WebView, content);
+    composition.build();
 
     event_loop
         .run(move |event, evl| {

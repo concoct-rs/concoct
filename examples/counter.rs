@@ -10,7 +10,7 @@ impl View for Counter {
         let mut count = use_state(|| self.initial_value);
 
         (
-            "High five count: {count}",
+            format!("High five count: {count}"),
             div("Up High").on_click(|| count += 1),
             div("Down low").on_click(|| count -= 1),
         )
