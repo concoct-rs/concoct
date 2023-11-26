@@ -33,6 +33,9 @@ pub use use_state::{use_state, UseState};
 #[cfg(feature = "html")]
 pub mod html;
 
+#[cfg(feature = "native")]
+pub mod native;
+
 #[cfg(feature = "web")]
 pub mod web;
 

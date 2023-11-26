@@ -31,6 +31,7 @@ This library provides a generic diffing engine for user-interfaces and other rea
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 
+## Web/WebView
 ```rust
 #[derive(PartialEq)]
 struct Counter {
@@ -48,26 +49,29 @@ impl View for Counter {
         )
     }
 }
-```
 
-## Web
-```rust
 fn main() {
     concoct::web::run(Counter { initial_value: 0 })
-}
-```
 
-## Native (WebView)
-```rust
-fn main() {
+    // OR
+
     concoct::webview::run(Counter { initial_value: 0 })
 }
 ```
 
-## Native (Wgpu) - Planned
+## Native (Wgpu and WebViews)
 ```rust
+#[derive(PartialEq)]
+struct App;
+
+impl View for App {
+    fn view(&mut self) -> impl IntoView {
+        ("Native text", WebView::new("WebView text"))
+    }
+}
+
 fn main() {
-    concoct::native::run(Counter { initial_value: 0 })
+    concoct::native::run(App)
 }
 ```
 

@@ -49,3 +49,7 @@ features = [
 [[example]]
 name = "counter"
 required-features = ["webview"]
+
+[[example]]
+name = "native"
+required-features = ["webview"]

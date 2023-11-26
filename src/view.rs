@@ -21,7 +21,6 @@ impl View for &'static str {
     }
 }
 
-
 impl View for String {
     fn view(&mut self) -> impl IntoView {
         BUILD_CONTEXT
@@ -33,4 +32,3 @@ impl View for String {
             .unwrap();
     }
 }
-
