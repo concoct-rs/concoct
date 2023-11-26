@@ -19,8 +19,11 @@
 
 <div align="center">
  <a href="https://github.com/concoct-rs/concoct/tree/main/concoct_examples">Native Examples</a>
+  |
  <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Web Examples</a>
 </div>
+
+<br /><br />
 
 Concoct is an incremental computation framework for Rust.
 This library provides a generic diffing engine for user-interfaces and other reactive systems.
