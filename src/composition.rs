@@ -1,6 +1,6 @@
 use crate::{
-    composable::IntoComposable, AnyComposable, BuildContext, LocalContext, Node, Platform, Scope,
-    TaskContext, BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
+    AnyView, BuildContext, IntoView, LocalContext, Node, Platform, Scope, TaskContext,
+    BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
 };
 use futures::channel::mpsc;
 use futures::executor::LocalPool;
@@ -20,7 +20,7 @@ impl Composition {
     /// Create a new composition from it's root composable function.
     pub fn new<C>(platform: impl Platform + 'static, content: fn() -> C) -> Self
     where
-        C: IntoComposable + 'static,
+        C: IntoView + 'static,
     {
         let local_set = LocalPool::new();
         let (tx, rx) = mpsc::unbounded();
@@ -35,7 +35,7 @@ impl Composition {
             .unwrap();
 
         let make_composable = Box::new(move || {
-            let composable: Box<dyn AnyComposable> = Box::new(content().into_composer());
+            let composable: Box<dyn AnyView> = Box::new(content().into_view());
             composable
         });
 
@@ -122,7 +122,7 @@ impl Composition {
                     node.composable.as_ref().unwrap().clone()
                 }
             };
-            composable.borrow_mut().any_build();
+            composable.borrow_mut().any_view();
 
             self.build_cx.borrow().children.get(key).cloned()
         };
@@ -151,9 +151,10 @@ impl Composition {
             .unwrap();
 
         loop {
-            let fut = async {
-                self.rx.next().await;
-            };
+            let fut =
+                async {
+                    self.rx.next().await;
+                };
 
             if futures::poll!(Box::pin(fut)).is_ready() {
                 break;

@@ -3,14 +3,17 @@ use futures::executor::LocalPool;
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
 use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
 
-mod any_composable;
-pub use any_composable::AnyComposable;
+mod any_view;
+pub use any_view::AnyView;
 
 mod composable;
-pub use composable::{Composable, IntoComposable, Child};
+pub use composable::{Child, View};
 
 mod composition;
 pub use composition::Composition;
+
+mod into_view;
+pub use self::into_view::IntoView;
 
 mod node;
 use node::Node;
@@ -53,11 +56,11 @@ thread_local! {
 }
 
 pub trait Platform {
-    fn from_str(&mut self, s: &str) -> Box<dyn AnyComposable>;
+    fn from_str(&mut self, s: &str) -> Box<dyn AnyView>;
 }
 
 impl Platform for () {
-    fn from_str(&mut self, _s: &str) -> Box<dyn AnyComposable> {
+    fn from_str(&mut self, _s: &str) -> Box<dyn AnyView> {
         Box::new(())
     }
 }
@@ -81,10 +84,7 @@ impl BuildContext {
         }
     }
 
-    pub fn insert(
-        &mut self,
-        make_composable: Box<dyn FnMut() -> Box<dyn AnyComposable>>,
-    ) -> DefaultKey {
+    pub fn insert(&mut self, make_composable: Box<dyn FnMut() -> Box<dyn AnyView>>) -> DefaultKey {
         let node = Node {
             make_composable,
             composable: None,

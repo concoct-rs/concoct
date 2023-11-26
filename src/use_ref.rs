@@ -11,15 +11,16 @@ use std::{
 
 /// A hook that lets you reference a value that’s not needed for rendering.
 pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> UseRef<T> {
-    let rc = use_hook_value(|| {
-        GLOBAL_CONTEXT
-            .try_with(|cx| {
-                cx.borrow_mut()
-                    .values
-                    .insert(Rc::new(RefCell::new(make_value())))
-            })
-            .unwrap()
-    });
+    let rc =
+        use_hook_value(|| {
+            GLOBAL_CONTEXT
+                .try_with(|cx| {
+                    cx.borrow_mut()
+                        .values
+                        .insert(Rc::new(RefCell::new(make_value())))
+                })
+                .unwrap()
+        });
     let guard = rc.borrow();
     let key: &DefaultKey = guard.downcast_ref().unwrap();
 
@@ -34,12 +35,13 @@ pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<
     let mut inner = cx.scope.borrow_mut();
     let mut hooks = inner.hooks.borrow_mut();
 
-    let value = if let Some(hook) = hooks.get(inner.idx) {
-        hook.clone()
-    } else {
-        hooks.push(Rc::new(RefCell::new(make_value())));
-        hooks.last().unwrap().clone()
-    };
+    let value =
+        if let Some(hook) = hooks.get(inner.idx) {
+            hook.clone()
+        } else {
+            hooks.push(Rc::new(RefCell::new(make_value())));
+            hooks.last().unwrap().clone()
+        };
 
     drop(hooks);
     inner.idx += 1;

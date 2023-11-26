@@ -1,21 +1,21 @@
-use crate::{composable::IntoComposable, Composable};
+use crate::{IntoView, View};
 use std::any::Any;
 
-pub trait AnyComposable {
+pub trait AnyView {
     fn as_any(&self) -> &dyn Any;
 
-    fn any_build(&mut self) -> Box<dyn Any>;
+    fn any_view(&mut self) -> Box<dyn Any>;
 
     fn any_eq(&self, other: &dyn Any) -> bool;
 }
 
-impl<C: Composable> AnyComposable for C {
+impl<C: View> AnyView for C {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
-    fn any_build(&mut self) -> Box<dyn Any> {
-        Box::new(self.compose().into_composer())
+    fn any_view(&mut self) -> Box<dyn Any> {
+        Box::new(self.view().into_view())
     }
 
     fn any_eq(&self, other: &dyn Any) -> bool {

@@ -1,8 +1,8 @@
-use crate::{Child, Composable, IntoComposable};
+use crate::{Child, IntoView, View};
 use std::borrow::Cow;
 
 pub trait HtmlPlatform: Sized {
-    fn html(&mut self, html: &mut Builder) -> impl IntoComposable;
+    fn html(&mut self, html: &mut Builder) -> impl IntoView;
 }
 
 #[derive(Default, PartialEq, Eq)]
@@ -45,12 +45,12 @@ impl<P, C> PartialEq for Html<P, C> {
     }
 }
 
-impl<P, C> Composable for Html<P, C>
+impl<P, C> View for Html<P, C>
 where
     P: HtmlPlatform + 'static,
-    C: IntoComposable,
+    C: IntoView,
 {
-    fn compose(&mut self) -> impl IntoComposable {
+    fn view(&mut self) -> impl IntoView {
         (self.platform.html(&mut self.builder), self.child.clone())
     }
 }

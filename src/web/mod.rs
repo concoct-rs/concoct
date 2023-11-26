@@ -3,7 +3,7 @@ use web_sys::{Document, HtmlElement};
 
 use crate::{
     html::{Builder, Html, HtmlPlatform},
-    Composition, IntoComposable, Platform,
+    Composition, IntoView, Platform,
 };
 
 thread_local! {
@@ -51,7 +51,7 @@ pub fn html<C>(child: C) -> Html<WebHtml, C> {
 pub struct WebHtml {}
 
 impl HtmlPlatform for WebHtml {
-    fn html(&mut self, html: &mut Builder) -> impl IntoComposable {
+    fn html(&mut self, html: &mut Builder) -> impl IntoView {
         let cx = WebContext::current();
         let inner = cx.inner.borrow_mut();
         let element = inner.document.create_element("div").unwrap();
@@ -67,7 +67,7 @@ impl HtmlPlatform for WebHtml {
 pub struct Web;
 
 impl Platform for Web {
-    fn from_str(&mut self, s: &str) -> Box<dyn crate::AnyComposable> {
+    fn from_str(&mut self, s: &str) -> Box<dyn crate::AnyView> {
         let cx = WebContext::current();
         let inner = cx.inner.borrow_mut();
         let node = inner.document.create_text_node(s);
@@ -80,7 +80,7 @@ impl Platform for Web {
 
 pub fn run<C>(content: fn() -> C)
 where
-    C: IntoComposable + 'static,
+    C: IntoView + 'static,
 {
     let cx = WebContext::new();
     cx.enter();

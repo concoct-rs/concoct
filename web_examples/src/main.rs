@@ -1,6 +1,6 @@
-use concoct::{use_state, web::html, IntoComposable};
+use concoct::{use_state, web::html, IntoView};
 
-fn app() -> impl IntoComposable {
+fn app() -> impl IntoView {
     let mut count = use_state(|| 0);
     (
         "High five count: ",
