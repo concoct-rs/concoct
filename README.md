@@ -1,8 +1,6 @@
-<p align="center">
-  <img alt="logo" src="./logo.png">
-</p>
-
 <div align="center">
+  <h1>Concoct</h1>
+  
  <a href="https://crates.io/crates/concoct">
     <img src="https://img.shields.io/crates/v/concoct?style=flat-square"
     alt="Crates.io version" />
