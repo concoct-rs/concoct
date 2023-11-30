@@ -1,5 +1,5 @@
 use crate::View;
-use crate::{use_ref, BUILD_CONTEXT};
+use crate::{use_ref, ViewContext};
 
 pub trait IntoView: 'static {
     fn into_view(self) -> impl View;
@@ -17,34 +17,24 @@ macro_rules! impl_view_for_tuple {
             fn into_view(self) -> impl View {
                 let mut views = Some(self);
                 let keys = *use_ref(|| {
-                    BUILD_CONTEXT
-                        .try_with(|cx| {
-                            let mut g = cx.borrow_mut();
-                            let mut cx = g.as_mut().unwrap().borrow_mut();
-                            let views = views.take().unwrap();
+                    let mut cx = ViewContext::current();
+                    let views = views.take().unwrap();
 
-                            ($({
-                                let mut a = Some(views.$b);
-                                cx.insert(Box::new(move || Box::new(a.take().unwrap().into_view())))
-                            }),*)
-                        })
-                        .unwrap()
+                    ($({
+                        let mut a = Some(views.$b);
+                        cx.insert(Box::new(move || Box::new(a.take().unwrap().into_view())))
+                    }),*)
                 })
                 .get();
 
                 if let Some(views) = views.take() {
-                    BUILD_CONTEXT
-                        .try_with(|cx| {
-                            let mut g = cx.borrow_mut();
-                            let cx = g.as_mut().unwrap().borrow_mut();
+                    let cx = ViewContext::current();
 
-                            ($({
-                                let mut a = Some(views.$b);
-                                cx.nodes[keys.$b].borrow_mut().make_view =
-                                    Box::new(move || Box::new(a.take().unwrap().into_view()));
-                            }),*)
-                        })
-                        .unwrap();
+                    ($({
+                        let mut a = Some(views.$b);
+                        cx.inner.borrow_mut().nodes[keys.$b].borrow_mut().make_view =
+                            Box::new(move || Box::new(a.take().unwrap().into_view()));
+                    }),*);
                 }
             }
         }

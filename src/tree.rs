@@ -1,6 +1,6 @@
 use crate::{
-    AnyView, BuildContext, IntoView, LocalContext, Node, Platform, Scope, TaskContext,
-    BUILD_CONTEXT, GLOBAL_CONTEXT, TASK_CONTEXT,
+    AnyView, IntoView, LocalContext, Node, Platform, Scope, TaskContext, ViewContext,
+    GLOBAL_CONTEXT, TASK_CONTEXT,
 };
 use futures::channel::mpsc;
 use futures::executor::LocalPool;
@@ -10,7 +10,7 @@ use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 /// A composition of views.
 pub struct Tree {
-    build_cx: Rc<RefCell<BuildContext>>,
+    build_cx: ViewContext,
     root: DefaultKey,
     task_cx: TaskContext,
     rx: mpsc::UnboundedReceiver<Box<dyn Any>>,
@@ -26,10 +26,8 @@ impl Tree {
             local_pool: Rc::new(RefCell::new(local_set)),
         };
 
-        let build_cx = Rc::new(RefCell::new(BuildContext::new(platform)));
-        BUILD_CONTEXT
-            .try_with(|cx| *cx.borrow_mut() = Some(build_cx.clone()))
-            .unwrap();
+        let build_cx = ViewContext::new(platform);
+        build_cx.clone().enter();
 
         let mut content = Some(content);
         let make_view = Box::new(move || {
@@ -44,6 +42,7 @@ impl Tree {
             contexts: HashMap::new(),
         };
         let root = build_cx
+            .inner
             .borrow_mut()
             .nodes
             .insert(Rc::new(RefCell::new(node)));
@@ -57,7 +56,7 @@ impl Tree {
     }
 
     pub fn len(&self) -> usize {
-        self.build_cx.borrow().nodes.len()
+        self.build_cx.inner.borrow().nodes.len()
     }
 
     // TODO switch from this recursive method
@@ -67,12 +66,10 @@ impl Tree {
                 .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
                 .unwrap();
 
-            BUILD_CONTEXT
-                .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
-                .unwrap();
+            self.build_cx.clone().enter();
 
             {
-                let mut cx = self.build_cx.borrow_mut();
+                let mut cx = self.build_cx.inner.borrow_mut();
                 let contexts = if let Some(parent_node) = cx.nodes.get(cx.parent_key) {
                     parent_node.borrow().contexts.clone()
                 } else {
@@ -94,7 +91,7 @@ impl Tree {
 
             let view = {
                 let node_cell = {
-                    let build_cx = self.build_cx.borrow_mut();
+                    let build_cx = self.build_cx.inner.borrow_mut();
                     build_cx.nodes[key].clone()
                 };
                 let mut node = node_cell.borrow_mut();
@@ -105,10 +102,10 @@ impl Tree {
 
                     view.borrow_mut().any_view();
 
-                    let children = self.build_cx.borrow().children.get(key).cloned();
+                    let children = self.build_cx.inner.borrow().children.get(key).cloned();
                     if let Some(children) = children {
                         for child_key in children {
-                            self.build_cx.borrow_mut().nodes[child_key]
+                            self.build_cx.inner.borrow_mut().nodes[child_key]
                                 .borrow_mut()
                                 .view
                                 .take();
@@ -123,7 +120,7 @@ impl Tree {
                 if let Some(ref view) = node.view {
                     let mut is_dirty = false;
                     if new_view.any_eq(view.borrow().as_any()) {
-                        if let Some(tracked) = self.build_cx.borrow_mut().tracked.get(key) {
+                        if let Some(tracked) = self.build_cx.inner.borrow_mut().tracked.get(key) {
                             for tracked_key in tracked {
                                 if GLOBAL_CONTEXT
                                     .try_with(|cx| cx.borrow().dirty.contains(tracked_key))
@@ -152,19 +149,19 @@ impl Tree {
             loop {
                 child = child.any_view();
 
-                let mut build_cx = self.build_cx.borrow_mut();
+                let mut build_cx = self.build_cx.inner.borrow_mut();
                 if build_cx.is_done {
                     build_cx.is_done = false;
                     break;
                 }
             }
 
-            self.build_cx.borrow().children.get(key).cloned()
+            self.build_cx.inner.borrow().children.get(key).cloned()
         };
 
         if let Some(children) = children {
             for child_key in children {
-                self.build_cx.borrow_mut().nodes[child_key]
+                self.build_cx.inner.borrow_mut().nodes[child_key]
                     .borrow_mut()
                     .view
                     .take();

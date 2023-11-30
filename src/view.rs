@@ -1,4 +1,4 @@
-use crate::{into_view::IntoView, BUILD_CONTEXT};
+use crate::{into_view::IntoView, ViewContext};
 
 /// Viewable element that handles diffing.
 pub trait View: PartialEq + 'static {
@@ -7,34 +7,20 @@ pub trait View: PartialEq + 'static {
 
 impl View for () {
     fn view(&mut self) -> impl IntoView {
-        BUILD_CONTEXT
-            .try_with(|cx| cx.borrow_mut().as_ref().unwrap().borrow_mut().is_done = true)
-            .unwrap();
+        ViewContext::current().inner.borrow_mut().is_done = true;
     }
 }
 
 impl View for &'static str {
     fn view(&mut self) -> impl IntoView {
-        let platform = BUILD_CONTEXT
-            .try_with(|cx| {
-                let g = cx.borrow();
-                let cx = g.as_ref().unwrap().borrow_mut();
-                cx.platform.clone()
-            })
-            .unwrap();
+        let platform = ViewContext::current().inner.borrow().platform.clone();
         platform.from_str(self).any_view();
     }
 }
 
 impl View for String {
     fn view(&mut self) -> impl IntoView {
-        let platform = BUILD_CONTEXT
-            .try_with(|cx| {
-                let g = cx.borrow();
-                let cx = g.as_ref().unwrap().borrow_mut();
-                cx.platform.clone()
-            })
-            .unwrap();
+        let platform = ViewContext::current().inner.borrow().platform.clone();
         platform.from_str(self).any_view();
     }
 }
