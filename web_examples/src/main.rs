@@ -1,4 +1,4 @@
-use concoct::{use_state, web::div, IntoView, View};
+use concoct::prelude::*;
 
 #[derive(PartialEq)]
 struct Counter {
@@ -11,8 +11,8 @@ impl View for Counter {
 
         (
             format!("High five count: {count}"),
-            div("Up High").on_click(move || count += 1),
-            div("Down low").on_click(move || count -= 1),
+            button("Up High").on_click(move || count += 1),
+            button("Down low").on_click(move || count -= 1),
         )
     }
 }

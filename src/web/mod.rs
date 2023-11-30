@@ -3,7 +3,7 @@ use crate::{
     use_context, use_provider, use_ref, Child, IntoView, LocalContext, Platform, Tree,
     TASK_CONTEXT,
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use wasm_bindgen::{closure::Closure, JsCast};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{Document, HtmlElement, Node};
@@ -45,8 +45,29 @@ impl WebContext {
     }
 }
 
-pub fn div<C>(child: C) -> Html<WebHtml, C> {
-    Html::new(WebHtml {}, child)
+macro_rules! impl_html_tags {
+    ($($tag:ident),*) => {
+        $(
+            pub fn $tag<C>(child: C) -> Html<WebHtml, C> {
+                html(stringify!($tag), child)
+            }
+        )*
+    };
+}
+
+impl_html_tags!(
+    a, abbr, address, article, aside, audio, b, bdi, bdo, blockquote, body, br, button, canvas,
+    caption, cite, code, col, colgroup, data, datalist, dd, del, details, dfn, dialog, div, dl, dt,
+    em, embed, fieldset, figcaption, figure, footer, form, h1, h2, h3, h4, h5, h6, head, header,
+    hgroup, hr, i, iframe, img, input, ins, kbd, label, legend, li, link, main, map, mark, meta,
+    meter, nav, noscript, object, ol, optgroup, option, output, p, param, picture, pre, progress,
+    q, rp, rt, ruby, s, samp, script, section, select, small, source, span, strong, style, sub,
+    summary, sup, table, tbody, td, template, textarea, tfoot, th, thead, time, title, tr, track,
+    u, ul, var, video, wbr
+);
+
+pub fn html<C>(tag: impl Into<Cow<'static, str>>, child: C) -> Html<WebHtml, C> {
+    Html::new(tag, WebHtml {}, child)
 }
 
 #[derive(PartialEq, Eq)]
@@ -60,11 +81,10 @@ impl HtmlPlatform for WebHtml {
         child: Child<C>,
     ) -> impl IntoView {
         let callbacks = use_ref(|| Vec::new());
-
         let element = use_ref(|| {
             let cx = WebContext::current();
             let inner = cx.inner.borrow_mut();
-            let element = inner.document.create_element("div").unwrap();
+            let element = inner.document.create_element(&html.tag).unwrap();
 
             for (name, value) in &html.attrs {
                 match &value {
@@ -102,6 +122,7 @@ impl HtmlPlatform for WebHtml {
         use_provider(|| HtmlParent {
             node: element.get().clone().unchecked_into(),
         });
+
         child
     }
 }

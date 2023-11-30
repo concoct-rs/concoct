@@ -29,6 +29,7 @@ impl PartialEq for AttributeValue {
 
 #[derive(Default, PartialEq)]
 pub struct Builder {
+    pub tag: Cow<'static, str>,
     pub attrs: Vec<(Cow<'static, str>, AttributeValue)>,
 }
 
@@ -39,10 +40,13 @@ pub struct Html<P, C> {
 }
 
 impl<P, C> Html<P, C> {
-    pub fn new(platform: P, child: C) -> Self {
+    pub fn new(tag: impl Into<Cow<'static, str>>, platform: P, child: C) -> Self {
         Self {
             platform,
-            builder: Builder::default(),
+            builder: Builder {
+                tag: tag.into(),
+                attrs: Vec::new(),
+            },
             child: Child::new(child),
         }
     }

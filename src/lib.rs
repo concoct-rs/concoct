@@ -44,6 +44,16 @@ pub mod html;
 #[cfg(feature = "web")]
 pub mod web;
 
+pub mod prelude {
+    pub use crate::{
+        use_context, use_future, use_provider, use_ref, use_state, IntoView, UseContext, UseRef,
+        UseState, View,
+    };
+
+    #[cfg(feature = "web")]
+    pub use crate::web::*;
+}
+
 #[derive(Default)]
 struct GlobalContext {
     values: SlotMap<DefaultKey, Rc<RefCell<dyn Any>>>,
