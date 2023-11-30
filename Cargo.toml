@@ -14,7 +14,7 @@ members = [
 
 [features]
 html = []
-web = ["html", "dep:js-sys", "dep:wasm-bindgen", "dep:web-sys"]
+web = ["html", "dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dep:wasm-bindgen-futures"]
 full = ["web"]
 
 [dependencies]
@@ -24,6 +24,7 @@ slotmap = "1.0.6"
 js-sys = { version = "0.3.65", optional = true }
 wasm-bindgen = { version = "0.2.88", optional = true }
 log = "0.4.20"
+wasm-bindgen-futures = { version = "0.4.39", optional = true }
 
 [dependencies.web-sys]
 version = "0.3.65"

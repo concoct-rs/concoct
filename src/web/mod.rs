@@ -1,9 +1,11 @@
 use crate::{
     html::{Builder, Html, HtmlParent, HtmlPlatform},
-    use_context, use_provider, Child, IntoView, Platform, Tree,
+    use_context, use_provider, use_ref, Child, IntoView, LocalContext, Platform, Tree,
+    TASK_CONTEXT,
 };
 use std::{cell::RefCell, rc::Rc};
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{closure::Closure, JsCast};
+use wasm_bindgen_futures::spawn_local;
 use web_sys::{Document, HtmlElement, Node};
 
 thread_local! {
@@ -61,8 +63,30 @@ impl HtmlPlatform for WebHtml {
         let inner = cx.inner.borrow_mut();
         let element = inner.document.create_element("div").unwrap();
 
+        let callbacks = use_ref(|| Vec::new());
+
         for (name, value) in &html.attrs {
-            element.set_attribute(&name, &value).unwrap();
+            match &value {
+                crate::html::AttributeValue::String(s) => element.set_attribute(&name, s).unwrap(),
+                crate::html::AttributeValue::Callback(callback) => {
+                    let callback = callback.clone();
+                    let local_cx = LocalContext::current();
+                    let task_cx = TASK_CONTEXT
+                        .try_with(|cx| cx.clone().borrow().as_ref().unwrap().clone())
+                        .unwrap();
+                    let listener: Closure<dyn FnMut()> = Closure::wrap(Box::new(move || {
+                        local_cx.clone().enter();
+                        TASK_CONTEXT
+                            .try_with(|cx| *cx.borrow_mut() = Some(task_cx.clone()))
+                            .unwrap();
+                        callback.borrow_mut()();
+                    }));
+                    element
+                        .add_event_listener_with_callback(&name, listener.as_ref().unchecked_ref())
+                        .unwrap();
+                    callbacks.get_mut().push(listener);
+                }
+            }
         }
 
         let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
@@ -97,5 +121,12 @@ pub fn run(content: impl IntoView) {
     cx.enter();
 
     let mut composition = Tree::new(Web, content);
-    composition.build()
+    composition.build();
+
+    spawn_local(async move {
+        loop {
+            composition.rebuild().await;
+            log::info!("rebuild");
+        }
+    })
 }

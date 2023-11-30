@@ -36,7 +36,10 @@ pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<
     let hooks = inner.hooks.borrow();
 
     let value = if let Some(hook) = hooks.get(inner.idx) {
-        hook.clone()
+        let hook = hook.clone();
+        drop(hooks);
+        drop(inner);
+        hook
     } else {
         drop(hooks);
         drop(inner);
@@ -81,7 +84,7 @@ impl<T: 'static> UseRef<T> {
         Ref { _rc: rc, value }
     }
 
-    pub fn get_mut(self) -> Ref<T> {
+    pub fn get_mut(self) -> RefMut<T> {
         let rc = GLOBAL_CONTEXT
             .try_with(|cx| cx.borrow_mut().values[self.key].clone())
             .unwrap();
@@ -89,7 +92,7 @@ impl<T: 'static> UseRef<T> {
             std::cell::RefMut::map(rc.borrow_mut(), |cell| cell.downcast_mut::<T>().unwrap());
         let value = unsafe { mem::transmute(value) };
 
-        Ref { _rc: rc, value }
+        RefMut { _rc: rc, value }
     }
 }
 

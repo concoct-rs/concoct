@@ -93,13 +93,22 @@ impl Tree {
             }
 
             let view = {
-                let node = {
+                let node_cell = {
                     let build_cx = self.build_cx.borrow_mut();
                     build_cx.nodes[key].clone()
                 };
-                let mut node = node.borrow_mut();
-                let new_view = (node.make_view)();
+                let mut node = node_cell.borrow_mut();
 
+                if let Some(view) = node.view.clone() {
+                    drop(node);
+                    drop(node_cell);
+
+                    view.borrow_mut().any_view();
+
+                    return;
+                }
+
+                let new_view = (node.make_view)();
                 if let Some(ref view) = node.view {
                     let mut is_dirty = false;
                     if new_view.any_eq(view.borrow().as_any()) {
@@ -146,6 +155,10 @@ impl Tree {
 
         if let Some(children) = children {
             for child_key in children {
+                self.build_cx.borrow_mut().nodes[child_key]
+                    .borrow_mut()
+                    .view
+                    .take();
                 self.compose(child_key);
             }
         }
@@ -167,18 +180,20 @@ impl Tree {
             .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
             .unwrap();
 
-        loop {
-            let fut =
-                async {
-                    self.rx.next().await;
-                };
+        log::info!("A");
 
-            if futures::poll!(Box::pin(fut)).is_ready() {
+        loop {
+            let fut = self.rx.next();
+            if futures::poll!(fut).is_ready() {
                 break;
             }
 
             self.task_cx.local_pool.borrow_mut().run_until_stalled();
+
+            futures::pending!();
         }
+
+        log::info!("B");
 
         self.compose(self.root);
         GLOBAL_CONTEXT

@@ -28,6 +28,7 @@ impl View for &'static str {
 
 impl View for String {
     fn view(&mut self) -> impl IntoView {
+        log::info!("{}", self);
         let platform = BUILD_CONTEXT
             .try_with(|cx| {
                 let g = cx.borrow();
