@@ -105,6 +105,17 @@ impl Tree {
 
                     view.borrow_mut().any_view();
 
+                    let children = self.build_cx.borrow().children.get(key).cloned();
+                    if let Some(children) = children {
+                        for child_key in children {
+                            self.build_cx.borrow_mut().nodes[child_key]
+                                .borrow_mut()
+                                .view
+                                .take();
+                            self.compose(child_key);
+                        }
+                    }
+
                     return;
                 }
 
@@ -129,14 +140,12 @@ impl Tree {
 
                     if is_dirty {
                         *view.borrow_mut() = new_view;
-                        node.view.as_ref().unwrap().clone()
-                    } else {
-                        return;
                     }
                 } else {
                     node.view = Some(Rc::new(RefCell::new(new_view)));
-                    node.view.as_ref().unwrap().clone()
-                }
+                };
+
+                node.view.as_ref().unwrap().clone()
             };
 
             let mut child = view.borrow_mut().any_view();
@@ -180,8 +189,6 @@ impl Tree {
             .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
             .unwrap();
 
-        log::info!("A");
-
         loop {
             let fut = self.rx.next();
             if futures::poll!(fut).is_ready() {
@@ -192,8 +199,6 @@ impl Tree {
 
             futures::pending!();
         }
-
-        log::info!("B");
 
         self.compose(self.root);
         GLOBAL_CONTEXT

@@ -39,7 +39,7 @@ impl<T: 'static> UseState<T> {
             .unwrap();
 
         let rc = GLOBAL_CONTEXT
-            .try_with(|cx| cx.borrow_mut().values[self.hook.key].clone())
+            .try_with(|cx| cx.borrow().values[self.hook.key].clone())
             .unwrap();
         let output: Ref<'_, T> = Ref::map(rc.borrow(), |value| value.downcast_ref().unwrap());
         unsafe { mem::transmute(output) }

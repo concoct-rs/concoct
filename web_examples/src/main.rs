@@ -9,8 +9,6 @@ impl View for Counter {
     fn view(&mut self) -> impl IntoView {
         let mut count = use_state(|| self.initial_value);
 
-        log::info!("{count}");
-
         (
             format!("High five count: {count}"),
             div("Up High").on_click(move || count += 1),

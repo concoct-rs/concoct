@@ -1,5 +1,5 @@
 use crate::{
-    html::{Builder, Html, HtmlParent, HtmlPlatform},
+    html::{AttributeValue, Builder, Html, HtmlParent, HtmlPlatform},
     use_context, use_provider, use_ref, Child, IntoView, LocalContext, Platform, Tree,
     TASK_CONTEXT,
 };
@@ -59,41 +59,48 @@ impl HtmlPlatform for WebHtml {
         parent: Option<Node>,
         child: Child<C>,
     ) -> impl IntoView {
-        let cx = WebContext::current();
-        let inner = cx.inner.borrow_mut();
-        let element = inner.document.create_element("div").unwrap();
-
         let callbacks = use_ref(|| Vec::new());
 
-        for (name, value) in &html.attrs {
-            match &value {
-                crate::html::AttributeValue::String(s) => element.set_attribute(&name, s).unwrap(),
-                crate::html::AttributeValue::Callback(callback) => {
-                    let callback = callback.clone();
-                    let local_cx = LocalContext::current();
-                    let task_cx = TASK_CONTEXT
-                        .try_with(|cx| cx.clone().borrow().as_ref().unwrap().clone())
-                        .unwrap();
-                    let listener: Closure<dyn FnMut()> = Closure::wrap(Box::new(move || {
-                        local_cx.clone().enter();
-                        TASK_CONTEXT
-                            .try_with(|cx| *cx.borrow_mut() = Some(task_cx.clone()))
+        let element = use_ref(|| {
+            let cx = WebContext::current();
+            let inner = cx.inner.borrow_mut();
+            let element = inner.document.create_element("div").unwrap();
+
+            for (name, value) in &html.attrs {
+                match &value {
+                    AttributeValue::String(s) => element.set_attribute(&name, s).unwrap(),
+                    AttributeValue::Callback(callback) => {
+                        let callback = callback.clone();
+                        let local_cx = LocalContext::current();
+                        let task_cx = TASK_CONTEXT
+                            .try_with(|cx| cx.clone().borrow().as_ref().unwrap().clone())
                             .unwrap();
-                        callback.borrow_mut()();
-                    }));
-                    element
-                        .add_event_listener_with_callback(&name, listener.as_ref().unchecked_ref())
-                        .unwrap();
-                    callbacks.get_mut().push(listener);
+                        let listener: Closure<dyn FnMut()> = Closure::wrap(Box::new(move || {
+                            local_cx.clone().enter();
+                            TASK_CONTEXT
+                                .try_with(|cx| *cx.borrow_mut() = Some(task_cx.clone()))
+                                .unwrap();
+                            callback.borrow_mut()();
+                        }));
+                        element
+                            .add_event_listener_with_callback(
+                                &name,
+                                listener.as_ref().unchecked_ref(),
+                            )
+                            .unwrap();
+                        callbacks.get_mut().push(listener);
+                    }
                 }
             }
-        }
 
-        let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
-        parent.append_child(&element).unwrap();
+            let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
+            parent.append_child(&element).unwrap();
+
+            element
+        });
 
         use_provider(|| HtmlParent {
-            node: element.unchecked_into(),
+            node: element.get().clone().unchecked_into(),
         });
         child
     }
@@ -103,14 +110,24 @@ pub struct Web;
 
 impl Platform for Web {
     fn from_str(&self, s: &str) -> Box<dyn crate::AnyView> {
-        let cx = WebContext::current();
-        let inner = cx.inner.borrow_mut();
-        let node = inner.document.create_text_node(s);
-
         let parent = use_context::<HtmlParent>().map(|parent| parent.get().node.clone());
 
-        let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
-        parent.append_child(&node).unwrap();
+        let state = use_ref(|| s.to_string());
+
+        let node = use_ref(|| {
+            let cx = WebContext::current();
+            let inner = cx.inner.borrow_mut();
+            let node = inner.document.create_text_node(s);
+
+            let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
+            parent.append_child(&node).unwrap();
+            node
+        });
+
+        if s != &*state.get() {
+            node.get_mut().set_text_content(Some(s));
+            *state.get_mut() = s.to_string();
+        }
 
         Box::new(())
     }
@@ -126,7 +143,6 @@ pub fn run(content: impl IntoView) {
     spawn_local(async move {
         loop {
             composition.rebuild().await;
-            log::info!("rebuild");
         }
     })
 }
