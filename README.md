@@ -44,40 +44,20 @@ impl View for Counter {
 
         (
             format!("High five count: {count}"),
-            button("Up High").on_click(|| count += 1),
-            button("Down low").on_click(|| count -= 1),
+            button("Up High").on_click(move || count += 1),
+            button("Down low").on_click(move || count -= 1),
         )
     }
 }
 
 fn main() {
     concoct::web::run(Counter { initial_value: 0 })
-
-    // OR
-
-    concoct::webview::run(Counter { initial_value: 0 })
-}
-```
-
-## Native (Wgpu and WebViews)
-```rust
-#[derive(PartialEq)]
-struct App;
-
-impl View for App {
-    fn view(&mut self) -> impl IntoView {
-        ("Native text", WebView::new("WebView text"))
-    }
-}
-
-fn main() {
-    concoct::native::run(App)
 }
 ```
 
 ## Installation
 This crate currently requires rust nightly.
-You can install concoct by running:
+You can install concoct for web by running:
 ```
-cargo add concoct --features full
+cargo add concoct --features web
 ```
