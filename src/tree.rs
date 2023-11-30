@@ -129,7 +129,17 @@ impl Tree {
                     node.view.as_ref().unwrap().clone()
                 }
             };
-            view.borrow_mut().any_view();
+
+            let mut child = view.borrow_mut().any_view();
+            loop {
+                child = child.any_view();
+
+                let mut build_cx = self.build_cx.borrow_mut();
+                if build_cx.is_done {
+                    build_cx.is_done = false;
+                    break;
+                }
+            }
 
             self.build_cx.borrow().children.get(key).cloned()
         };

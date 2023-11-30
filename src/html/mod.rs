@@ -1,8 +1,15 @@
-use crate::{Child, IntoView, View};
+use web_sys::Node;
+
+use crate::{use_context, Child, IntoView, View};
 use std::borrow::Cow;
 
 pub trait HtmlPlatform: Sized {
-    fn html(&mut self, html: &mut Builder) -> impl IntoView;
+    fn html<C: IntoView>(
+        &mut self,
+        html: &mut Builder,
+        parent: Option<Node>,
+        child: Child<C>,
+    ) -> impl IntoView;
 }
 
 #[derive(Default, PartialEq, Eq)]
@@ -45,12 +52,19 @@ impl<P, C> PartialEq for Html<P, C> {
     }
 }
 
+pub struct HtmlParent {
+    pub(crate) node: Node,
+}
+
 impl<P, C> View for Html<P, C>
 where
     P: HtmlPlatform + 'static,
     C: IntoView,
 {
     fn view(&mut self) -> impl IntoView {
-        (self.platform.html(&mut self.builder), self.child.clone())
+        let parent = use_context::<HtmlParent>().map(|parent| parent.get().node.clone());
+
+        self.platform
+            .html(&mut self.builder, parent, self.child.clone())
     }
 }

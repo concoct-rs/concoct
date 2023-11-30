@@ -29,6 +29,9 @@ use node::Node;
 mod use_ref;
 pub use use_ref::{use_ref, Ref, RefMut, UseRef};
 
+mod use_context;
+pub use use_context::{use_context, use_provider, UseContext};
+
 mod use_future;
 pub use use_future::use_future;
 
@@ -79,6 +82,7 @@ pub struct BuildContext {
     children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
     tracked: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
     platform: Box<dyn Platform>,
+    is_done: bool,
 }
 
 impl BuildContext {
@@ -89,6 +93,7 @@ impl BuildContext {
             children: Default::default(),
             tracked: Default::default(),
             platform: Box::new(platform),
+            is_done: false,
         }
     }
 

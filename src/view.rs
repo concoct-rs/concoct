@@ -6,7 +6,11 @@ pub trait View: PartialEq + 'static {
 }
 
 impl View for () {
-    fn view(&mut self) -> impl IntoView {}
+    fn view(&mut self) -> impl IntoView {
+        BUILD_CONTEXT
+            .try_with(|cx| cx.borrow_mut().as_ref().unwrap().borrow_mut().is_done = true)
+            .unwrap();
+    }
 }
 
 impl View for &'static str {

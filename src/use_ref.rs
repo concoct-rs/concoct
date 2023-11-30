@@ -32,20 +32,28 @@ pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> UseRef<T> {
 
 pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<dyn Any>> {
     let cx = LocalContext::current();
+    let inner = cx.scope.borrow_mut();
+    let hooks = inner.hooks.borrow();
+
+    let value = if let Some(hook) = hooks.get(inner.idx) {
+        hook.clone()
+    } else {
+        drop(hooks);
+        drop(inner);
+
+        let value = make_value();
+
+        let cx = LocalContext::current();
+        let inner = cx.scope.borrow_mut();
+        let mut hooks = inner.hooks.borrow_mut();
+
+        hooks.push(Rc::new(RefCell::new(value)));
+        hooks.last().unwrap().clone()
+    };
+
+    let cx = LocalContext::current();
     let mut inner = cx.scope.borrow_mut();
-    let mut hooks = inner.hooks.borrow_mut();
-
-    let value =
-        if let Some(hook) = hooks.get(inner.idx) {
-            hook.clone()
-        } else {
-            hooks.push(Rc::new(RefCell::new(make_value())));
-            hooks.last().unwrap().clone()
-        };
-
-    drop(hooks);
     inner.idx += 1;
-
     value
 }
 
@@ -86,8 +94,8 @@ impl<T: 'static> UseRef<T> {
 }
 
 pub struct Ref<T: 'static> {
-    value: std::cell::Ref<'static, T>,
-    _rc: Rc<RefCell<dyn Any>>,
+    pub(crate) value: std::cell::Ref<'static, T>,
+    pub(crate) _rc: Rc<RefCell<dyn Any>>,
 }
 
 impl<T> Deref for Ref<T> {

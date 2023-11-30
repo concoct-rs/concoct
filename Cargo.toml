@@ -23,6 +23,7 @@ slotmap = "1.0.6"
 
 js-sys = { version = "0.3.65", optional = true }
 wasm-bindgen = { version = "0.2.88", optional = true }
+log = "0.4.20"
 
 [dependencies.web-sys]
 version = "0.3.65"

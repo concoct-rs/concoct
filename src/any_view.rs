@@ -4,7 +4,7 @@ use std::any::Any;
 pub trait AnyView {
     fn as_any(&self) -> &dyn Any;
 
-    fn any_view(&mut self) -> Box<dyn Any>;
+    fn any_view(&mut self) -> Box<dyn AnyView>;
 
     fn any_eq(&self, other: &dyn Any) -> bool;
 }
@@ -14,7 +14,7 @@ impl<C: View> AnyView for C {
         self
     }
 
-    fn any_view(&mut self) -> Box<dyn Any> {
+    fn any_view(&mut self) -> Box<dyn AnyView> {
         Box::new(self.view().into_view())
     }
 

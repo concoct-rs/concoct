@@ -1,9 +1,10 @@
 use crate::{
-    html::{Builder, Html, HtmlPlatform},
-    IntoView, Platform, Tree,
+    html::{Builder, Html, HtmlParent, HtmlPlatform},
+    use_provider, Child, IntoView, Platform, Tree,
 };
 use std::{cell::RefCell, rc::Rc};
-use web_sys::{Document, HtmlElement};
+use wasm_bindgen::JsCast;
+use web_sys::{Document, HtmlElement, Node};
 
 thread_local! {
     static HTML_CONTEXT: RefCell<Option<WebContext>> = RefCell::default();
@@ -50,7 +51,12 @@ pub fn div<C>(child: C) -> Html<WebHtml, C> {
 pub struct WebHtml {}
 
 impl HtmlPlatform for WebHtml {
-    fn html(&mut self, html: &mut Builder) -> impl IntoView {
+    fn html<C: IntoView>(
+        &mut self,
+        html: &mut Builder,
+        parent: Option<Node>,
+        child: Child<C>,
+    ) -> impl IntoView {
         let cx = WebContext::current();
         let inner = cx.inner.borrow_mut();
         let element = inner.document.create_element("div").unwrap();
@@ -59,7 +65,13 @@ impl HtmlPlatform for WebHtml {
             element.set_attribute(&name, &value).unwrap();
         }
 
-        inner.body.append_child(&element).unwrap();
+        let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
+        parent.append_child(&element).unwrap();
+
+        use_provider(|| HtmlParent {
+            node: element.unchecked_into(),
+        });
+        child
     }
 }
 
