@@ -23,15 +23,13 @@
  <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Web Examples</a>
 </div>
 
-<br /><br />
+<br />
 
 Concoct is an incremental computation framework for Rust.
 This library provides a generic diffing engine for user-interfaces and other reactive systems.
 
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
-
-## Web/WebView
 ```rust
 #[derive(PartialEq)]
 struct Counter {
