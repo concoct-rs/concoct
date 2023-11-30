@@ -1,6 +1,6 @@
 use crate::{
     html::{Builder, Html, HtmlParent, HtmlPlatform},
-    use_provider, Child, IntoView, Platform, Tree,
+    use_context, use_provider, Child, IntoView, Platform, Tree,
 };
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::JsCast;
@@ -78,12 +78,15 @@ impl HtmlPlatform for WebHtml {
 pub struct Web;
 
 impl Platform for Web {
-    fn from_str(&mut self, s: &str) -> Box<dyn crate::AnyView> {
+    fn from_str(&self, s: &str) -> Box<dyn crate::AnyView> {
         let cx = WebContext::current();
         let inner = cx.inner.borrow_mut();
         let node = inner.document.create_text_node(s);
 
-        inner.body.append_child(&node).unwrap();
+        let parent = use_context::<HtmlParent>().map(|parent| parent.get().node.clone());
+
+        let parent = parent.as_ref().unwrap_or(inner.body.unchecked_ref());
+        parent.append_child(&node).unwrap();
 
         Box::new(())
     }

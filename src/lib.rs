@@ -67,11 +67,11 @@ thread_local! {
 }
 
 pub trait Platform {
-    fn from_str(&mut self, s: &str) -> Box<dyn AnyView>;
+    fn from_str(&self, s: &str) -> Box<dyn AnyView>;
 }
 
 impl Platform for () {
-    fn from_str(&mut self, _s: &str) -> Box<dyn AnyView> {
+    fn from_str(&self, _s: &str) -> Box<dyn AnyView> {
         Box::new(())
     }
 }
@@ -81,7 +81,7 @@ pub struct BuildContext {
     nodes: SlotMap<DefaultKey, Rc<RefCell<Node>>>,
     children: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
     tracked: SparseSecondaryMap<DefaultKey, Vec<DefaultKey>>,
-    platform: Box<dyn Platform>,
+    platform: Rc<dyn Platform>,
     is_done: bool,
 }
 
@@ -92,7 +92,7 @@ impl BuildContext {
             nodes: Default::default(),
             children: Default::default(),
             tracked: Default::default(),
-            platform: Box::new(platform),
+            platform: Rc::new(platform),
             is_done: false,
         }
     }

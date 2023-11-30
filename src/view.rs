@@ -15,24 +15,26 @@ impl View for () {
 
 impl View for &'static str {
     fn view(&mut self) -> impl IntoView {
-        BUILD_CONTEXT
+        let platform = BUILD_CONTEXT
             .try_with(|cx| {
                 let g = cx.borrow();
-                let mut cx = g.as_ref().unwrap().borrow_mut();
-                cx.platform.from_str(self).any_view()
+                let cx = g.as_ref().unwrap().borrow_mut();
+                cx.platform.clone()
             })
             .unwrap();
+        platform.from_str(self).any_view();
     }
 }
 
 impl View for String {
     fn view(&mut self) -> impl IntoView {
-        BUILD_CONTEXT
+        let platform = BUILD_CONTEXT
             .try_with(|cx| {
                 let g = cx.borrow();
-                let mut cx = g.as_ref().unwrap().borrow_mut();
-                cx.platform.from_str(self).any_view()
+                let cx = g.as_ref().unwrap().borrow_mut();
+                cx.platform.clone()
             })
             .unwrap();
+        platform.from_str(self).any_view();
     }
 }
