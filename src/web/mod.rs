@@ -130,7 +130,7 @@ impl HtmlPlatform for WebHtml {
 pub struct Web;
 
 impl Platform for Web {
-    fn from_str(&self, s: &str) -> Box<dyn crate::AnyView> {
+    fn text(&self, s: &str) -> Box<dyn crate::AnyView> {
         let parent = use_context::<HtmlParent>().map(|parent| parent.get().node.clone());
 
         let state = use_ref(|| s.to_string());

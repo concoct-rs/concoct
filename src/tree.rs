@@ -59,6 +59,10 @@ impl Tree {
         self.build_cx.inner.borrow().nodes.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     // TODO switch from this recursive method
     pub fn compose(&mut self, key: DefaultKey) {
         let children = {

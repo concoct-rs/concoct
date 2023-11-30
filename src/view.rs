@@ -14,13 +14,13 @@ impl View for () {
 impl View for &'static str {
     fn view(&mut self) -> impl IntoView {
         let platform = ViewContext::current().inner.borrow().platform.clone();
-        platform.from_str(self).any_view();
+        platform.text(self).any_view();
     }
 }
 
 impl View for String {
     fn view(&mut self) -> impl IntoView {
         let platform = ViewContext::current().inner.borrow().platform.clone();
-        platform.from_str(self).any_view();
+        platform.text(self).any_view();
     }
 }

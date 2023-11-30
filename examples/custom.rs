@@ -4,7 +4,7 @@ use std::time::Duration;
 pub struct Renderer;
 
 impl Platform for Renderer {
-    fn from_str(&self, s: &str) -> Box<dyn concoct::AnyView> {
+    fn text(&self, s: &str) -> Box<dyn concoct::AnyView> {
         let state = use_ref(|| {
             dbg!(s);
             s.to_string()

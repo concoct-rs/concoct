@@ -78,17 +78,19 @@ thread_local! {
 }
 
 pub trait Platform {
-    fn from_str(&self, s: &str) -> Box<dyn AnyView>;
+    fn text(&self, s: &str) -> Box<dyn AnyView>;
 }
 
 impl Platform for () {
-    fn from_str(&self, _s: &str) -> Box<dyn AnyView> {
+    fn text(&self, _s: &str) -> Box<dyn AnyView> {
         Box::new(())
     }
 }
 
+type Hook = Rc<RefCell<dyn Any>>;
+
 struct Scope {
-    hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
+    hooks: Rc<RefCell<Vec<Hook>>>,
     idx: usize,
     contexts: HashMap<TypeId, Rc<dyn Any>>,
 }
