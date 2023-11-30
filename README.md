@@ -23,7 +23,7 @@
 
 <br />
 
-Concoct is an incremental computation framework for Rust.
+Concoct is a cross platform UI framework for Rust.
 This library provides a generic diffing engine for user-interfaces and other reactive systems.
 
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
