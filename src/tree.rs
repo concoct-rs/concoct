@@ -8,7 +8,7 @@ use futures::StreamExt;
 use slotmap::DefaultKey;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
-/// A composition of views.
+/// A tree of views.
 pub struct Tree {
     build_cx: ViewContext,
     root: DefaultKey,
@@ -17,7 +17,7 @@ pub struct Tree {
 }
 
 impl Tree {
-    /// Create a new composition from it's root view function.
+    /// Create a new tree from it's root view.
     pub fn new(platform: impl Platform + 'static, content: impl IntoView) -> Self {
         let local_set = LocalPool::new();
         let (tx, rx) = mpsc::unbounded();
