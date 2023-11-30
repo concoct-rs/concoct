@@ -38,6 +38,9 @@ pub use use_context::{use_context, use_provider, UseContext};
 mod use_future;
 pub use use_future::use_future;
 
+mod use_on_drop;
+pub use use_on_drop::use_on_drop;
+
 mod use_state;
 pub use use_state::{use_state, UseState};
 
@@ -49,8 +52,8 @@ pub mod web;
 
 pub mod prelude {
     pub use crate::{
-        use_context, use_future, use_provider, use_ref, use_state, IntoView, UseContext, UseRef,
-        UseState, View,
+        use_context, use_future, use_on_drop, use_provider, use_ref, use_state, IntoView,
+        UseContext, UseRef, UseState, View,
     };
 
     #[cfg(feature = "web")]
@@ -91,7 +94,9 @@ type Hook = Rc<RefCell<dyn Any>>;
 
 struct Scope {
     hooks: Rc<RefCell<Vec<Hook>>>,
-    idx: usize,
+    hook_idx: usize,
+    on_drops: Rc<RefCell<Vec<Box<dyn FnMut()>>>>,
+    drops_idx: usize,
     contexts: HashMap<TypeId, Rc<dyn Any>>,
 }
 

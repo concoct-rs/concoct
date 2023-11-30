@@ -57,13 +57,13 @@ impl ViewContext {
         let me = &mut *inner;
 
         let contexts = me.nodes[me.parent_key].borrow().contexts.clone();
-        let node =
-            Node {
-                make_view,
-                view: None,
-                hooks: Rc::default(),
-                contexts,
-            };
+        let node = Node {
+            make_view,
+            view: None,
+            hooks: Rc::default(),
+            contexts,
+            on_drops: Rc::default(),
+        };
         let key = me.nodes.insert(Rc::new(RefCell::new(node)));
 
         if let Some(children) = me.children.get_mut(me.parent_key) {

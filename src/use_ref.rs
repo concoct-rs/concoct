@@ -31,7 +31,7 @@ pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<
     let inner = cx.scope.borrow_mut();
     let hooks = inner.hooks.borrow();
 
-    let value = if let Some(hook) = hooks.get(inner.idx) {
+    let value = if let Some(hook) = hooks.get(inner.hook_idx) {
         let hook = hook.clone();
         drop(hooks);
         drop(inner);
@@ -52,7 +52,7 @@ pub fn use_hook_value<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<RefCell<
 
     let cx = LocalContext::current();
     let mut inner = cx.scope.borrow_mut();
-    inner.idx += 1;
+    inner.hook_idx += 1;
     value
 }
 

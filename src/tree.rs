@@ -40,6 +40,7 @@ impl Tree {
             view: None,
             hooks: Rc::default(),
             contexts: HashMap::new(),
+            on_drops: Rc::default(),
         };
         let root = build_cx
             .inner
@@ -86,7 +87,9 @@ impl Tree {
                 let cx = LocalContext {
                     scope: Rc::new(RefCell::new(Scope {
                         hooks: node.hooks.clone(),
-                        idx: 0,
+                        on_drops: node.on_drops.clone(),
+                        hook_idx: 0,
+                        drops_idx: 0,
                         contexts,
                     })),
                 };
