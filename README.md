@@ -31,6 +31,8 @@ This library provides a generic diffing engine for user-interfaces and other rea
 This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
 
 ```rust
+use concoct::prelude::*;
+
 #[derive(PartialEq)]
 struct Counter {
     initial_value: i32,
@@ -42,7 +44,7 @@ impl View for Counter {
 
         (
             format!("High five count: {count}"),
-            button("Up High").on_click(move || count += 1),
+            button("Up high").on_click(move || count += 1),
             button("Down low").on_click(move || count -= 1),
         )
     }

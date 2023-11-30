@@ -11,7 +11,7 @@ impl View for Counter {
 
         (
             format!("High five count: {count}"),
-            button("Up High").on_click(move || count += 1),
+            button("Up high").on_click(move || count += 1),
             button("Down low").on_click(move || count -= 1),
         )
     }
