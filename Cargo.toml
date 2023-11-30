@@ -15,9 +15,7 @@ members = [
 [features]
 html = []
 web = ["html", "dep:js-sys", "dep:wasm-bindgen", "dep:web-sys"]
-native = ["dep:winit"]
-webview = ["native", "html", "dep:wry"]
-full = ["web", "webview"]
+full = ["web"]
 
 [dependencies]
 futures = "0.3.29"
@@ -25,8 +23,6 @@ slotmap = "1.0.6"
 
 js-sys = { version = "0.3.65", optional = true }
 wasm-bindgen = { version = "0.2.88", optional = true }
-wry = { version = "0.35.0", optional = true }
-winit = { version = "0.29", optional = true, features = [ "rwh_05" ] }
 
 [dependencies.web-sys]
 version = "0.3.65"
@@ -45,11 +41,3 @@ features = [
     "Window",
     "Text",  
 ]
-
-[[example]]
-name = "counter"
-required-features = ["webview"]
-
-[[example]]
-name = "native"
-required-features = ["webview"]

@@ -6,7 +6,7 @@ use futures::channel::mpsc;
 use futures::executor::LocalPool;
 use futures::StreamExt;
 use slotmap::DefaultKey;
-use std::{any::Any, cell::RefCell, rc::Rc};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 /// A composition of views.
 pub struct Tree {
@@ -41,6 +41,7 @@ impl Tree {
             make_view,
             view: None,
             hooks: Rc::default(),
+            contexts: HashMap::new(),
         };
         let root = build_cx
             .borrow_mut()
@@ -66,18 +67,26 @@ impl Tree {
                 .try_with(|cx| *cx.borrow_mut() = Some(self.task_cx.clone()))
                 .unwrap();
 
-            self.build_cx.borrow_mut().parent_key = key;
             BUILD_CONTEXT
                 .try_with(|cx| *cx.borrow_mut() = Some(self.build_cx.clone()))
                 .unwrap();
 
             {
-                let cx = self.build_cx.borrow_mut();
+                let mut cx = self.build_cx.borrow_mut();
+                let contexts = if let Some(parent_node) = cx.nodes.get(cx.parent_key) {
+                    parent_node.borrow().contexts.clone()
+                } else {
+                    HashMap::new()
+                };
+
+                cx.parent_key = key;
                 let node = cx.nodes[key].borrow_mut();
+
                 let cx = LocalContext {
                     scope: Rc::new(RefCell::new(Scope {
                         hooks: node.hooks.clone(),
                         idx: 0,
+                        contexts,
                     })),
                 };
                 cx.enter();

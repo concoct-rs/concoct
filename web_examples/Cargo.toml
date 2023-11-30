@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 concoct = { path = "../", features = ["web"] }
+console_error_panic_hook = "0.1.7"

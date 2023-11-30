@@ -1,7 +1,12 @@
 use futures::channel::mpsc;
 use futures::executor::LocalPool;
 use slotmap::{DefaultKey, SlotMap, SparseSecondaryMap};
-use std::{any::Any, cell::RefCell, collections::HashSet, rc::Rc};
+use std::{
+    any::{Any, TypeId},
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 mod any_view;
 pub use any_view::AnyView;
@@ -33,14 +38,8 @@ pub use use_state::{use_state, UseState};
 #[cfg(feature = "html")]
 pub mod html;
 
-#[cfg(feature = "native")]
-pub mod native;
-
 #[cfg(feature = "web")]
 pub mod web;
-
-#[cfg(feature = "webview")]
-pub mod webview;
 
 #[derive(Default)]
 struct GlobalContext {
@@ -94,11 +93,14 @@ impl BuildContext {
     }
 
     pub fn insert(&mut self, make_view: Box<dyn FnMut() -> Box<dyn AnyView>>) -> DefaultKey {
-        let node = Node {
-            make_view,
-            view: None,
-            hooks: Rc::default(),
-        };
+        let contexts = self.nodes[self.parent_key].borrow().contexts.clone();
+        let node =
+            Node {
+                make_view,
+                view: None,
+                hooks: Rc::default(),
+                contexts,
+            };
         let key = self.nodes.insert(Rc::new(RefCell::new(node)));
 
         if let Some(children) = self.children.get_mut(self.parent_key) {
@@ -114,6 +116,7 @@ impl BuildContext {
 struct Scope {
     hooks: Rc<RefCell<Vec<Rc<RefCell<dyn Any>>>>>,
     idx: usize,
+    contexts: HashMap<TypeId, Rc<dyn Any>>,
 }
 
 #[derive(Clone)]
