@@ -11,6 +11,9 @@ use std::{
 mod view_context;
 pub use view_context::ViewContext;
 
+mod any_child;
+pub use any_child::AnyChild;
+
 mod any_view;
 pub use any_view::AnyView;
 

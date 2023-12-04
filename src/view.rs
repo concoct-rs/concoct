@@ -1,4 +1,4 @@
-use crate::{into_view::IntoView, ViewContext};
+use crate::{into_view::IntoView, ViewContext, AnyView};
 
 /// Viewable element that handles diffing.
 pub trait View: PartialEq + 'static {
@@ -10,6 +10,7 @@ impl View for () {
         ViewContext::current().inner.borrow_mut().is_done = true;
     }
 }
+
 
 impl View for &'static str {
     fn view(&mut self) -> impl IntoView {

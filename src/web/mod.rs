@@ -1,7 +1,7 @@
 use crate::{
     html::{AttributeValue, Builder, Html, HtmlParent, HtmlPlatform},
     use_context, use_provider, use_ref, Child, IntoView, LocalContext, Platform, Tree,
-    TASK_CONTEXT,
+    TASK_CONTEXT, AnyChild,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use wasm_bindgen::{closure::Closure, JsCast};
@@ -48,8 +48,8 @@ impl WebContext {
 macro_rules! impl_html_tags {
     ($($tag:ident),*) => {
         $(
-            pub fn $tag<C>(child: C) -> Html<WebHtml, C> {
-                html(stringify!($tag), child)
+            pub fn $tag() -> Html<WebHtml> {
+                html(stringify!($tag))
             }
         )*
     };
@@ -66,19 +66,19 @@ impl_html_tags!(
     u, ul, var, video, wbr
 );
 
-pub fn html<C>(tag: impl Into<Cow<'static, str>>, child: C) -> Html<WebHtml, C> {
-    Html::new(tag, WebHtml {}, child)
+pub fn html(tag: impl Into<Cow<'static, str>>) -> Html<WebHtml> {
+    Html::new(tag, WebHtml {})
 }
 
 #[derive(PartialEq, Eq)]
 pub struct WebHtml {}
 
 impl HtmlPlatform for WebHtml {
-    fn html<C: IntoView>(
+    fn html(
         &mut self,
         html: &mut Builder,
         parent: Option<Node>,
-        child: Child<C>,
+        child: Option<AnyChild>,
     ) -> impl IntoView {
         let callbacks = use_ref(|| Vec::new());
         let element = use_ref(|| {

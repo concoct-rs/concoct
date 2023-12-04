@@ -34,6 +34,12 @@ impl IntoView for Box<dyn AnyView> {
     }
 }
 
+impl<T: IntoView> IntoView for Option<T> {
+    fn into_view(self) -> impl View {
+        todo!()
+    }
+}
+
 macro_rules! impl_view_for_tuple {
     ($($a:ident: $b:tt),*) => {
         impl<$($a: IntoView),*> IntoView for ($($a),*) {

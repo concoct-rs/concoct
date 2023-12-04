@@ -1,14 +1,14 @@
 use web_sys::Node;
 
-use crate::{use_context, Child, IntoView, View};
+use crate::{use_context, Child, IntoView, View, AnyChild};
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 
 pub trait HtmlPlatform: Sized {
-    fn html<C: IntoView>(
+    fn html(
         &mut self,
         html: &mut Builder,
         parent: Option<Node>,
-        child: Child<C>,
+        child: Option<AnyChild>,
     ) -> impl IntoView;
 }
 
@@ -33,22 +33,28 @@ pub struct Builder {
     pub attrs: Vec<(Cow<'static, str>, AttributeValue)>,
 }
 
-pub struct Html<P, C> {
+#[derive(PartialEq)]
+pub struct Html<P> {
     platform: P,
     builder: Builder,
-    child: Child<C>,
+    child: Option<AnyChild>,
 }
 
-impl<P, C> Html<P, C> {
-    pub fn new(tag: impl Into<Cow<'static, str>>, platform: P, child: C) -> Self {
+impl<P> Html<P> {
+    pub fn new(tag: impl Into<Cow<'static, str>>, platform: P) -> Self {
         Self {
             platform,
             builder: Builder {
                 tag: tag.into(),
                 attrs: Vec::new(),
             },
-            child: Child::new(child),
+            child: None
         }
+    }
+
+    pub fn child(mut self, view: impl IntoView) -> Self {
+        self.child = Some(AnyChild::new(view));
+        self
     }
 
     pub fn attr(
@@ -71,20 +77,14 @@ impl<P, C> Html<P, C> {
     }
 }
 
-impl<P, C> PartialEq for Html<P, C> {
-    fn eq(&self, other: &Self) -> bool {
-        self.builder == other.builder
-    }
-}
-
 pub struct HtmlParent {
     pub(crate) node: Node,
 }
 
-impl<P, C> View for Html<P, C>
+impl<P> View for Html<P>
 where
-    P: HtmlPlatform + 'static,
-    C: IntoView,
+    P: HtmlPlatform + PartialEq + 'static,
+
 {
     fn view(&mut self) -> impl IntoView {
         let parent = use_context::<HtmlParent>().map(|parent| parent.get().node.clone());
