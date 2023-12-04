@@ -23,6 +23,9 @@ pub use view::View;
 mod tree;
 pub use tree::Tree;
 
+mod into_any_view;
+pub use into_any_view::IntoAnyView;
+
 mod into_view;
 pub use self::into_view::IntoView;
 

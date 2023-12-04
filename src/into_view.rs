@@ -1,5 +1,5 @@
-use crate::View;
 use crate::{use_ref, ViewContext};
+use crate::{AnyView, View};
 
 pub trait IntoView: 'static {
     fn into_view(self) -> impl View;
@@ -8,6 +8,29 @@ pub trait IntoView: 'static {
 impl<C: View> IntoView for C {
     fn into_view(self) -> impl View {
         self
+    }
+}
+
+impl IntoView for Box<dyn AnyView> {
+    fn into_view(self) -> impl View {
+        let mut view = Some(self);
+
+        let key = *use_ref(|| {
+            let mut cx = ViewContext::current();
+            let view = view.take().unwrap();
+
+            let mut a = Some(view);
+            cx.insert(Box::new(move || Box::new(a.take().unwrap().into_view())))
+        })
+        .get();
+
+        if let Some(view) = view.take() {
+            let cx = ViewContext::current();
+
+            let mut a = Some(view);
+            cx.inner.borrow_mut().nodes[key].borrow_mut().make_view =
+                Box::new(move || Box::new(a.take().unwrap().into_view()));
+        }
     }
 }
 
