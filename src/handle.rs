@@ -1,4 +1,4 @@
-use crate::{rt::AnyTask, Handler, Runtime, Task};
+use crate::{rt::AnyTask, Handler, Object, Runtime, Signal};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -64,7 +64,7 @@ impl<T> Handle<T> {
     pub fn bind<M, T2>(&self, other: &Handle<T2>)
     where
         M: Clone + 'static,
-        T2: Task + Handler<M> + 'static,
+        T2: Object + Handler<M> + 'static,
     {
         let other = other.clone();
 
@@ -136,25 +136,28 @@ impl<T> HandleRef<T> {
         let key = self.key;
         Runtime::current()
             .tx
-            .unbounded_send((
+            .unbounded_send(crate::rt::RuntimeMessage::Handle {
                 key,
-                Box::new(move |any_task| {
-                    if let Some(listeners) = Runtime::current()
-                        .inner
-                        .borrow()
-                        .listeners
-                        .get(&(key, msg.type_id()))
-                        .clone()
-                    {
-                        for listener in listeners {
-                            listener.borrow_mut()(&msg)
-                        }
-                    }
-
+                f: Box::new(move |any_task| {
                     let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
-                    task.handle(msg);
+                    task.handle( HandleRef::new(key),msg);
                 }),
-            ))
+            })
+            .unwrap();
+    }
+
+    pub fn emit<M>(&self, msg: M)
+    where
+        T: Signal<M> + 'static,
+        M: 'static,
+    {
+        let key = self.key;
+        Runtime::current()
+            .tx
+            .unbounded_send(crate::rt::RuntimeMessage::Signal {
+                key,
+                msg: Box::new(msg),
+            })
             .unwrap();
     }
 }

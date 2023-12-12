@@ -1,6 +1,6 @@
 use crate::{Handle, Runtime, handle::HandleRef};
 
-pub trait Task {
+pub trait Object {
     #[allow(unused_variables)]
     fn start(&mut self, handle: HandleRef<Self>) {}
 

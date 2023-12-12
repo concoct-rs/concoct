@@ -1,4 +1,4 @@
-use crate::{handle::HandleRef, Handle, Task};
+use crate::{handle::HandleRef, Handle, Object};
 use futures::{channel::mpsc, StreamExt};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -8,10 +8,21 @@ use std::{
     rc::Rc,
 };
 
+pub(crate) enum RuntimeMessage {
+    Signal {
+        key: DefaultKey,
+        msg: Box<dyn Any>,
+    },
+    Handle {
+        key: DefaultKey,
+        f: Box<dyn FnOnce(&mut dyn AnyTask)>,
+    },
+}
+
 pub(crate) struct Inner {
     pub(crate) tasks: SlotMap<DefaultKey, Rc<RefCell<dyn AnyTask>>>,
     pub(crate) listeners: HashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>>,
-    rx: mpsc::UnboundedReceiver<(DefaultKey, Box<dyn FnOnce(&mut dyn AnyTask)>)>,
+    rx: mpsc::UnboundedReceiver<RuntimeMessage>,
 }
 
 thread_local! {
@@ -21,7 +32,7 @@ thread_local! {
 #[derive(Clone)]
 pub struct Runtime {
     pub(crate) inner: Rc<RefCell<Inner>>,
-    pub(crate) tx: mpsc::UnboundedSender<(DefaultKey, Box<dyn FnOnce(&mut dyn AnyTask)>)>,
+    pub(crate) tx: mpsc::UnboundedSender<RuntimeMessage>,
 }
 
 impl Default for Runtime {
@@ -60,7 +71,7 @@ impl Runtime {
 
     pub fn spawn<T>(&self, task: T) -> Handle<T>
     where
-        T: Task + 'static,
+        T: Object + 'static,
     {
         let key = self
             .inner
@@ -76,25 +87,44 @@ impl Runtime {
 
     pub async fn run(&self) {
         let mut me = self.inner.borrow_mut();
-        if let Some((key, update)) = me.rx.next().await {
-            let task = me.tasks[key].clone();
+        if let Some(msg) = me.rx.next().await {
             drop(me);
-
-            let mut task_ref = task.borrow_mut();
-            update(&mut *task_ref);
-            drop(task_ref);
+            self.run_inner(msg);
 
             loop {
                 let mut me = self.inner.borrow_mut();
-                if let Ok(Some((key, update))) = me.rx.try_next() {
-                    let task = me.tasks[key].clone();
+                if let Ok(Some(msg)) = me.rx.try_next() {
                     drop(me);
-
-                    let mut task_ref = task.borrow_mut();
-                    update(&mut *task_ref);
+                    self.run_inner(msg);
                 } else {
                     break;
                 }
+            }
+        }
+    }
+
+    fn run_inner(&self, msg: RuntimeMessage) {
+        match msg {
+            RuntimeMessage::Signal { key, msg } => {
+                if let Some(listeners) = Runtime::current()
+                    .inner
+                    .borrow()
+                    .listeners
+                    .get(&(key, msg.type_id()))
+                    .clone()
+                {
+                    for listener in listeners {
+                        listener.borrow_mut()(&msg)
+                    }
+                }
+            }
+            RuntimeMessage::Handle { key, f } => {
+                let me = self.inner.borrow();
+                let task = me.tasks[key].clone();
+                drop(me);
+
+                let mut task_ref = task.borrow_mut();
+                f(&mut *task_ref);
             }
         }
     }
@@ -108,7 +138,7 @@ pub(crate) trait AnyTask {
     fn start_any(&mut self, key: DefaultKey);
 }
 
-impl<T: Task + 'static> AnyTask for T {
+impl<T: Object + 'static> AnyTask for T {
     fn as_any(&self) -> &dyn Any {
         self
     }

@@ -1,12 +1,14 @@
 mod handle;
-pub use self::handle::Handle;
+pub use self::handle::{Handle, HandleRef};
 
-mod task;
-pub use self::task::Task;
+mod object;
+pub use self::object::Object;
 
 mod rt;
 pub use rt::Runtime;
 
-pub trait Handler<M>: Task {
-    fn handle(&mut self, msg: M);
+pub trait Signal<M>: Object {}
+
+pub trait Handler<M>: Object {
+    fn handle(&mut self, handle: HandleRef<Self>, msg: M);
 }

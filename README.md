@@ -26,18 +26,21 @@
 Concoct is a runtime for user-interfaces in Rust.
 
 ```rust
-use concoct::{Handler, Runtime, Task};
+use concoct::{HandleRef, Handler, Object, Runtime, Signal};
 
 #[derive(Default)]
 pub struct Counter {
     value: i32,
 }
 
-impl Task for Counter {}
+impl Object for Counter {}
+
+impl Signal<i32> for Counter {}
 
 impl Handler<i32> for Counter {
-    fn handle(&mut self, msg: i32) {
+    fn handle(&mut self, handle: HandleRef<Self>, msg: i32) {
         self.value = msg;
+        handle.emit(msg);
     }
 }
 
