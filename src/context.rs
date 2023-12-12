@@ -48,7 +48,11 @@ impl<T> Context<T> {
             .unwrap();
     }
 
-    pub fn listen<M: 'static>(&self, mut f: impl FnMut(&M) + 'static) {
+    pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
+    where
+        T: Signal<M>,
+        M: 'static,
+    {
         Runtime::current().inner.borrow_mut().listeners.insert(
             (self.key, TypeId::of::<M>()),
             vec![Rc::new(RefCell::new(move |msg: &dyn Any| {
@@ -59,6 +63,7 @@ impl<T> Context<T> {
 
     pub fn bind<M, T2>(&self, other: &Context<T2>)
     where
+        T: Signal<M>,
         M: Clone + 'static,
         T2: Object + Handler<M> + 'static,
     {
@@ -71,6 +76,7 @@ impl<T> Context<T> {
 
     pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
     where
+        T: Signal<M>,
         M: Clone + 'static,
     {
         let (tx, rx) = mpsc::unbounded();

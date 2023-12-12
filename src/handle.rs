@@ -1,4 +1,4 @@
-use crate::{rt::AnyTask, Context, Handler, Object, Runtime};
+use crate::{rt::AnyTask, Context, Handler, Object, Runtime, Signal};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -51,12 +51,17 @@ impl<T> Handle<T> {
         Context::<T>::new(self.dropper.key).send(msg)
     }
 
-    pub fn listen<M: 'static>(&self, f: impl FnMut(&M) + 'static) {
+    pub fn listen<M>(&self, f: impl FnMut(&M) + 'static)
+    where
+        M: 'static,
+        T: Signal<M>,
+    {
         Context::<T>::new(self.dropper.key).listen(f)
     }
 
     pub fn bind<M, T2>(&self, other: &Handle<T2>)
     where
+        T: Signal<M>,
         M: Clone + 'static,
         T2: Object + Handler<M> + 'static,
     {
@@ -65,6 +70,7 @@ impl<T> Handle<T> {
 
     pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
     where
+        T: Signal<M>,
         M: Clone + 'static,
     {
         Context::<T>::new(self.dropper.key).channel()
