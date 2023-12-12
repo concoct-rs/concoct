@@ -8,7 +8,7 @@ mod object;
 pub use self::object::Object;
 
 mod rt;
-pub use self::rt::Runtime;
+pub use self::rt::{Runtime, RuntimeGuard};
 
 pub trait Signal<M>: Object {}
 
