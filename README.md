@@ -26,7 +26,7 @@
 Concoct is a runtime for user-interfaces in Rust.
 
 ```rust
-use concoct::{HandleRef, Handler, Object, Runtime, Signal};
+use concoct::{Context, Handler, Object, Runtime, Signal};
 
 #[derive(Default)]
 pub struct Counter {
@@ -38,9 +38,9 @@ impl Object for Counter {}
 impl Signal<i32> for Counter {}
 
 impl Handler<i32> for Counter {
-    fn handle(&mut self, handle: HandleRef<Self>, msg: i32) {
+    fn handle(&mut self, cx: Context<Self>, msg: i32) {
         self.value = msg;
-        handle.emit(msg);
+        cx.emit(msg);
     }
 }
 

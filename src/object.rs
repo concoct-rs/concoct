@@ -1,8 +1,8 @@
-use crate::{Handle, Runtime, handle::HandleRef};
+use crate::{Context, Handle, Runtime};
 
 pub trait Object {
     #[allow(unused_variables)]
-    fn start(&mut self, handle: HandleRef<Self>) {}
+    fn start(&mut self, cx: Context<Self>) {}
 
     fn spawn(self) -> Handle<Self>
     where

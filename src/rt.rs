@@ -1,4 +1,4 @@
-use crate::{handle::HandleRef, Handle, Object};
+use crate::{Context, Handle, Object};
 use futures::{channel::mpsc, StreamExt};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -148,7 +148,7 @@ impl<T: Object + 'static> AnyTask for T {
     }
 
     fn start_any(&mut self, key: DefaultKey) {
-        self.start(HandleRef::new(key))
+        self.start(Context::new(key))
     }
 }
 
