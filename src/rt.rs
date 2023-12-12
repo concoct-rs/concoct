@@ -44,10 +44,13 @@ impl Runtime {
     }
 
     pub fn try_current() -> Option<Self> {
-        CURRENT.try_with(|cell| cell.borrow().clone()).ok().flatten()
+        CURRENT
+            .try_with(|cell| cell.borrow().clone())
+            .ok()
+            .flatten()
     }
 
-    pub fn enter(&self) -> RuntimeGuard{
+    pub fn enter(&self) -> RuntimeGuard {
         CURRENT
             .try_with(|cell| *cell.borrow_mut() = Some(self.clone()))
             .unwrap();

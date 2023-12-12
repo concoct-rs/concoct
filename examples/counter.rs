@@ -9,7 +9,6 @@ impl Task for Counter {}
 
 impl Handler<i32> for Counter {
     fn handle(&mut self, msg: i32) {
-        dbg!(msg);
         self.value = msg;
     }
 }
@@ -28,4 +27,7 @@ async fn main() {
     a.send(2);
 
     rt.run().await;
+
+    assert_eq!(a.borrow().value, 2);
+    assert_eq!(b.borrow().value, 2);
 }

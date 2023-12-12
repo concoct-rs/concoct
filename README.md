@@ -23,39 +23,40 @@
 
 <br />
 
-Concoct is a cross platform UI framework for Rust.
-This library provides a generic diffing engine for user-interfaces and other reactive systems.
-
-This crate is inspired by Jetpack Compose, [xilem](https://github.com/linebender/xilem), and [dioxus](https://github.com/dioxuslabs/dioxus).
+Concoct is a runtime for user-interfaces in Rust.
 
 ```rust
-use concoct::prelude::*;
+use concoct::{Handler, Runtime, Task};
 
-#[derive(PartialEq)]
-struct Counter {
-    initial_value: i32,
+#[derive(Default)]
+pub struct Counter {
+    value: i32,
 }
 
-impl View for Counter {
-    fn view(&mut self) -> impl IntoView {
-        let mut count = use_state(|| self.initial_value);
+impl Task for Counter {}
 
-        (
-            format!("High five count: {count}"),
-            button().on_click(move || count += 1).view("Up high"),
-            button().on_click(move || count -= 1).view("Down low"),
-        )
+impl Handler<i32> for Counter {
+    fn handle(&mut self, msg: i32) {
+        self.value = msg;
     }
 }
 
-fn main() {
-    concoct::web::run(Counter { initial_value: 0 })
-}
-```
+#[tokio::main]
+async fn main() {
+    let rt = Runtime::default();
+    let _guard = rt.enter();
 
-## Installation
-This crate currently requires rust nightly.
-You can install concoct for web by running:
-```
-cargo add concoct --features web
+    let a = Counter::default().spawn();
+    let b = Counter::default().spawn();
+
+    a.bind(&b);
+
+    a.send(1);
+    a.send(2);
+
+    rt.run().await;
+
+    assert_eq!(a.borrow().value, 2);
+    assert_eq!(b.borrow().value, 2);
+}
 ```

@@ -1,9 +1,11 @@
-use crate::{Handler, Runtime, Task};
+use crate::{rt::AnyTask, Handler, Runtime, Task};
 use slotmap::DefaultKey;
 use std::{
     any::{Any, TypeId},
-    cell::RefCell,
+    cell::{self, RefCell},
     marker::PhantomData,
+    mem,
+    ops::Deref,
     rc::Rc,
 };
 
@@ -90,5 +92,26 @@ impl<T> Handle<T> {
         self.listen(move |msg: &M| {
             other.send(msg.clone());
         });
+    }
+
+    pub fn borrow(&self) -> Ref<T> {
+        let rc = Runtime::current().inner.borrow_mut().tasks[self.dropper.key].clone();
+        let task: cell::Ref<T> =
+            cell::Ref::map(rc.borrow(), |task| task.as_any().downcast_ref().unwrap());
+        let task = unsafe { mem::transmute(task) };
+        Ref { task, _guard: rc }
+    }
+}
+
+pub struct Ref<T: 'static> {
+    task: cell::Ref<'static, T>,
+    _guard: Rc<RefCell<dyn AnyTask>>,
+}
+
+impl<T: 'static> Deref for Ref<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.task
     }
 }
