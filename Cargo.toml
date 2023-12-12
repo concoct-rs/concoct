@@ -6,48 +6,9 @@ license = "MIT OR Apache-2.0"
 description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
-[workspace]
-members = [
-    ".",
-    "web_examples/counter",
-    "web_examples/conditional"
-]
-
-[features]
-html = []
-web = ["html", "dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dep:wasm-bindgen-futures"]
-full = ["web", "tokio"]
-
 [dependencies]
 futures = "0.3.29"
-slotmap = "1.0.6"
+slotmap = "1.0.7"
 
-js-sys = { version = "0.3.65", optional = true }
-wasm-bindgen = { version = "0.2.88", optional = true }
-wasm-bindgen-futures = { version = "0.4.39", optional = true }
-
-log = "0.4.20"
-
-tokio = { version = "1.34.0", optional = true, features = ["full"] }
-
-[dependencies.web-sys]
-version = "0.3.65"
-optional = true
-features = [
-    "Event",
-    "EventTarget",
-    "KeyboardEvent",
-    "InputEvent",
-    "MouseEvent",
-    "Node",
-    "Document",
-    "HtmlCollection",
-    "HtmlElement",
-    "HtmlInputElement",
-    "Window",
-    "Text",  
-]
-
-[[example]]
-name = "custom"
-required-features = ["tokio"]
+[dev-dependencies]
+tokio = { version = "1.35.0", features = ["full"] }
