@@ -1,4 +1,5 @@
 use crate::{rt::AnyTask, Handler, Runtime, Task};
+use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
     any::{Any, TypeId},
@@ -92,6 +93,17 @@ impl<T> Handle<T> {
         self.listen(move |msg: &M| {
             other.send(msg.clone());
         });
+    }
+
+    pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
+    where
+        M: Clone + 'static,
+    {
+        let (tx, rx) = mpsc::unbounded();
+        self.listen(move |msg: &M| {
+            tx.unbounded_send(msg.clone()).unwrap();
+        });
+        rx
     }
 
     pub fn borrow(&self) -> Ref<T> {
