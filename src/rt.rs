@@ -1,4 +1,4 @@
-use crate::{Handle, Task};
+use crate::{handle::HandleRef, Handle, Task};
 use futures::{channel::mpsc, StreamExt};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -68,6 +68,9 @@ impl Runtime {
             .tasks
             .insert(Rc::new(RefCell::new(task)));
 
+        let task = self.inner.borrow().tasks[key].clone();
+        task.borrow_mut().start_any(key);
+
         Handle::new(key)
     }
 
@@ -101,6 +104,8 @@ pub(crate) trait AnyTask {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn start_any(&mut self, key: DefaultKey);
 }
 
 impl<T: Task + 'static> AnyTask for T {
@@ -110,6 +115,10 @@ impl<T: Task + 'static> AnyTask for T {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn start_any(&mut self, key: DefaultKey) {
+        self.start(HandleRef::new(key))
     }
 }
 

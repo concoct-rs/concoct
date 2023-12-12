@@ -22,7 +22,7 @@ impl Drop for Dropper {
     }
 }
 
-pub struct Handle<T> {
+pub struct Handle<T: ?Sized> {
     dropper: Rc<Dropper>,
     _marker: PhantomData<T>,
 }
@@ -49,29 +49,7 @@ impl<T> Handle<T> {
         T: Handler<M> + 'static,
         M: 'static,
     {
-        let key = self.dropper.key;
-        Runtime::current()
-            .tx
-            .unbounded_send((
-                key,
-                Box::new(move |any_task| {
-                    if let Some(listeners) = Runtime::current()
-                        .inner
-                        .borrow()
-                        .listeners
-                        .get(&(key, msg.type_id()))
-                        .clone()
-                    {
-                        for listener in listeners {
-                            listener.borrow_mut()(&msg)
-                        }
-                    }
-
-                    let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
-                    task.handle(msg);
-                }),
-            ))
-            .unwrap();
+        HandleRef::<T>::new(self.dropper.key).send(msg)
     }
 
     pub fn listen<M: 'static>(&self, mut f: impl FnMut(&M) + 'static) {
@@ -125,5 +103,58 @@ impl<T: 'static> Deref for Ref<T> {
 
     fn deref(&self) -> &Self::Target {
         &*self.task
+    }
+}
+
+pub struct HandleRef<T: ?Sized> {
+    key: DefaultKey,
+    _marker: PhantomData<T>,
+}
+
+impl<T> Clone for HandleRef<T> {
+    fn clone(&self) -> Self {
+        Self {
+            key: self.key.clone(),
+            _marker: self._marker.clone(),
+        }
+    }
+}
+
+impl<T> HandleRef<T> {
+    pub(crate) fn new(key: DefaultKey) -> Self {
+        Self {
+            key,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn send<M>(&self, msg: M)
+    where
+        T: Handler<M> + 'static,
+        M: 'static,
+    {
+        let key = self.key;
+        Runtime::current()
+            .tx
+            .unbounded_send((
+                key,
+                Box::new(move |any_task| {
+                    if let Some(listeners) = Runtime::current()
+                        .inner
+                        .borrow()
+                        .listeners
+                        .get(&(key, msg.type_id()))
+                        .clone()
+                    {
+                        for listener in listeners {
+                            listener.borrow_mut()(&msg)
+                        }
+                    }
+
+                    let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
+                    task.handle(msg);
+                }),
+            ))
+            .unwrap();
     }
 }
