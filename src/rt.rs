@@ -44,13 +44,15 @@ impl Runtime {
     }
 
     pub fn try_current() -> Option<Self> {
-        CURRENT.try_with(|cell| cell.borrow().clone()).unwrap()
+        CURRENT.try_with(|cell| cell.borrow().clone()).ok().flatten()
     }
 
-    pub fn enter(&self) {
+    pub fn enter(&self) -> RuntimeGuard{
         CURRENT
             .try_with(|cell| *cell.borrow_mut() = Some(self.clone()))
-            .unwrap()
+            .unwrap();
+
+        RuntimeGuard { _priv: () }
     }
 
     pub fn spawn<T>(&self, task: T) -> Handle<T>
@@ -67,14 +69,26 @@ impl Runtime {
     }
 
     pub async fn run(&self) {
-        loop {
-            let mut me = self.inner.borrow_mut();
-            if let Some((key, update)) = me.rx.next().await {
-                let task = me.tasks[key].clone();
-                drop(me);
+        let mut me = self.inner.borrow_mut();
+        if let Some((key, update)) = me.rx.next().await {
+            let task = me.tasks[key].clone();
+            drop(me);
 
-                let mut task_ref = task.borrow_mut();
-                update(&mut *task_ref);
+            let mut task_ref = task.borrow_mut();
+            update(&mut *task_ref);
+            drop(task_ref);
+
+            loop {
+                let mut me = self.inner.borrow_mut();
+                if let Ok(Some((key, update))) = me.rx.try_next() {
+                    let task = me.tasks[key].clone();
+                    drop(me);
+
+                    let mut task_ref = task.borrow_mut();
+                    update(&mut *task_ref);
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -93,5 +107,15 @@ impl<T: Task + 'static> AnyTask for T {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+}
+
+pub struct RuntimeGuard {
+    _priv: (),
+}
+
+impl Drop for RuntimeGuard {
+    fn drop(&mut self) {
+        CURRENT.try_with(|cell| cell.borrow_mut().take()).unwrap();
     }
 }

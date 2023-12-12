@@ -13,7 +13,9 @@ struct Dropper {
 
 impl Drop for Dropper {
     fn drop(&mut self) {
-        Runtime::current().inner.borrow_mut().tasks.remove(self.key);
+        if let Some(rt) = Runtime::try_current() {
+            rt.inner.borrow_mut().tasks.remove(self.key);
+        }
     }
 }
 
