@@ -10,6 +10,9 @@ pub use self::object::Object;
 mod rt;
 pub use self::rt::{Runtime, RuntimeGuard};
 
+mod signal_handle;
+pub use signal_handle::SignalHandle;
+
 pub trait Signal<M>: Object {}
 
 pub trait Handler<M>: Object {

@@ -1,4 +1,4 @@
-use crate::{Handler, Object, Runtime, Signal};
+use crate::{Handler, Object, Runtime, Signal, SignalHandle};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -99,5 +99,13 @@ impl<T> Context<T> {
                 msg: Box::new(msg),
             })
             .unwrap();
+    }
+
+    pub fn signal<M>(&self) -> SignalHandle<M> {
+        let key = self.key;
+        SignalHandle {
+            key: key,
+            _marker: PhantomData,
+        }
     }
 }

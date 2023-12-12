@@ -1,4 +1,4 @@
-use crate::{rt::AnyTask, Context, Handler, Object, Runtime, Signal};
+use crate::{rt::AnyTask, Context, Handler, Object, Runtime, Signal, SignalHandle};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -82,6 +82,13 @@ impl<T> Handle<T> {
             cell::Ref::map(rc.borrow(), |task| task.as_any().downcast_ref().unwrap());
         let task = unsafe { mem::transmute(task) };
         Ref { task, _guard: rc }
+    }
+
+    pub fn signal<M>(&self) -> SignalHandle<M>
+    where
+        T: Signal<M>,
+    {
+        Context::<T>::new(self.dropper.key).signal()
     }
 }
 
