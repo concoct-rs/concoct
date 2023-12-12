@@ -91,14 +91,18 @@ impl Runtime {
             drop(me);
             self.run_inner(msg);
 
-            loop {
-                let mut me = self.inner.borrow_mut();
-                if let Ok(Some(msg)) = me.rx.try_next() {
-                    drop(me);
-                    self.run_inner(msg);
-                } else {
-                    break;
-                }
+            self.try_run();
+        }
+    }
+
+    pub fn try_run(&self) {
+        loop {
+            let mut me = self.inner.borrow_mut();
+            if let Ok(Some(msg)) = me.rx.try_next() {
+                drop(me);
+                self.run_inner(msg);
+            } else {
+                break;
             }
         }
     }
@@ -110,11 +114,11 @@ impl Runtime {
                     .inner
                     .borrow()
                     .listeners
-                    .get(&(key, msg.type_id()))
+                    .get(&(key, (&*msg).type_id()))
                     .clone()
                 {
                     for listener in listeners {
-                        listener.borrow_mut()(&msg)
+                        listener.borrow_mut()(&*msg)
                     }
                 }
             }
