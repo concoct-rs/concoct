@@ -6,6 +6,9 @@ license = "MIT OR Apache-2.0"
 description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
+[features]
+full = []
+
 [dependencies]
 futures = "0.3.29"
 slotmap = "1.0.7"
