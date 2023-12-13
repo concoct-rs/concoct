@@ -1,4 +1,8 @@
-use crate::{object::AnyObject, Handle, Object};
+use crate::{
+    handle::{BindHandle, ListenerGuard},
+    object::AnyObject,
+    Handle, HandleGuard, Object,
+};
 use futures::{channel::mpsc, StreamExt};
 use rustc_hash::FxHashMap;
 use slotmap::{DefaultKey, SlotMap};
@@ -29,6 +33,7 @@ pub(crate) enum RuntimeMessageKind {
         type_id: TypeId,
         f: Rc<RefCell<dyn FnMut(&dyn Any)>>,
         listen_f: Box<dyn FnOnce(&mut dyn AnyObject)>,
+        listener: Option<HandleGuard>,
     },
     RemoveListener {
         id: u64,
@@ -37,8 +42,13 @@ pub(crate) enum RuntimeMessageKind {
     },
 }
 
+pub(crate) struct Node {
+    pub(crate) object: Box<dyn AnyObject>,
+    pub(crate) listener_guards: Vec<ListenerGuard>,
+}
+
 pub(crate) struct Inner {
-    pub(crate) objects: SlotMap<DefaultKey, Rc<RefCell<dyn AnyObject>>>,
+    pub(crate) nodes: SlotMap<DefaultKey, Rc<RefCell<Node>>>,
     pub(crate) listeners:
         FxHashMap<(DefaultKey, TypeId), Vec<(u64, Rc<RefCell<dyn FnMut(&dyn Any)>>)>>,
     pub(crate) rx: mpsc::UnboundedReceiver<RuntimeMessage>,
@@ -62,7 +72,7 @@ impl Default for Runtime {
         let (tx, rx) = mpsc::unbounded();
         Self {
             inner: Rc::new(RefCell::new(Inner {
-                objects: SlotMap::new(),
+                nodes: SlotMap::new(),
                 listeners: FxHashMap::default(),
                 rx,
             })),
@@ -98,12 +108,15 @@ impl Runtime {
         let key = self
             .inner
             .borrow_mut()
-            .objects
-            .insert(Rc::new(RefCell::new(object)));
+            .nodes
+            .insert(Rc::new(RefCell::new(Node {
+                object: Box::new(object),
+                listener_guards: Vec::new(),
+            })));
 
-        let object = self.inner.borrow().objects[key].clone();
+        let node = self.inner.borrow().nodes[key].clone();
         let handle = Handle::new(key, self.tx.clone());
-        object.borrow_mut().started_any(handle.guard.clone());
+        node.borrow_mut().object.started_any(handle.guard.clone());
         handle
     }
 
@@ -133,12 +146,11 @@ impl Runtime {
         match msg.0 {
             RuntimeMessageKind::Emit { key, msg, f } => {
                 let me = self.inner.borrow();
-                let object = me.objects[key].clone();
+                let node = me.nodes[key].clone();
                 drop(me);
 
-                let mut object_ref = object.borrow_mut();
-                f(&mut *object_ref, key, &*msg);
-                drop(object_ref);
+                f(&mut *node.borrow_mut().object, key, &*msg);
+                drop(node);
 
                 let me = self.inner.borrow();
                 let listeners = me.listeners.get(&(key, (&*msg).type_id())).cloned();
@@ -152,11 +164,9 @@ impl Runtime {
             }
             RuntimeMessageKind::Handle { key, f } => {
                 let me = self.inner.borrow();
-                let object = me.objects[key].clone();
+                let node = me.nodes[key].clone();
                 drop(me);
-
-                let mut object_ref = object.borrow_mut();
-                f(&mut *object_ref);
+                f(&mut *node.borrow_mut().object);
             }
             RuntimeMessageKind::Listen {
                 id,
@@ -164,14 +174,28 @@ impl Runtime {
                 type_id,
                 f,
                 listen_f,
+                listener,
             } => {
                 self.inner
                     .borrow_mut()
                     .listeners
                     .insert((key, type_id), vec![(id, f)]);
 
-                let object = self.inner.borrow().objects[key].clone();
-                listen_f(&mut *object.borrow_mut());
+                let node = self.inner.borrow().nodes[key].clone();
+                listen_f(&mut *node.borrow_mut().object);
+
+                if let Some(handle) = listener {
+                    self.inner.borrow_mut().nodes[key]
+                        .borrow_mut()
+                        .listener_guards
+                        .push(ListenerGuard {
+                            handle: BindHandle {
+                                id,
+                                type_id,
+                                handle,
+                            },
+                        })
+                }
             }
             RuntimeMessageKind::RemoveListener { id, key, type_id } => {
                 if let Some(listeners) = self.inner.borrow_mut().listeners.get_mut(&(key, type_id))
@@ -185,7 +209,7 @@ impl Runtime {
                 }
             }
             RuntimeMessageKind::Remove { key } => {
-                self.inner.borrow_mut().objects.remove(key);
+                self.inner.borrow_mut().nodes.remove(key);
             }
         }
     }

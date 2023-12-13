@@ -26,7 +26,7 @@ async fn main() {
     let a = Counter::default().start();
     let b = Counter::default().start();
 
-    let _bind = a.bind(&b);
+    a.bind(&b);
 
     a.send(1);
     a.send(2);

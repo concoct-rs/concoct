@@ -65,6 +65,7 @@ impl<M> SignalHandle<M> {
                     f(msg.downcast_ref().unwrap())
                 })),
                 listen_f: (self.make_listen)(),
+                listener: None,
             }))
             .unwrap();
     }

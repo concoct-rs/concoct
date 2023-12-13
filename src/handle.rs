@@ -1,6 +1,6 @@
 use crate::{
     object::AnyObject,
-    rt::{RuntimeMessage, RuntimeMessageKind},
+    rt::{Node, RuntimeMessage, RuntimeMessageKind},
     Object, Runtime, Signal, SignalHandle, Slot, SlotHandle,
 };
 use futures::channel::mpsc::{self, UnboundedSender};
@@ -72,49 +72,31 @@ impl<O> Handle<O> {
     }
 
     /// Listen to messages emitted by this object.
-    pub fn listen<M>(&self, mut on_message: impl FnMut(&M) + 'static) -> ListenerGuard
+    #[must_use]
+    pub fn listen<M>(&self, on_message: impl FnMut(&M) + 'static) -> ListenerGuard
     where
         O: Signal<M> + 'static,
         M: 'static,
     {
-        let id = LISTENER_ID.fetch_add(1, Ordering::SeqCst);
-        let cx = self.clone();
-
-        self.guard
-            .inner
-            .tx
-            .unbounded_send(RuntimeMessage(RuntimeMessageKind::Listen {
-                id,
-                key: self.guard.inner.key,
-                type_id: TypeId::of::<M>(),
-                f: Rc::new(RefCell::new(move |msg: &dyn std::any::Any| {
-                    on_message(msg.downcast_ref().unwrap())
-                })),
-                listen_f: Box::new(|object| {
-                    object.as_any_mut().downcast_mut::<O>().unwrap().listen(cx);
-                }),
-            }))
-            .unwrap();
-
         ListenerGuard {
-            id,
-            key: self.guard.inner.key,
-            type_id: TypeId::of::<M>(),
-            handle: self.guard.clone(),
+            handle: self.listen_inner(on_message, None),
         }
     }
 
     /// Bind another object to messages emitted by this object.
-    pub fn bind<M>(&self, other: &Handle<impl Object + Slot<M> + 'static>) -> ListenerGuard
+    pub fn bind<M>(&self, other: &Handle<impl Object + Slot<M> + 'static>) -> BindHandle
     where
         O: Signal<M> + 'static,
         M: Clone + 'static,
     {
         let other = other.clone();
-
-        self.listen(move |msg: &M| {
-            other.send(msg.clone());
-        })
+        let guard = other.guard.clone();
+        self.listen_inner(
+            move |msg: &M| {
+                other.send(msg.clone());
+            },
+            Some(guard),
+        )
     }
 
     /// Bind another object to messages emitted by this object.
@@ -171,9 +153,9 @@ impl<O> Handle<O> {
 
     /// Borrow a reference to this object.
     pub fn borrow(&self) -> Ref<O> {
-        let rc = Runtime::current().inner.borrow_mut().objects[self.guard.inner.key].clone();
-        let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |object| {
-            object.as_any().downcast_ref().unwrap()
+        let rc = Runtime::current().inner.borrow_mut().nodes[self.guard.inner.key].clone();
+        let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |node: &Node| {
+            node.object.as_any().downcast_ref().unwrap()
         });
         let object = unsafe { std::mem::transmute(object) };
         Ref {
@@ -271,6 +253,42 @@ impl<O> Handle<O> {
             });
         }
     );
+
+    fn listen_inner<M>(
+        &self,
+        mut on_message: impl FnMut(&M) + 'static,
+        listener: Option<HandleGuard>,
+    ) -> BindHandle
+    where
+        O: Signal<M> + 'static,
+        M: 'static,
+    {
+        let id = LISTENER_ID.fetch_add(1, Ordering::SeqCst);
+        let cx = self.clone();
+
+        self.guard
+            .inner
+            .tx
+            .unbounded_send(RuntimeMessage(RuntimeMessageKind::Listen {
+                id,
+                key: self.guard.inner.key,
+                type_id: TypeId::of::<M>(),
+                f: Rc::new(RefCell::new(move |msg: &dyn std::any::Any| {
+                    on_message(msg.downcast_ref().unwrap())
+                })),
+                listen_f: Box::new(|object| {
+                    object.as_any_mut().downcast_mut::<O>().unwrap().listen(cx);
+                }),
+                listener,
+            }))
+            .unwrap();
+
+        BindHandle {
+            id,
+            type_id: TypeId::of::<M>(),
+            handle: self.guard.clone(),
+        }
+    }
 }
 
 impl<O> Clone for Handle<O> {
@@ -311,7 +329,7 @@ impl Drop for Inner {
 
 pub struct Ref<O: 'static> {
     object: cell::Ref<'static, O>,
-    _guard: Rc<RefCell<dyn AnyObject>>,
+    _guard: Rc<RefCell<Node>>,
 }
 
 impl<T: 'static> Deref for Ref<T> {
@@ -323,20 +341,29 @@ impl<T: 'static> Deref for Ref<T> {
 }
 
 pub struct ListenerGuard {
-    id: u64,
-    key: DefaultKey,
-    type_id: TypeId,
-    handle: HandleGuard,
+    pub(crate) handle: BindHandle,
 }
 
 impl Drop for ListenerGuard {
     fn drop(&mut self) {
+        self.handle.release()
+    }
+}
+
+pub struct BindHandle {
+    pub(crate) id: u64,
+    pub(crate) type_id: TypeId,
+    pub(crate) handle: HandleGuard,
+}
+
+impl BindHandle {
+    pub fn release(&mut self) {
         self.handle
             .inner
             .tx
             .unbounded_send(RuntimeMessage(RuntimeMessageKind::RemoveListener {
                 id: self.id,
-                key: self.key,
+                key: self.handle.inner.key,
                 type_id: self.type_id,
             }))
             .unwrap();
