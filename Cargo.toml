@@ -3,7 +3,7 @@ name = "concoct"
 version = "0.9.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "Cross-platform UI framework"
+description = "A runtime for user-interfaces"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]

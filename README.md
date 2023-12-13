@@ -25,8 +25,6 @@
 
 Concoct is a runtime for user-interfaces in Rust.
 
-To see a list of the available features flags that can be enabled, check our [docs](https://docs.rs/concoct/latest/concoct/#feature-flags).
-
 ```rust
 use concoct::{Context, Handler, Object, Runtime, Signal};
 
@@ -65,3 +63,12 @@ async fn main() {
     assert_eq!(b.borrow().value, 2);
 }
 ```
+
+## Installation
+The easiest way to get started is using the `full` feature flag.
+
+```
+cargo add concoct --features full
+```
+
+To see a list of the available features flags that can be enabled, check our [docs](https://docs.rs/concoct/latest/concoct/#feature-flags).
