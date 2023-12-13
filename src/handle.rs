@@ -1,12 +1,14 @@
+use futures::channel::mpsc::UnboundedSender;
 use slotmap::DefaultKey;
 use std::{
     cell::{self, RefCell},
     marker::PhantomData,
     ops::Deref,
     rc::Rc,
+    sync::Arc,
 };
 
-use crate::{Runtime, Signal, Slot};
+use crate::{rt::RuntimeMessage, Runtime, Signal, Slot};
 
 /// Handle to a spawned object.
 ///
@@ -29,20 +31,11 @@ pub struct Handle<O: ?Sized> {
     pub(crate) _marker: PhantomData<O>,
 }
 
-impl<O> Clone for Handle<O> {
-    fn clone(&self) -> Self {
-        Self {
-            guard: self.guard.clone(),
-            _marker: PhantomData,
-        }
-    }
-}
-
 impl<O> Handle<O> {
-    pub(crate) fn new(key: DefaultKey) -> Self {
+    pub(crate) fn new(key: DefaultKey, tx: UnboundedSender<RuntimeMessage>) -> Self {
         Handle {
             guard: HandleGuard {
-                inner: Rc::new(Inner { key }),
+                inner: Arc::new(Inner { key, tx }),
             },
             _marker: PhantomData,
         }
@@ -56,7 +49,8 @@ impl<O> Handle<O> {
     {
         let key = self.guard.inner.key;
         let me = self.clone();
-        Runtime::current()
+        self.guard
+            .inner
             .tx
             .unbounded_send(crate::rt::RuntimeMessage(
                 crate::rt::RuntimeMessageKind::Handle {
@@ -136,7 +130,8 @@ impl<O> Handle<O> {
     {
         let key = self.guard.inner.key;
         let me = self.clone();
-        Runtime::current()
+        self.guard
+            .inner
             .tx
             .unbounded_send(crate::rt::RuntimeMessage(
                 crate::rt::RuntimeMessageKind::Emit {
@@ -258,23 +253,41 @@ impl<O> Handle<O> {
     );
 }
 
+impl<O> Clone for Handle<O> {
+    fn clone(&self) -> Self {
+        Self {
+            guard: self.guard.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+unsafe impl<O> Send for Handle<O> {}
+
+unsafe impl<O> Sync for Handle<O> {}
+
+impl<O> Unpin for Handle<O> {}
+
 /// Type-erased handle to an object.
 ///
 /// Dropping this handle will also despawn the attached object.
 #[derive(Clone)]
 pub struct HandleGuard {
-    pub(crate) inner: Rc<Inner>,
+    pub(crate) inner: Arc<Inner>,
 }
 
 pub(crate) struct Inner {
     pub(crate) key: DefaultKey,
+    pub(crate) tx: UnboundedSender<RuntimeMessage>,
 }
 
 impl Drop for Inner {
     fn drop(&mut self) {
-        if let Some(rt) = Runtime::try_current() {
-            rt.inner.borrow_mut().objects.remove(self.key);
-        }
+        self.tx
+            .unbounded_send(RuntimeMessage(crate::rt::RuntimeMessageKind::Remove {
+                key: self.key,
+            }))
+            .ok();
     }
 }
 

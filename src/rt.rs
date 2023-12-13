@@ -20,6 +20,9 @@ pub(crate) enum RuntimeMessageKind {
         key: DefaultKey,
         f: Box<dyn FnOnce(&mut dyn AnyObject)>,
     },
+    Remove {
+        key: DefaultKey,
+    },
 }
 
 pub(crate) struct Inner {
@@ -87,7 +90,7 @@ impl Runtime {
             .insert(Rc::new(RefCell::new(object)));
 
         let object = self.inner.borrow().objects[key].clone();
-        let handle = Handle::new(key);
+        let handle = Handle::new(key, self.tx.clone());
         object.borrow_mut().started_any(handle.guard.clone());
         handle
     }
@@ -142,6 +145,9 @@ impl Runtime {
 
                 let mut object_ref = object.borrow_mut();
                 f(&mut *object_ref);
+            }
+            RuntimeMessageKind::Remove { key } => {
+                self.inner.borrow_mut().objects.remove(key);
             }
         }
     }
