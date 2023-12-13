@@ -11,8 +11,10 @@ impl Signal<i32> for Counter {}
 
 impl Slot<i32> for Counter {
     fn handle(&mut self, cx: Context<Self>, msg: i32) {
-        self.value = msg;
-        cx.emit(msg);
+        if self.value != msg {
+            self.value = msg;
+            cx.emit(msg);
+        }
     }
 }
 
