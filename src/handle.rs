@@ -1,13 +1,12 @@
 use crate::{rt::AnyObject, Context, Object, Runtime, Signal, SignalHandle, Slot};
-use slotmap::DefaultKey;
+use alloc::rc::Rc;
 use core::{
     cell::{self, RefCell},
     marker::PhantomData,
     mem,
     ops::Deref,
-    
 };
-use alloc::rc::Rc;
+use slotmap::DefaultKey;
 
 pub(crate) struct Dropper {
     pub(crate) key: DefaultKey,
@@ -76,23 +75,36 @@ impl<O> Handle<O> {
             Context::<O>::new(self.dropper.key).channel()
         }
     );
-   
 
     pub fn borrow(&self) -> Ref<O> {
         let rc = Runtime::current().inner.borrow_mut().objects[self.dropper.key].clone();
-        let object: cell::Ref<O> =
-            cell::Ref::map(rc.borrow(), |object| object.as_any().downcast_ref().unwrap());
+        let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |object| {
+            object.as_any().downcast_ref().unwrap()
+        });
         let object = unsafe { mem::transmute(object) };
-        Ref { object: object, _guard: rc }
+        Ref {
+            object: object,
+            _guard: rc,
+        }
     }
 
     pub fn signal<M>(&self) -> SignalHandle<M>
     where
         O: Signal<M> + 'static,
-        M: 'static
+        M: 'static,
     {
         Context::<O>::new(self.dropper.key).signal()
     }
+
+    cfg_futures!(
+        pub fn spawn_local<M>(&self, future: impl core::future::Future<Output = M> + 'static)
+        where
+            O: crate::Slot<M> + 'static,
+            M: 'static,
+        {
+            Context::<O>::new(self.dropper.key).spawn_local(future)
+        }
+    );
 }
 
 pub struct Ref<O: 'static> {

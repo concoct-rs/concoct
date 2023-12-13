@@ -143,5 +143,19 @@ impl<O> Context<O> {
                 _marker: PhantomData,
             }
         }
+
+        cfg_futures!(
+            pub fn spawn_local<M>(&self, future: impl core::future::Future<Output = M> + 'static)
+            where
+                O: crate::Slot<M> + 'static,
+                M: 'static
+            {
+                let me = self.clone();
+                tokio::task::spawn_local(async move {
+                    let msg = future.await;
+                    me.send(msg)
+                });
+            }
+        );
     );
 }

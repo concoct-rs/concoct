@@ -9,7 +9,7 @@ repository = "https://github.com/concoct-rs/concoct"
 [features]
 std = []
 rt = ["std"]
-futures = ["std", "dep:futures"]
+futures = ["std", "dep:futures", "dep:tokio"]
 full = ["rt", "futures"]
 
 [dependencies]
@@ -17,9 +17,7 @@ futures = { version = "0.3.29", optional = true }
 hashbrown = { version = "0.14.3", default-features = false }
 rustc-hash = { version = "1.1.0", default-features = false }
 slotmap = { version = "1.0.7", default-features = false }
-
-[dev-dependencies]
-tokio = { version = "1.35.0", features = ["full"] }
+tokio = { version = "1.35.0", features = ["full"], optional = true }
 
 [package.metadata.docs.rs]
 features = ["full"]

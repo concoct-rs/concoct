@@ -10,6 +10,7 @@ use core::{
 use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use slotmap::{DefaultKey, SlotMap};
+use tokio::task::LocalSet;
 
 pub enum RuntimeMessage {
     Emit {
@@ -30,7 +31,7 @@ pub(crate) struct Inner {
         Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>,
         BuildHasherDefault<FxHasher>,
     >,
-    pub(crate) channel: Box<dyn Channel>,
+    pub(crate) channel: Box<dyn Executor>,
 }
 
 thread_local! {
@@ -46,15 +47,17 @@ cfg_futures!(
     impl Default for Runtime {
         fn default() -> Self {
             let (tx, rx) = futures::channel::mpsc::unbounded();
-            Self::new(Box::new(Mpsc {
-                tx,rx
+            Self::new(Box::new(LocalExecutor {
+                tx,
+                rx,
+                local_set:LocalSet::new()
             }))
         }
     }
 );
 
 impl Runtime {
-    pub fn new(channel: Box<dyn Channel>) -> Self {
+    pub fn new(channel: Box<dyn Executor>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(Inner {
                 objects: SlotMap::new(),
@@ -186,7 +189,7 @@ impl Drop for RuntimeGuard {
     }
 }
 
-pub trait Channel {
+pub trait Executor {
     fn send(&mut self, msg: RuntimeMessage);
 
     fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>>;
@@ -195,12 +198,13 @@ pub trait Channel {
 }
 
 cfg_futures!(
-    pub struct Mpsc {
+    pub struct LocalExecutor {
         pub tx: futures::channel::mpsc::UnboundedSender<RuntimeMessage>,
         pub rx: futures::channel::mpsc::UnboundedReceiver<RuntimeMessage>,
+        pub local_set: tokio::task::LocalSet
     }
 
-    impl Channel for Mpsc {
+    impl Executor for LocalExecutor {
         fn send(&mut self, msg: RuntimeMessage) {
             self.tx.unbounded_send(msg).unwrap();
         }
@@ -208,6 +212,7 @@ cfg_futures!(
         fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>> {
             use futures::StreamExt;
             Box::pin(async move {
+                let _ = futures::poll!(&mut self.local_set);
                 self.rx.next().await
             })
         }

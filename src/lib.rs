@@ -1,11 +1,11 @@
 //! # Concoct
 //!
 //! ## Feature flags
-//! Concoct uses a set of feature flags to provide support for #![no_std]
+//! Concoct uses a set of feature flags to provide support for `#![no_std]``
 //! (and to reduce the amount of compiled code).
 //!
 //!  - `full`: Enables all features listed below.
-//!  - `rt`: Enables the [`Runtime`].
+//!  - `rt`: Enables the `Runtime`.
 //!  - `futures`: Enables interop with the `futures` crate (and provides the default `Runtime`).
 //!
 
