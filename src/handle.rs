@@ -1,4 +1,4 @@
-use crate::{rt::AnyTask, Context, Object, Runtime, Signal, SignalHandle, Slot};
+use crate::{rt::AnyObject, Context, Object, Runtime, Signal, SignalHandle, Slot};
 use slotmap::DefaultKey;
 use core::{
     cell::{self, RefCell},
@@ -16,17 +16,17 @@ pub(crate) struct Dropper {
 impl Drop for Dropper {
     fn drop(&mut self) {
         if let Some(rt) = Runtime::try_current() {
-            rt.inner.borrow_mut().tasks.remove(self.key);
+            rt.inner.borrow_mut().objects.remove(self.key);
         }
     }
 }
 
-pub struct Handle<T: ?Sized> {
+pub struct Handle<O: ?Sized> {
     pub(crate) dropper: Rc<Dropper>,
-    _marker: PhantomData<T>,
+    _marker: PhantomData<O>,
 }
 
-impl<T> Clone for Handle<T> {
+impl<O> Clone for Handle<O> {
     fn clone(&self) -> Self {
         Self {
             dropper: self.dropper.clone(),
@@ -35,7 +35,7 @@ impl<T> Clone for Handle<T> {
     }
 }
 
-impl<T> Handle<T> {
+impl<O> Handle<O> {
     pub(crate) fn new(key: DefaultKey) -> Self {
         Handle {
             dropper: Rc::new(Dropper { key }),
@@ -45,64 +45,65 @@ impl<T> Handle<T> {
 
     pub fn send<M>(&self, msg: M)
     where
-        T: Slot<M> + 'static,
+        O: Slot<M> + 'static,
         M: 'static,
     {
-        Context::<T>::new(self.dropper.key).send(msg)
+        Context::<O>::new(self.dropper.key).send(msg)
     }
 
     pub fn listen<M>(&self, f: impl FnMut(&M) + 'static)
     where
         M: 'static,
-        T: Signal<M>,
+        O: Signal<M>,
     {
-        Context::<T>::new(self.dropper.key).listen(f)
+        Context::<O>::new(self.dropper.key).listen(f)
     }
 
     pub fn bind<M>(&self, other: &Handle<impl Object + Slot<M> + 'static>)
     where
-        T: Signal<M>,
+        O: Signal<M>,
         M: Clone + 'static,
     {
-        Context::<T>::new(self.dropper.key).bind(&Context::from_handle(other))
+        Context::<O>::new(self.dropper.key).bind(&Context::from_handle(other))
     }
 
     cfg_futures!(
         pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
         where
-            T: Signal<M>,
+            O: Signal<M>,
             M: Clone + 'static,
         {
-            Context::<T>::new(self.dropper.key).channel()
+            Context::<O>::new(self.dropper.key).channel()
         }
     );
    
 
-    pub fn borrow(&self) -> Ref<T> {
-        let rc = Runtime::current().inner.borrow_mut().tasks[self.dropper.key].clone();
-        let task: cell::Ref<T> =
-            cell::Ref::map(rc.borrow(), |task| task.as_any().downcast_ref().unwrap());
-        let task = unsafe { mem::transmute(task) };
-        Ref { task, _guard: rc }
+    pub fn borrow(&self) -> Ref<O> {
+        let rc = Runtime::current().inner.borrow_mut().objects[self.dropper.key].clone();
+        let object: cell::Ref<O> =
+            cell::Ref::map(rc.borrow(), |object| object.as_any().downcast_ref().unwrap());
+        let object = unsafe { mem::transmute(object) };
+        Ref { object: object, _guard: rc }
     }
 
     pub fn signal<M>(&self) -> SignalHandle<M>
     where
-        T: Signal<M>,
+        O: Signal<M> + 'static,
+        M: 'static
     {
-        Context::<T>::new(self.dropper.key).signal()
+        Context::<O>::new(self.dropper.key).signal()
     }
 }
 
-pub struct Ref<T: 'static> {
-    task: cell::Ref<'static, T>,
-    _guard: Rc<RefCell<dyn AnyTask>>,
+pub struct Ref<O: 'static> {
+    object: cell::Ref<'static, O>,
+    _guard: Rc<RefCell<dyn AnyObject>>,
 }
 
 impl<T: 'static> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &*self.task
+        &*self.object
     }
 }

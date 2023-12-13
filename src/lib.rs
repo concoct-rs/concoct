@@ -1,13 +1,13 @@
 //! # Concoct
-//! 
+//!
 //! ## Feature flags
 //! Concoct uses a set of feature flags to provide support for #![no_std]
 //! (and to reduce the amount of compiled code).
-//! 
+//!
 //!  - `full`: Enables all features listed below.
 //!  - `rt`: Enables the [`Runtime`].
 //!  - `futures`: Enables interop with the `futures` crate (and provides the default `Runtime`).
-//! 
+//!
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -55,8 +55,11 @@ cfg_rt!(
     pub use signal_handle::SignalHandle;
 );
 
-pub trait Signal<M>: Object {}
+pub trait Signal<M>: Object {
+    #[allow(unused_variables)]
+    fn emit(&mut self, cx: Context<Self>, msg: &M) {}
+}
 
 pub trait Slot<M>: Object {
-    fn handle(&mut self, handle: Context<Self>, msg: M);
+    fn handle(&mut self, cx: Context<Self>, msg: M);
 }

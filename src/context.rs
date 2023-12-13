@@ -1,12 +1,12 @@
 use core::marker::PhantomData;
 use slotmap::DefaultKey;
 
-pub struct Context<T: ?Sized> {
+pub struct Context<O: ?Sized> {
     key: DefaultKey,
-    _marker: PhantomData<T>,
+    _marker: PhantomData<O>,
 }
 
-impl<T> Clone for Context<T> {
+impl<O> Clone for Context<O> {
     fn clone(&self) -> Self {
         Self {
             key: self.key.clone(),
@@ -15,7 +15,7 @@ impl<T> Clone for Context<T> {
     }
 }
 
-impl<T> Context<T> {
+impl<O> Context<O> {
     cfg_rt!(
         pub(crate) fn new(key: DefaultKey) -> Self {
             Self {
@@ -24,22 +24,22 @@ impl<T> Context<T> {
             }
         }
 
-        pub(crate) fn from_handle(handle: &crate::Handle<T>) -> Self {
+        pub(crate) fn from_handle(handle: &crate::Handle<O>) -> Self {
             Self::new(handle.dropper.key)
         }
 
         pub fn send<M>(&self, msg: M)
         where
-            T: crate::Slot<M> + 'static,
+            O: crate::Slot<M> + 'static,
             M: 'static,
         {
             let key = self.key;
             crate::Runtime::current().inner.borrow_mut().channel.send(
                 crate::rt::RuntimeMessage::Handle {
                     key,
-                    f: Box::new(move |any_task| {
-                        let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
-                        task.handle(Context::new(key), msg);
+                    f: Box::new(move |any_object| {
+                        let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.handle(Context::new(key), msg);
                     }),
                 },
             )
@@ -47,7 +47,7 @@ impl<T> Context<T> {
 
         pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
         where
-            T: crate::Signal<M>,
+            O: crate::Signal<M>,
             M: 'static,
         {
             crate::Runtime::current()
@@ -64,7 +64,7 @@ impl<T> Context<T> {
 
         pub fn bind<M>(&self, other: &Context<impl crate::Object + crate::Slot<M> + 'static>)
         where
-            T: crate::Signal<M>,
+            O: crate::Signal<M>,
             M: Clone + 'static,
         {
             let other = other.clone();
@@ -77,7 +77,7 @@ impl<T> Context<T> {
         cfg_futures!(
             pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
             where
-                T: crate::Signal<M>,
+                O: crate::Signal<M>,
                 M: Clone + 'static,
             {
                 let (tx, rx) = futures::channel::mpsc::unbounded();
@@ -91,21 +91,36 @@ impl<T> Context<T> {
 
         pub fn emit<M>(&self, msg: M)
         where
-            T: crate::Signal<M> + 'static,
+            O: crate::Signal<M> + 'static,
             M: 'static,
         {
             let key = self.key;
             crate::Runtime::current().inner.borrow_mut().channel.send(
-                crate::rt::RuntimeMessage::Signal {
+                crate::rt::RuntimeMessage::Emit {
                     key,
                     msg: Box::new(msg),
+                    f: Box::new(|object, key, msg| {
+                        let cx = Context::<O>::new(key);
+                        let object = object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.emit(cx,msg.downcast_ref().unwrap());
+                    })
                 },
             );
         }
 
-        pub fn signal<M>(&self) -> crate::SignalHandle<M> {
+        pub fn signal<M: 'static>(&self) -> crate::SignalHandle<M>
+        where
+            O: crate::Signal<M>  + 'static
+        {
             let key = self.key;
             crate::SignalHandle {
+                make_emit: alloc::rc::Rc::new(|| {
+                     Box::new(|object, key, msg| {
+                        let cx = Context::<O>::new(key);
+                        let object = object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.emit(cx,msg.downcast_ref().unwrap());
+                    })
+                }),
                 key: key,
                 _marker: PhantomData,
             }
@@ -113,16 +128,16 @@ impl<T> Context<T> {
 
         pub fn slot<M>(&self) -> crate::SlotHandle<M>
         where
-            T: crate::Slot<M> + 'static,
+            O: crate::Slot<M> + 'static,
             M: 'static,
         {
             let key = self.key;
             crate::SlotHandle {
                 key,
                 f: alloc::rc::Rc::new(core::cell::RefCell::new(
-                    move |any_task: &mut dyn crate::rt::AnyTask, msg: Box<dyn core::any::Any>| {
-                        let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
-                        task.handle(Context::new(key), *msg.downcast().unwrap());
+                    move |any_object: &mut dyn crate::rt::AnyObject, msg: Box<dyn core::any::Any>| {
+                        let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.handle(Context::new(key), *msg.downcast().unwrap());
                     },
                 )),
                 _marker: PhantomData,

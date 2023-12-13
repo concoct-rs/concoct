@@ -3,28 +3,33 @@ use alloc::rc::Rc;
 use core::{
     any::{Any, TypeId},
     cell::RefCell,
-    pin::Pin, hash::BuildHasherDefault,
-    future::Future
+    future::Future,
+    hash::BuildHasherDefault,
+    pin::Pin,
 };
 use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use slotmap::{DefaultKey, SlotMap};
 
 pub enum RuntimeMessage {
-    Signal {
+    Emit {
         key: DefaultKey,
         msg: Box<dyn Any>,
+        f: Box<dyn FnOnce(&mut dyn AnyObject, DefaultKey, &dyn Any)>,
     },
     Handle {
         key: DefaultKey,
-        f: Box<dyn FnOnce(&mut dyn AnyTask)>,
+        f: Box<dyn FnOnce(&mut dyn AnyObject)>,
     },
 }
 
 pub(crate) struct Inner {
-    pub(crate) tasks: SlotMap<DefaultKey, Rc<RefCell<dyn AnyTask>>>,
-    pub(crate) listeners:
-        HashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>, BuildHasherDefault<FxHasher>>,
+    pub(crate) objects: SlotMap<DefaultKey, Rc<RefCell<dyn AnyObject>>>,
+    pub(crate) listeners: HashMap<
+        (DefaultKey, TypeId),
+        Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>,
+        BuildHasherDefault<FxHasher>,
+    >,
     pub(crate) channel: Box<dyn Channel>,
 }
 
@@ -52,7 +57,7 @@ impl Runtime {
     pub fn new(channel: Box<dyn Channel>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(Inner {
-                tasks: SlotMap::new(),
+                objects: SlotMap::new(),
                 listeners: HashMap::with_hasher(BuildHasherDefault::default()),
                 channel,
             })),
@@ -78,18 +83,18 @@ impl Runtime {
         RuntimeGuard { _priv: () }
     }
 
-    pub fn spawn<T>(&self, task: T) -> Handle<T>
+    pub fn spawn<T>(&self, object: T) -> Handle<T>
     where
         T: Object + 'static,
     {
         let key = self
             .inner
             .borrow_mut()
-            .tasks
-            .insert(Rc::new(RefCell::new(task)));
+            .objects
+            .insert(Rc::new(RefCell::new(object)));
 
-        let task = self.inner.borrow().tasks[key].clone();
-        task.borrow_mut().start_any(key);
+        let object = self.inner.borrow().objects[key].clone();
+        object.borrow_mut().start_any(key);
 
         Handle::new(key)
     }
@@ -118,14 +123,20 @@ impl Runtime {
 
     fn run_inner(&self, msg: RuntimeMessage) {
         match msg {
-            RuntimeMessage::Signal { key, msg } => {
-                if let Some(listeners) = Runtime::current()
-                    .inner
-                    .borrow()
-                    .listeners
-                    .get(&(key, (&*msg).type_id()))
-                    .clone()
-                {
+            RuntimeMessage::Emit { key, msg, f } => {
+                let me = self.inner.borrow();
+                let object = me.objects[key].clone();
+                drop(me);
+
+                let mut object_ref = object.borrow_mut();
+                f(&mut *object_ref, key, &*msg);
+                drop(object_ref);
+
+                let me = self.inner.borrow();
+                let listeners = me.listeners.get(&(key, (&*msg).type_id())).cloned();
+                drop(me);
+
+                if let Some(listeners) = listeners {
                     for listener in listeners {
                         listener.borrow_mut()(&*msg)
                     }
@@ -133,17 +144,17 @@ impl Runtime {
             }
             RuntimeMessage::Handle { key, f } => {
                 let me = self.inner.borrow();
-                let task = me.tasks[key].clone();
+                let object = me.objects[key].clone();
                 drop(me);
 
-                let mut task_ref = task.borrow_mut();
-                f(&mut *task_ref);
+                let mut object_ref = object.borrow_mut();
+                f(&mut *object_ref);
             }
         }
     }
 }
 
-pub trait AnyTask {
+pub trait AnyObject {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -151,7 +162,7 @@ pub trait AnyTask {
     fn start_any(&mut self, key: DefaultKey);
 }
 
-impl<T: Object + 'static> AnyTask for T {
+impl<O: Object + 'static> AnyObject for O {
     fn as_any(&self) -> &dyn Any {
         self
     }

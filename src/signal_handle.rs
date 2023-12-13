@@ -1,14 +1,14 @@
-use crate::{Handle, Object, Runtime, Slot};
+use crate::{rt::AnyObject, Handle, Object, Runtime, Slot};
 use alloc::rc::Rc;
-use slotmap::DefaultKey;
 use core::{
     any::{Any, TypeId},
     cell::RefCell,
     marker::PhantomData,
-
 };
+use slotmap::DefaultKey;
 
 pub struct SignalHandle<M> {
+    pub(crate) make_emit: Rc<dyn Fn() -> Box<dyn FnOnce(&mut dyn AnyObject, DefaultKey, &dyn Any)>>,
     pub(crate) key: DefaultKey,
     pub(crate) _marker: PhantomData<M>,
 }
@@ -16,6 +16,7 @@ pub struct SignalHandle<M> {
 impl<M> Clone for SignalHandle<M> {
     fn clone(&self) -> Self {
         Self {
+            make_emit: self.make_emit.clone(),
             key: self.key.clone(),
             _marker: self._marker.clone(),
         }
@@ -28,12 +29,13 @@ impl<M> SignalHandle<M> {
         M: 'static,
     {
         let key = self.key;
-        Runtime::current()
-            .inner.borrow_mut().channel
-            .send(crate::rt::RuntimeMessage::Signal {
+        crate::Runtime::current().inner.borrow_mut().channel.send(
+            crate::rt::RuntimeMessage::Emit {
                 key,
                 msg: Box::new(msg),
-            });
+                f: (self.make_emit)(),
+            },
+        );
     }
 
     pub fn listen(&self, mut f: impl FnMut(&M) + 'static)
