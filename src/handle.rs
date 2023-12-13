@@ -56,7 +56,7 @@ impl<O> Handle<O> {
                     key,
                     f: Box::new(move |any_object| {
                         let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
-                        object.handle(me, msg);
+                        object.update(me, msg);
                     }),
                 },
             ))
@@ -205,7 +205,7 @@ impl<O> Handle<O> {
                 move |any_object: &mut dyn crate::object::AnyObject,
                       msg: Box<dyn std::any::Any>| {
                     let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
-                    object.handle(me.clone(), *msg.downcast().unwrap());
+                    object.update(me.clone(), *msg.downcast().unwrap());
                 },
             ),
             _marker: PhantomData,
@@ -229,7 +229,7 @@ impl<O> Handle<O> {
         /// impl Object for Example {}
         ///
         /// impl Slot<i32> for Example {
-        ///     fn handle(&mut self, _cx: Handle<Self>, msg: i32) {
+        ///     fn update(&mut self, _cx: Handle<Self>, msg: i32) {
         ///         assert_eq!(msg, 1);
         ///     }
         /// }

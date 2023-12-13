@@ -36,7 +36,7 @@ impl Object for Counter {}
 impl Signal<i32> for Counter {}
 
 impl Slot<i32> for Counter {
-    fn handle(&mut self, cx: Handle<Self>, msg: i32) {
+    fn update(&mut self, cx: Handle<Self>, msg: i32) {
         if self.value != msg {
             self.value = msg;
             cx.emit(msg);

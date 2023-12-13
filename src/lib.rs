@@ -21,7 +21,7 @@
 //! impl Signal<i32> for Counter {}
 //!
 //! impl Slot<i32> for Counter {
-//!     fn handle(&mut self, cx: Handle<Self>, msg: i32) {
+//!     fn update(&mut self, cx: Handle<Self>, msg: i32) {
 //!         if self.value != msg {
 //!             self.value = msg;
 //!             cx.emit(msg);
@@ -92,5 +92,5 @@ pub trait Signal<M>: Object {
 /// Slot handler of messages for an object.
 pub trait Slot<M>: Object {
     /// Handle a message.
-    fn handle(&mut self, cx: Handle<Self>, msg: M);
+    fn update(&mut self, cx: Handle<Self>, msg: M);
 }
