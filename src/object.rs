@@ -1,7 +1,7 @@
 use crate::handle::HandleGuard;
 use crate::Handle;
-use core::any::Any;
-use core::marker::PhantomData;
+use std::any::Any;
+use std::marker::PhantomData;
 
 /// A reactive object.
 pub trait Object {
@@ -11,15 +11,13 @@ pub trait Object {
     #[allow(unused_variables)]
     fn started(&mut self, cx: Handle<Self>) {}
 
-    cfg_rt!(
-        /// Start this object on the current runtime.
-        fn start(self) -> crate::Handle<Self>
-        where
-            Self: Sized + 'static,
-        {
-            crate::Runtime::current().start(self)
-        }
-    );
+    /// Start this object on the current runtime.
+    fn start(self) -> crate::Handle<Self>
+    where
+        Self: Sized + 'static,
+    {
+        crate::Runtime::current().start(self)
+    }
 }
 
 /// A dynamic reactive object.

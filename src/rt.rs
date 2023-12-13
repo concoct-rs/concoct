@@ -1,15 +1,14 @@
 use crate::{object::AnyObject, Handle, Object};
-use alloc::rc::Rc;
-use core::{
+use futures::StreamExt;
+use rustc_hash::FxHashMap;
+use slotmap::{DefaultKey, SlotMap};
+use std::{
     any::{Any, TypeId},
     cell::RefCell,
     future::Future,
-    hash::BuildHasherDefault,
     pin::Pin,
+    rc::Rc,
 };
-use hashbrown::HashMap;
-use rustc_hash::FxHasher;
-use slotmap::{DefaultKey, SlotMap};
 
 pub struct RuntimeMessage(pub(crate) RuntimeMessageKind);
 
@@ -27,12 +26,9 @@ pub(crate) enum RuntimeMessageKind {
 
 pub(crate) struct Inner {
     pub(crate) objects: SlotMap<DefaultKey, Rc<RefCell<dyn AnyObject>>>,
-    pub(crate) listeners: HashMap<
-        (DefaultKey, TypeId),
-        Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>,
-        BuildHasherDefault<FxHasher>,
-    >,
-    pub(crate) channel: Box<dyn Executor>,
+    pub(crate) listeners: FxHashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>>,
+
+    pub(crate) rx: futures::channel::mpsc::UnboundedReceiver<RuntimeMessage>,
 }
 
 /// Local reactive object runtime.
@@ -41,36 +37,28 @@ pub(crate) struct Inner {
 #[derive(Clone)]
 pub struct Runtime {
     pub(crate) inner: Rc<RefCell<Inner>>,
+    pub(crate) tx: futures::channel::mpsc::UnboundedSender<RuntimeMessage>,
 }
 
 thread_local! {
     static CURRENT: RefCell<Option<Runtime>> = RefCell::default();
 }
 
-cfg_futures!(
-    impl Default for Runtime {
-        fn default() -> Self {
-            let (tx, rx) = futures::channel::mpsc::unbounded();
-            Self::new(Box::new(LocalExecutor {
-                tx,
-                rx,
-                local_set: tokio::task::LocalSet::new()
-            }))
-        }
-    }
-);
-
-impl Runtime {
-    pub fn new(channel: Box<dyn Executor>) -> Self {
+impl Default for Runtime {
+    fn default() -> Self {
+        let (tx, rx) = futures::channel::mpsc::unbounded();
         Self {
             inner: Rc::new(RefCell::new(Inner {
                 objects: SlotMap::new(),
-                listeners: HashMap::with_hasher(BuildHasherDefault::default()),
-                channel,
+                listeners: FxHashMap::default(),
+                rx,
             })),
+            tx,
         }
     }
+}
 
+impl Runtime {
     pub fn current() -> Self {
         Self::try_current().unwrap()
     }
@@ -108,7 +96,7 @@ impl Runtime {
 
     pub async fn run(&self) {
         let mut me = self.inner.borrow_mut();
-        if let Some(msg) = me.channel.next().await {
+        if let Some(msg) = me.rx.next().await {
             drop(me);
             self.run_inner(msg);
 
@@ -119,7 +107,7 @@ impl Runtime {
     pub fn try_run(&self) {
         loop {
             let mut me = self.inner.borrow_mut();
-            if let Some(msg) = me.channel.try_next() {
+            if let Ok(Some(msg)) = me.rx.try_next() {
                 drop(me);
                 self.run_inner(msg);
             } else {
@@ -178,29 +166,3 @@ pub trait Executor {
 
     fn try_next(&mut self) -> Option<RuntimeMessage>;
 }
-
-cfg_futures!(
-    pub struct LocalExecutor {
-        pub tx: futures::channel::mpsc::UnboundedSender<RuntimeMessage>,
-        pub rx: futures::channel::mpsc::UnboundedReceiver<RuntimeMessage>,
-        pub local_set: tokio::task::LocalSet
-    }
-
-    impl Executor for LocalExecutor {
-        fn send(&mut self, msg: RuntimeMessage) {
-            self.tx.unbounded_send(msg).unwrap();
-        }
-
-        fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>> {
-            use futures::StreamExt;
-            Box::pin(async move {
-                let _ = futures::poll!(&mut self.local_set);
-                self.rx.next().await
-            })
-        }
-
-        fn try_next(&mut self) -> Option<RuntimeMessage> {
-            self.rx.try_next().ok().flatten()
-        }
-    }
-);

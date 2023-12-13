@@ -1,11 +1,11 @@
 use crate::{object::AnyObject, Handle, Object, Runtime, Slot};
-use alloc::rc::Rc;
-use core::{
+use slotmap::DefaultKey;
+use std::{
     any::{Any, TypeId},
     cell::RefCell,
     marker::PhantomData,
+    rc::Rc,
 };
-use slotmap::DefaultKey;
 
 /// Handle to an object's signal for a specific message.
 pub struct SignalHandle<M> {
@@ -30,13 +30,16 @@ impl<M> SignalHandle<M> {
         M: 'static,
     {
         let key = self.key;
-        crate::Runtime::current().inner.borrow_mut().channel.send(
-            crate::rt::RuntimeMessage(crate::rt::RuntimeMessageKind::Emit {
-                key,
-                msg: Box::new(msg),
-                f: (self.make_emit)(),
-            },
-        ));
+        crate::Runtime::current()
+            .tx
+            .unbounded_send(crate::rt::RuntimeMessage(
+                crate::rt::RuntimeMessageKind::Emit {
+                    key,
+                    msg: Box::new(msg),
+                    f: (self.make_emit)(),
+                },
+            ))
+            .unwrap();
     }
 
     pub fn listen(&self, mut f: impl FnMut(&M) + 'static)

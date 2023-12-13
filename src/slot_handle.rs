@@ -1,7 +1,6 @@
 use crate::{object::AnyObject, Runtime};
-use alloc::rc::Rc;
-use core::{any::Any, cell::RefCell, marker::PhantomData};
 use slotmap::DefaultKey;
+use std::{any::Any, cell::RefCell, marker::PhantomData, rc::Rc};
 
 /// Handle to an object's slot for a specific message.
 pub struct SlotHandle<M> {
@@ -28,14 +27,15 @@ impl<M> SlotHandle<M> {
         let key = self.key;
         let f = self.f.clone();
         Runtime::current()
-            .inner
-            .borrow_mut()
-            .channel
-            .send(crate::rt::RuntimeMessage(crate::rt::RuntimeMessageKind::Handle {
-                key,
-                f: Box::new(move |any_object| {
-                    f.borrow_mut()(any_object, Box::new(msg));
-                }),
-            }));
+            .tx
+            .unbounded_send(crate::rt::RuntimeMessage(
+                crate::rt::RuntimeMessageKind::Handle {
+                    key,
+                    f: Box::new(move |any_object| {
+                        f.borrow_mut()(any_object, Box::new(msg));
+                    }),
+                },
+            ))
+            .unwrap();
     }
 }

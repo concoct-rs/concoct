@@ -10,7 +10,9 @@
 //!  - `rt`: Enables the `Runtime`.
 //!  - `futures`: Enables interop with the `futures` crate (and provides the default `Runtime`).
 //!
-//! ```ignore
+//! ```
+//! use concoct::{Handle, Object, Runtime, Signal, Slot};
+//!
 //! #[derive(Default)]
 //! pub struct Counter {
 //!     value: i32,
@@ -50,27 +52,14 @@
 //! ```
 //!
 
-#![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-extern crate alloc;
-
-macro_rules! cfg_rt {
-    ($($i:item)*) => {
-        $(
-            #[cfg(feature = "rt")]
-            #[cfg_attr(docsrs, doc(cfg(feature = "rt")))]
-            $i
-        )*
-    };
-}
-
 #[allow(unused_macros)]
-macro_rules! cfg_futures {
+macro_rules! cfg_tokio {
     ($($i:item)*) => {
         $(
-            #[cfg(feature = "futures")]
-            #[cfg_attr(docsrs, doc(cfg(feature = "futures")))]
+            #[cfg(feature = "tokio")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "tokio")))]
             $i
         )*
     };
@@ -82,16 +71,14 @@ pub use self::object::Object;
 mod handle;
 pub use self::handle::{Handle, HandleGuard};
 
-cfg_rt!(
-    pub mod rt;
-    pub use self::rt::Runtime;
+pub mod rt;
+pub use self::rt::Runtime;
 
-    mod slot_handle;
-    pub use slot_handle::SlotHandle;
+mod slot_handle;
+pub use slot_handle::SlotHandle;
 
-    mod signal_handle;
-    pub use signal_handle::SignalHandle;
-);
+mod signal_handle;
+pub use signal_handle::SignalHandle;
 
 /// Signal emitter of messages for an object.
 pub trait Signal<M>: Object {
@@ -99,7 +86,7 @@ pub trait Signal<M>: Object {
     #[allow(unused_variables)]
     fn emit(&mut self, cx: Handle<Self>, msg: &M) {}
 
-    /// Called when a listener begins.
+    /// Called when a listener starts on this signal.
     #[allow(unused_variables)]
     fn listen(&mut self, cx: Handle<Self>) {}
 }
