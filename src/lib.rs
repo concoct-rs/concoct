@@ -35,16 +35,18 @@ macro_rules! cfg_futures {
     };
 }
 
-mod context;
-pub use self::context::Context;
-
 mod object;
+use core::any::Any;
+use core::marker::PhantomData;
+
+use handle::HandleGuard;
+
 pub use self::object::Object;
 
-cfg_rt!(
-    mod handle;
-    pub use self::handle::Handle;
+mod handle;
+pub use self::handle::Handle;
 
+cfg_rt!(
     pub mod rt;
     pub use self::rt::Runtime;
 
@@ -57,9 +59,35 @@ cfg_rt!(
 
 pub trait Signal<M>: Object {
     #[allow(unused_variables)]
-    fn emit(&mut self, cx: Context<Self>, msg: &M) {}
+    fn emit(&mut self, cx: Handle<Self>, msg: &M) {}
 }
 
 pub trait Slot<M>: Object {
-    fn handle(&mut self, cx: Context<Self>, msg: M);
+    fn handle(&mut self, cx: Handle<Self>, msg: M);
+}
+
+pub trait AnyObject {
+    fn as_any(&self) -> &dyn Any;
+
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn start_any(&mut self, handle: HandleGuard);
+}
+
+impl<O: Object + 'static> AnyObject for O {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn start_any(&mut self, handle: HandleGuard) {
+        let handle = Handle {
+            guard: handle,
+            _marker: PhantomData,
+        };
+        self.start(handle)
+    }
 }

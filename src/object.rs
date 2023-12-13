@@ -1,8 +1,8 @@
-use crate::Context;
+use crate::Handle;
 
 pub trait Object {
     #[allow(unused_variables)]
-    fn start(&mut self, cx: Context<Self>) {}
+    fn start(&mut self, cx: Handle<Self>) {}
 
     cfg_rt!(
         fn spawn(self) -> crate::Handle<Self>

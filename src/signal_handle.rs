@@ -1,4 +1,4 @@
-use crate::{rt::AnyObject, Handle, Object, Runtime, Slot};
+use crate::{AnyObject, Handle, Object, Runtime, Slot};
 use alloc::rc::Rc;
 use core::{
     any::{Any, TypeId},

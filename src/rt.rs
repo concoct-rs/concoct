@@ -1,4 +1,4 @@
-use crate::{Context, Handle, Object};
+use crate::{Handle, Object, AnyObject};
 use alloc::rc::Rc;
 use core::{
     any::{Any, TypeId},
@@ -97,9 +97,9 @@ impl Runtime {
             .insert(Rc::new(RefCell::new(object)));
 
         let object = self.inner.borrow().objects[key].clone();
-        object.borrow_mut().start_any(key);
-
-        Handle::new(key)
+        let handle = Handle::new(key);
+        object.borrow_mut().start_any(handle.guard.clone());
+        handle
     }
 
     pub async fn run(&self) {
@@ -154,28 +154,6 @@ impl Runtime {
                 f(&mut *object_ref);
             }
         }
-    }
-}
-
-pub trait AnyObject {
-    fn as_any(&self) -> &dyn Any;
-
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-
-    fn start_any(&mut self, key: DefaultKey);
-}
-
-impl<O: Object + 'static> AnyObject for O {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-
-    fn start_any(&mut self, key: DefaultKey) {
-        self.start(Context::new(key))
     }
 }
 

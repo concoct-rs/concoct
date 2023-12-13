@@ -1,121 +1,215 @@
-use crate::{rt::AnyObject, Context, Object, Runtime, Signal, SignalHandle, Slot};
 use alloc::rc::Rc;
 use core::{
     cell::{self, RefCell},
     marker::PhantomData,
-    mem,
     ops::Deref,
 };
 use slotmap::DefaultKey;
 
-pub(crate) struct Dropper {
+pub(crate) struct Inner {
+    #[allow(dead_code)]
     pub(crate) key: DefaultKey,
 }
 
-impl Drop for Dropper {
+#[derive(Clone)]
+pub struct HandleGuard {
+    #[allow(dead_code)]
+    pub(crate) inner: Rc<Inner>,
+}
+
+impl Drop for HandleGuard {
     fn drop(&mut self) {
-        if let Some(rt) = Runtime::try_current() {
-            rt.inner.borrow_mut().objects.remove(self.key);
+        #[cfg(feature = "rt")]
+        if let Some(rt) = crate::Runtime::try_current() {
+            rt.inner.borrow_mut().objects.remove(self.inner.key);
         }
     }
 }
 
+/// Handle to a spawned object.
+///
+/// Dropping this handle will also despawn the attached object.
 pub struct Handle<O: ?Sized> {
-    pub(crate) dropper: Rc<Dropper>,
-    _marker: PhantomData<O>,
+    pub(crate) guard: HandleGuard,
+    pub(crate) _marker: PhantomData<O>,
 }
 
 impl<O> Clone for Handle<O> {
     fn clone(&self) -> Self {
         Self {
-            dropper: self.dropper.clone(),
-            _marker: self._marker.clone(),
+            guard: self.guard.clone(),
+            _marker: PhantomData,
         }
     }
 }
 
 impl<O> Handle<O> {
-    pub(crate) fn new(key: DefaultKey) -> Self {
-        Handle {
-            dropper: Rc::new(Dropper { key }),
-            _marker: PhantomData,
+    cfg_rt!(
+        pub(crate) fn new(key: DefaultKey) -> Self {
+            Handle {
+                guard: HandleGuard {
+                    inner: Rc::new(Inner { key }),
+                },
+                _marker: PhantomData,
+            }
         }
-    }
 
-    pub fn send<M>(&self, msg: M)
-    where
-        O: Slot<M> + 'static,
-        M: 'static,
-    {
-        Context::<O>::new(self.dropper.key).send(msg)
-    }
-
-    pub fn listen<M>(&self, f: impl FnMut(&M) + 'static)
-    where
-        M: 'static,
-        O: Signal<M>,
-    {
-        Context::<O>::new(self.dropper.key).listen(f)
-    }
-
-    pub fn bind<M>(&self, other: &Handle<impl Object + Slot<M> + 'static>)
-    where
-        O: Signal<M>,
-        M: Clone + 'static,
-    {
-        Context::<O>::new(self.dropper.key).bind(&Context::from_handle(other))
-    }
-
-    cfg_futures!(
-        pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
-        where
-            O: Signal<M>,
-            M: Clone + 'static,
-        {
-            Context::<O>::new(self.dropper.key).channel()
-        }
-    );
-
-    pub fn borrow(&self) -> Ref<O> {
-        let rc = Runtime::current().inner.borrow_mut().objects[self.dropper.key].clone();
-        let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |object| {
-            object.as_any().downcast_ref().unwrap()
-        });
-        let object = unsafe { mem::transmute(object) };
-        Ref {
-            object: object,
-            _guard: rc,
-        }
-    }
-
-    pub fn signal<M>(&self) -> SignalHandle<M>
-    where
-        O: Signal<M> + 'static,
-        M: 'static,
-    {
-        Context::<O>::new(self.dropper.key).signal()
-    }
-
-    cfg_futures!(
-        pub fn spawn_local<M>(&self, future: impl core::future::Future<Output = M> + 'static)
+        /// Send a message to this object.
+        pub fn send<M>(&self, msg: M)
         where
             O: crate::Slot<M> + 'static,
             M: 'static,
         {
-            Context::<O>::new(self.dropper.key).spawn_local(future)
+            let key = self.guard.inner.key;
+            let me = self.clone();
+            crate::Runtime::current().inner.borrow_mut().channel.send(
+                crate::rt::RuntimeMessage::Handle {
+                    key,
+                    f: Box::new(move |any_object| {
+                        let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.handle(me, msg);
+                    }),
+                },
+            )
         }
+
+        pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
+        where
+            O: crate::Signal<M>,
+            M: 'static,
+        {
+            crate::Runtime::current()
+                .inner
+                .borrow_mut()
+                .listeners
+                .insert(
+                    (self.guard.inner.key, core::any::TypeId::of::<M>()),
+                    vec![alloc::rc::Rc::new(core::cell::RefCell::new(
+                        move |msg: &dyn core::any::Any| f(msg.downcast_ref().unwrap()),
+                    ))],
+                );
+        }
+
+        pub fn emit<M>(&self, msg: M)
+        where
+            O: crate::Signal<M> + 'static,
+            M: 'static,
+        {
+            let key = self.guard.inner.key;
+            let me = self.clone();
+            crate::Runtime::current().inner.borrow_mut().channel.send(
+                crate::rt::RuntimeMessage::Emit {
+                    key,
+                    msg: Box::new(msg),
+                    f: Box::new(|object, _key, msg| {
+                        let object = object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.emit(me, msg.downcast_ref().unwrap());
+                    }),
+                },
+            );
+        }
+
+        pub fn bind<M>(&self, other: &Handle<impl crate::Object + crate::Slot<M> + 'static>)
+        where
+            O: crate::Signal<M>,
+            M: Clone + 'static,
+        {
+            let other = other.clone();
+
+            self.listen(move |msg: &M| {
+                other.send(msg.clone());
+            });
+        }
+
+        cfg_futures!(
+            pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
+            where
+                O: crate::Signal<M>,
+                M: Clone + 'static,
+            {
+                let (tx, rx) = futures::channel::mpsc::unbounded();
+                self.listen(move |msg: &M| {
+                    tx.unbounded_send(msg.clone()).unwrap();
+                });
+                rx
+            }
+        );
+
+        pub fn borrow(&self) -> Ref<O> {
+            let rc = crate::Runtime::current().inner.borrow_mut().objects[self.guard.inner.key].clone();
+            let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |object| {
+                object.as_any().downcast_ref().unwrap()
+            });
+            let object = unsafe { std::mem::transmute(object) };
+            Ref {
+                object: object,
+                _guard: rc,
+            }
+        }
+
+        pub fn signal<M: 'static>(&self) -> crate::SignalHandle<M>
+        where
+            O: crate::Signal<M> + 'static,
+        {
+            let key = self.guard.inner.key;
+            let me = self.clone();
+            crate::SignalHandle {
+                make_emit: alloc::rc::Rc::new(move || {
+                    let me = me.clone();
+                    Box::new(move |object, _key, msg| {
+                        let object = object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.emit(me.clone(), msg.downcast_ref().unwrap());
+                    })
+                }),
+                key: key,
+                _marker: PhantomData,
+            }
+        }
+
+        pub fn slot<M>(&self) -> crate::SlotHandle<M>
+        where
+            O: crate::Slot<M> + 'static,
+            M: 'static,
+        {
+            let key = self.guard.inner.key;
+            let me = self.clone();
+            crate::SlotHandle {
+                key,
+                f: alloc::rc::Rc::new(core::cell::RefCell::new(
+                    move |any_object: &mut dyn crate::AnyObject, msg: Box<dyn core::any::Any>| {
+                        let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
+                        object.handle(me.clone(), *msg.downcast().unwrap());
+                    },
+                )),
+                _marker: PhantomData,
+            }
+        }
+
+        cfg_futures!(
+            pub fn spawn_local<M>(&self, future: impl core::future::Future<Output = M> + 'static)
+            where
+                O: crate::Slot<M> + 'static,
+                M: 'static,
+            {
+                let me = self.clone();
+                tokio::task::spawn_local(async move {
+                    let msg = future.await;
+                    me.send(msg)
+                });
+            }
+        );
     );
 }
 
 pub struct Ref<O: 'static> {
     object: cell::Ref<'static, O>,
-    _guard: Rc<RefCell<dyn AnyObject>>,
+    _guard: Rc<RefCell<dyn crate::AnyObject>>,
 }
 
 impl<T: 'static> Deref for Ref<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &*self.object
+        &self.object
     }
 }
