@@ -36,15 +36,10 @@ macro_rules! cfg_futures {
 }
 
 mod object;
-use core::any::Any;
-use core::marker::PhantomData;
-
-use handle::HandleGuard;
-
-pub use self::object::Object;
+pub use self::object::{AnyObject, Object};
 
 mod handle;
-pub use self::handle::Handle;
+pub use self::handle::{Handle, HandleGuard};
 
 cfg_rt!(
     pub mod rt;
@@ -64,30 +59,4 @@ pub trait Signal<M>: Object {
 
 pub trait Slot<M>: Object {
     fn handle(&mut self, cx: Handle<Self>, msg: M);
-}
-
-pub trait AnyObject {
-    fn as_any(&self) -> &dyn Any;
-
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-
-    fn start_any(&mut self, handle: HandleGuard);
-}
-
-impl<O: Object + 'static> AnyObject for O {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-
-    fn start_any(&mut self, handle: HandleGuard) {
-        let handle = Handle {
-            guard: handle,
-            _marker: PhantomData,
-        };
-        self.start(handle)
-    }
 }
