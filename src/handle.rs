@@ -73,7 +73,8 @@ impl<O> Handle<O> {
             )
         }
 
-        pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
+        /// Listen to messages emitted by this object.
+        pub fn listen<M>(&self, mut on_message: impl FnMut(&M) + 'static)
         where
             O: crate::Signal<M>,
             M: 'static,
@@ -85,11 +86,25 @@ impl<O> Handle<O> {
                 .insert(
                     (self.guard.inner.key, core::any::TypeId::of::<M>()),
                     vec![alloc::rc::Rc::new(core::cell::RefCell::new(
-                        move |msg: &dyn core::any::Any| f(msg.downcast_ref().unwrap()),
+                        move |msg: &dyn core::any::Any| on_message(msg.downcast_ref().unwrap()),
                     ))],
                 );
         }
 
+        /// Bind another object to messages emitted by this object.
+        pub fn bind<M>(&self, other: &Handle<impl crate::Object + crate::Slot<M> + 'static>)
+        where
+            O: crate::Signal<M>,
+            M: Clone + 'static,
+        {
+            let other = other.clone();
+
+            self.listen(move |msg: &M| {
+                other.send(msg.clone());
+            });
+        }
+
+        /// Emit a message from this object.
         pub fn emit<M>(&self, msg: M)
         where
             O: crate::Signal<M> + 'static,
@@ -109,19 +124,9 @@ impl<O> Handle<O> {
             );
         }
 
-        pub fn bind<M>(&self, other: &Handle<impl crate::Object + crate::Slot<M> + 'static>)
-        where
-            O: crate::Signal<M>,
-            M: Clone + 'static,
-        {
-            let other = other.clone();
-
-            self.listen(move |msg: &M| {
-                other.send(msg.clone());
-            });
-        }
 
         cfg_futures!(
+            /// Create a channel to messages emitted by this object.
             pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
             where
                 O: crate::Signal<M>,
@@ -135,6 +140,7 @@ impl<O> Handle<O> {
             }
         );
 
+        /// Borrow a reference to this object.
         pub fn borrow(&self) -> Ref<O> {
             let rc = crate::Runtime::current().inner.borrow_mut().objects[self.guard.inner.key].clone();
             let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |object| {
@@ -147,6 +153,7 @@ impl<O> Handle<O> {
             }
         }
 
+        /// Get a handle to this object's signal for a specific message.
         pub fn signal<M: 'static>(&self) -> crate::SignalHandle<M>
         where
             O: crate::Signal<M> + 'static,
@@ -166,6 +173,7 @@ impl<O> Handle<O> {
             }
         }
 
+        /// Get a handle to this object's slot for a specific message.
         pub fn slot<M>(&self) -> crate::SlotHandle<M>
         where
             O: crate::Slot<M> + 'static,
@@ -186,6 +194,9 @@ impl<O> Handle<O> {
         }
 
         cfg_futures!(
+            /// Spawn a `!Send` future attached to this object.
+            ///
+            /// The output of this future will be sent to this object as a message.
             pub fn spawn_local<M>(&self, future: impl core::future::Future<Output = M> + 'static)
             where
                 O: crate::Slot<M> + 'static,

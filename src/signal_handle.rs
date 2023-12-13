@@ -55,7 +55,6 @@ impl<M> SignalHandle<M> {
         M: Clone + 'static,
     {
         let other = other.clone();
-
         self.listen(move |msg: &M| {
             other.send(msg.clone());
         });

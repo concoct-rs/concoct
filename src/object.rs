@@ -1,5 +1,5 @@
-use crate::Handle;
 use crate::handle::HandleGuard;
+use crate::Handle;
 use core::any::Any;
 use core::marker::PhantomData;
 
@@ -16,7 +16,6 @@ pub trait Object {
         }
     );
 }
-
 
 pub trait AnyObject {
     fn as_any(&self) -> &dyn Any;
@@ -43,4 +42,3 @@ impl<O: Object + 'static> AnyObject for O {
         self.start(handle)
     }
 }
-
