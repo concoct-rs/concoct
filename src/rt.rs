@@ -1,4 +1,4 @@
-use crate::{Handle, Object, object::AnyObject};
+use crate::{object::AnyObject, Handle, Object};
 use alloc::rc::Rc;
 use core::{
     any::{Any, TypeId},
@@ -11,10 +11,9 @@ use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use slotmap::{DefaultKey, SlotMap};
 
+pub struct RuntimeMessage(pub(crate) RuntimeMessageKind);
 
-pub struct RuntimeMessage( pub(crate)RuntimeMessageKind);
-
- pub(crate) enum RuntimeMessageKind {
+pub(crate) enum RuntimeMessageKind {
     Emit {
         key: DefaultKey,
         msg: Box<dyn Any>,
@@ -36,16 +35,16 @@ pub(crate) struct Inner {
     pub(crate) channel: Box<dyn Executor>,
 }
 
-thread_local! {
-    static CURRENT: RefCell<Option<Runtime>> = RefCell::default();
-}
-
 /// Local reactive object runtime.
 ///
 /// This executes tasks in a thread-per-core fashion.
 #[derive(Clone)]
 pub struct Runtime {
     pub(crate) inner: Rc<RefCell<Inner>>,
+}
+
+thread_local! {
+    static CURRENT: RefCell<Option<Runtime>> = RefCell::default();
 }
 
 cfg_futures!(

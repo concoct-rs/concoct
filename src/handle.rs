@@ -11,6 +11,15 @@ pub(crate) struct Inner {
     pub(crate) key: DefaultKey,
 }
 
+impl Drop for Inner {
+    fn drop(&mut self) {
+        #[cfg(feature = "rt")]
+        if let Some(rt) = crate::Runtime::try_current() {
+            rt.inner.borrow_mut().objects.remove(self.key);
+        }
+    }
+}
+
 /// Type-erased handle to an object.
 ///
 /// Dropping this handle will also despawn the attached object.
@@ -18,15 +27,6 @@ pub(crate) struct Inner {
 pub struct HandleGuard {
     #[allow(dead_code)]
     pub(crate) inner: Rc<Inner>,
-}
-
-impl Drop for HandleGuard {
-    fn drop(&mut self) {
-        #[cfg(feature = "rt")]
-        if let Some(rt) = crate::Runtime::try_current() {
-            rt.inner.borrow_mut().objects.remove(self.inner.key);
-        }
-    }
 }
 
 /// Handle to a spawned object.
