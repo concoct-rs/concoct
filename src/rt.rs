@@ -20,20 +20,27 @@ pub(crate) enum RuntimeMessageKind {
         key: DefaultKey,
         f: Box<dyn FnOnce(&mut dyn AnyObject)>,
     },
+    Remove {
+        key: DefaultKey,
+    },
     Listen {
+        id: u64,
         key: DefaultKey,
         type_id: TypeId,
         f: Rc<RefCell<dyn FnMut(&dyn Any)>>,
         listen_f: Box<dyn FnOnce(&mut dyn AnyObject)>,
     },
-    Remove {
+    RemoveListener {
+        id: u64,
         key: DefaultKey,
+        type_id: TypeId,
     },
 }
 
 pub(crate) struct Inner {
     pub(crate) objects: SlotMap<DefaultKey, Rc<RefCell<dyn AnyObject>>>,
-    pub(crate) listeners: FxHashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>>,
+    pub(crate) listeners:
+        FxHashMap<(DefaultKey, TypeId), Vec<(u64, Rc<RefCell<dyn FnMut(&dyn Any)>>)>>,
     pub(crate) rx: mpsc::UnboundedReceiver<RuntimeMessage>,
 }
 
@@ -138,7 +145,7 @@ impl Runtime {
                 drop(me);
 
                 if let Some(listeners) = listeners {
-                    for listener in listeners {
+                    for (_id, listener) in listeners {
                         listener.borrow_mut()(&*msg)
                     }
                 }
@@ -152,6 +159,7 @@ impl Runtime {
                 f(&mut *object_ref);
             }
             RuntimeMessageKind::Listen {
+                id,
                 key,
                 type_id,
                 f,
@@ -160,10 +168,21 @@ impl Runtime {
                 self.inner
                     .borrow_mut()
                     .listeners
-                    .insert((key, type_id), vec![f]);
+                    .insert((key, type_id), vec![(id, f)]);
 
                 let object = self.inner.borrow().objects[key].clone();
                 listen_f(&mut *object.borrow_mut());
+            }
+            RuntimeMessageKind::RemoveListener { id, key, type_id } => {
+                if let Some(listeners) = self.inner.borrow_mut().listeners.get_mut(&(key, type_id))
+                {
+                    if let Some(idx) = listeners
+                        .iter()
+                        .position(|(listener_id, _)| *listener_id == id)
+                    {
+                        listeners.remove(idx);
+                    }
+                }
             }
             RuntimeMessageKind::Remove { key } => {
                 self.inner.borrow_mut().objects.remove(key);

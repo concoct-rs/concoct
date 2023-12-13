@@ -1,26 +1,30 @@
-use crate::{object::AnyObject, Handle, Object, Runtime, Slot};
+use crate::{
+    handle::LISTENER_ID, object::AnyObject, rt::RuntimeMessage, Handle, HandleGuard, Object, Slot,
+};
 use slotmap::DefaultKey;
 use std::{
     any::{Any, TypeId},
     cell::RefCell,
     marker::PhantomData,
     rc::Rc,
-    sync::Arc,
+    sync::{atomic::Ordering, Arc},
 };
 
 /// Handle to an object's signal for a specific message.
 pub struct SignalHandle<M> {
+    pub(crate) handle: HandleGuard,
     pub(crate) make_emit:
         Arc<dyn Fn() -> Box<dyn FnOnce(&mut dyn AnyObject, DefaultKey, &dyn Any)> + Send + Sync>,
-    pub(crate) key: DefaultKey,
+    pub(crate) make_listen: Arc<dyn Fn() -> Box<dyn FnOnce(&mut dyn AnyObject)>>,
     pub(crate) _marker: PhantomData<M>,
 }
 
 impl<M> Clone for SignalHandle<M> {
     fn clone(&self) -> Self {
         Self {
+            handle: self.handle.clone(),
             make_emit: self.make_emit.clone(),
-            key: self.key.clone(),
+            make_listen: self.make_listen.clone(),
             _marker: self._marker.clone(),
         }
     }
@@ -31,8 +35,9 @@ impl<M> SignalHandle<M> {
     where
         M: 'static,
     {
-        let key = self.key;
-        crate::Runtime::current()
+        let key = self.handle.inner.key;
+        self.handle
+            .inner
             .tx
             .unbounded_send(crate::rt::RuntimeMessage(
                 crate::rt::RuntimeMessageKind::Emit {
@@ -48,12 +53,20 @@ impl<M> SignalHandle<M> {
     where
         M: 'static,
     {
-        Runtime::current().inner.borrow_mut().listeners.insert(
-            (self.key, TypeId::of::<M>()),
-            vec![Rc::new(RefCell::new(move |msg: &dyn Any| {
-                f(msg.downcast_ref().unwrap())
-            }))],
-        );
+        let _cx = self.handle.clone();
+        self.handle
+            .inner
+            .tx
+            .unbounded_send(RuntimeMessage(crate::rt::RuntimeMessageKind::Listen {
+                id: LISTENER_ID.fetch_add(1, Ordering::SeqCst),
+                key: self.handle.inner.key,
+                type_id: TypeId::of::<M>(),
+                f: Rc::new(RefCell::new(move |msg: &dyn Any| {
+                    f(msg.downcast_ref().unwrap())
+                })),
+                listen_f: (self.make_listen)(),
+            }))
+            .unwrap();
     }
 
     pub fn bind(&self, other: &Handle<impl Object + Slot<M> + 'static>)

@@ -1,5 +1,9 @@
-use crate::{rt::RuntimeMessage, Runtime, Signal, Slot, SlotHandle};
-use futures::channel::mpsc::UnboundedSender;
+use crate::{
+    object::AnyObject,
+    rt::{RuntimeMessage, RuntimeMessageKind},
+    Object, Runtime, Signal, SignalHandle, Slot, SlotHandle,
+};
+use futures::channel::mpsc::{self, UnboundedSender};
 use slotmap::DefaultKey;
 use std::{
     any::TypeId,
@@ -7,8 +11,13 @@ use std::{
     marker::PhantomData,
     ops::Deref,
     rc::Rc,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
 };
+
+pub(crate) static LISTENER_ID: AtomicU64 = AtomicU64::new(0);
 
 /// Handle to a spawned object.
 ///
@@ -52,29 +61,30 @@ impl<O> Handle<O> {
         self.guard
             .inner
             .tx
-            .unbounded_send(crate::rt::RuntimeMessage(
-                crate::rt::RuntimeMessageKind::Handle {
-                    key,
-                    f: Box::new(move |any_object| {
-                        let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
-                        object.update(me, msg);
-                    }),
-                },
-            ))
+            .unbounded_send(RuntimeMessage(RuntimeMessageKind::Handle {
+                key,
+                f: Box::new(move |any_object| {
+                    let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
+                    object.update(me, msg);
+                }),
+            }))
             .unwrap();
     }
 
     /// Listen to messages emitted by this object.
-    pub fn listen<M>(&self, mut on_message: impl FnMut(&M) + 'static)
+    pub fn listen<M>(&self, mut on_message: impl FnMut(&M) + 'static) -> ListenerGuard
     where
         O: Signal<M> + 'static,
         M: 'static,
     {
+        let id = LISTENER_ID.fetch_add(1, Ordering::SeqCst);
         let cx = self.clone();
+
         self.guard
             .inner
             .tx
-            .unbounded_send(RuntimeMessage(crate::rt::RuntimeMessageKind::Listen {
+            .unbounded_send(RuntimeMessage(RuntimeMessageKind::Listen {
+                id,
                 key: self.guard.inner.key,
                 type_id: TypeId::of::<M>(),
                 f: Rc::new(RefCell::new(move |msg: &dyn std::any::Any| {
@@ -85,10 +95,17 @@ impl<O> Handle<O> {
                 }),
             }))
             .unwrap();
+
+        ListenerGuard {
+            id,
+            key: self.guard.inner.key,
+            type_id: TypeId::of::<M>(),
+            handle: self.guard.clone(),
+        }
     }
 
     /// Bind another object to messages emitted by this object.
-    pub fn bind<M>(&self, other: &Handle<impl crate::Object + Slot<M> + 'static>)
+    pub fn bind<M>(&self, other: &Handle<impl Object + Slot<M> + 'static>) -> ListenerGuard
     where
         O: Signal<M> + 'static,
         M: Clone + 'static,
@@ -97,13 +114,13 @@ impl<O> Handle<O> {
 
         self.listen(move |msg: &M| {
             other.send(msg.clone());
-        });
+        })
     }
 
     /// Bind another object to messages emitted by this object.
     pub fn map<M, M2>(
         &self,
-        other: &Handle<impl crate::Object + Slot<M2> + 'static>,
+        other: &Handle<impl Object + Slot<M2> + 'static>,
         mut f: impl FnMut(&M) -> M2 + 'static,
     ) where
         O: Signal<M> + 'static,
@@ -128,26 +145,24 @@ impl<O> Handle<O> {
         self.guard
             .inner
             .tx
-            .unbounded_send(crate::rt::RuntimeMessage(
-                crate::rt::RuntimeMessageKind::Emit {
-                    key,
-                    msg: Box::new(msg),
-                    f: Box::new(|object, _key, msg| {
-                        let object = object.as_any_mut().downcast_mut::<O>().unwrap();
-                        object.emit(me, msg.downcast_ref().unwrap());
-                    }),
-                },
-            ))
+            .unbounded_send(RuntimeMessage(RuntimeMessageKind::Emit {
+                key,
+                msg: Box::new(msg),
+                f: Box::new(|object, _key, msg| {
+                    let object = object.as_any_mut().downcast_mut::<O>().unwrap();
+                    object.emit(me, msg.downcast_ref().unwrap());
+                }),
+            }))
             .unwrap();
     }
 
     /// Create a channel to messages emitted by this object.
-    pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
+    pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
     where
         O: Signal<M> + 'static,
         M: Clone + 'static,
     {
-        let (tx, rx) = futures::channel::mpsc::unbounded();
+        let (tx, rx) = mpsc::unbounded();
         self.listen(move |msg: &M| {
             tx.unbounded_send(msg.clone()).unwrap();
         });
@@ -168,13 +183,14 @@ impl<O> Handle<O> {
     }
 
     /// Get a handle to this object's signal for a specific message.
-    pub fn signal<M: 'static>(&self) -> crate::SignalHandle<M>
+    pub fn signal<M: 'static>(&self) -> SignalHandle<M>
     where
         O: Signal<M> + 'static,
     {
-        let key = self.guard.inner.key;
         let me = self.clone();
-        crate::SignalHandle {
+        let cx = me.clone();
+
+        SignalHandle {
             make_emit: Arc::new(move || {
                 let me = me.clone();
                 Box::new(move |object, _key, msg| {
@@ -182,7 +198,17 @@ impl<O> Handle<O> {
                     object.emit(me.clone(), msg.downcast_ref().unwrap());
                 })
             }),
-            key: key,
+            handle: self.guard.clone(),
+            make_listen: Arc::new(move || {
+                let cx = cx.clone();
+                Box::new(move |object| {
+                    object
+                        .as_any_mut()
+                        .downcast_mut::<O>()
+                        .unwrap()
+                        .listen(cx.clone());
+                })
+            }),
             _marker: PhantomData,
         }
     }
@@ -198,8 +224,7 @@ impl<O> Handle<O> {
         SlotHandle {
             key,
             f: Arc::new(
-                move |any_object: &mut dyn crate::object::AnyObject,
-                      msg: Box<dyn std::any::Any>| {
+                move |any_object: &mut dyn AnyObject, msg: Box<dyn std::any::Any>| {
                     let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
                     object.update(me.clone(), *msg.downcast().unwrap());
                 },
@@ -279,16 +304,14 @@ pub(crate) struct Inner {
 impl Drop for Inner {
     fn drop(&mut self) {
         self.tx
-            .unbounded_send(RuntimeMessage(crate::rt::RuntimeMessageKind::Remove {
-                key: self.key,
-            }))
+            .unbounded_send(RuntimeMessage(RuntimeMessageKind::Remove { key: self.key }))
             .ok();
     }
 }
 
 pub struct Ref<O: 'static> {
     object: cell::Ref<'static, O>,
-    _guard: Rc<RefCell<dyn crate::object::AnyObject>>,
+    _guard: Rc<RefCell<dyn AnyObject>>,
 }
 
 impl<T: 'static> Deref for Ref<T> {
@@ -296,5 +319,26 @@ impl<T: 'static> Deref for Ref<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.object
+    }
+}
+
+pub struct ListenerGuard {
+    id: u64,
+    key: DefaultKey,
+    type_id: TypeId,
+    handle: HandleGuard,
+}
+
+impl Drop for ListenerGuard {
+    fn drop(&mut self) {
+        self.handle
+            .inner
+            .tx
+            .unbounded_send(RuntimeMessage(RuntimeMessageKind::RemoveListener {
+                id: self.id,
+                key: self.key,
+                type_id: self.type_id,
+            }))
+            .unwrap();
     }
 }
