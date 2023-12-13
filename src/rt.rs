@@ -86,7 +86,7 @@ impl Runtime {
         RuntimeGuard { _priv: () }
     }
 
-    pub fn spawn<T>(&self, object: T) -> Handle<T>
+    pub fn start<T>(&self, object: T) -> Handle<T>
     where
         T: Object + 'static,
     {
@@ -98,7 +98,7 @@ impl Runtime {
 
         let object = self.inner.borrow().objects[key].clone();
         let handle = Handle::new(key);
-        object.borrow_mut().start_any(handle.guard.clone());
+        object.borrow_mut().started_any(handle.guard.clone());
         handle
     }
 

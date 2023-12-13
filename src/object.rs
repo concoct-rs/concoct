@@ -3,26 +3,32 @@ use crate::Handle;
 use core::any::Any;
 use core::marker::PhantomData;
 
+/// A reactive object.
 pub trait Object {
+    /// Called after this object is started.
+    /// 
+    /// By default this does nothing.
     #[allow(unused_variables)]
-    fn start(&mut self, cx: Handle<Self>) {}
+    fn started(&mut self, cx: Handle<Self>) {}
 
     cfg_rt!(
-        fn spawn(self) -> crate::Handle<Self>
+        /// Start this object on the current runtime.
+        fn start(self) -> crate::Handle<Self>
         where
             Self: Sized + 'static,
         {
-            crate::Runtime::current().spawn(self)
+            crate::Runtime::current().start(self)
         }
     );
 }
 
+/// A dynamic reactive object.
 pub trait AnyObject {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
 
-    fn start_any(&mut self, handle: HandleGuard);
+    fn started_any(&mut self, handle: HandleGuard);
 }
 
 impl<O: Object + 'static> AnyObject for O {
@@ -34,11 +40,11 @@ impl<O: Object + 'static> AnyObject for O {
         self
     }
 
-    fn start_any(&mut self, handle: HandleGuard) {
+    fn started_any(&mut self, handle: HandleGuard) {
         let handle = Handle {
             guard: handle,
             _marker: PhantomData,
         };
-        self.start(handle)
+        self.started(handle)
     }
 }

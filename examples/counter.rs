@@ -23,8 +23,8 @@ async fn main() {
     let rt = Runtime::default();
     let _guard = rt.enter();
 
-    let a = Counter::default().spawn();
-    let b = Counter::default().spawn();
+    let a = Counter::default().start();
+    let b = Counter::default().start();
 
     a.bind(&b);
 

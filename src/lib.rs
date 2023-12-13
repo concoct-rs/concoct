@@ -34,8 +34,8 @@
 //!     let rt = Runtime::default();
 //!     let _guard = rt.enter();
 //!
-//!     let a = Counter::default().spawn();
-//!     let b = Counter::default().spawn();
+//!     let a = Counter::default().start();
+//!     let b = Counter::default().start();
 //!
 //!     a.bind(&b);
 //!
@@ -93,11 +93,15 @@ cfg_rt!(
     pub use signal_handle::SignalHandle;
 );
 
+/// Signal emitter of messages for an object.
 pub trait Signal<M>: Object {
+    /// Called when a value is emitted.
     #[allow(unused_variables)]
     fn emit(&mut self, cx: Handle<Self>, msg: &M) {}
 }
 
+/// Slot handler of messages for an object.
 pub trait Slot<M>: Object {
+    /// Handle a message.
     fn handle(&mut self, cx: Handle<Self>, msg: M);
 }

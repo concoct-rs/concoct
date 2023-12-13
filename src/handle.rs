@@ -11,6 +11,9 @@ pub(crate) struct Inner {
     pub(crate) key: DefaultKey,
 }
 
+/// Type-erased handle to an object.
+/// 
+/// Dropping this handle will also despawn the attached object.
 #[derive(Clone)]
 pub struct HandleGuard {
     #[allow(dead_code)]
