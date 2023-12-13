@@ -48,10 +48,9 @@ impl<M> SignalHandle<M> {
         );
     }
 
-    pub fn bind<T2>(&self, other: &Handle<T2>)
+    pub fn bind(&self, other: &Handle<impl Object + Handler<M> + 'static>)
     where
         M: Clone + 'static,
-        T2: Object + Handler<M> + 'static,
     {
         let other = other.clone();
 

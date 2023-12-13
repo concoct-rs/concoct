@@ -1,4 +1,4 @@
-use crate::{Handler, Object, Runtime, Signal, SignalHandle};
+use crate::{Handle, Handler, Object, Runtime, Signal, SignalHandle};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -28,6 +28,10 @@ impl<T> Context<T> {
             key,
             _marker: PhantomData,
         }
+    }
+
+    pub(crate) fn from_handle(handle: &Handle<T>) -> Self {
+        Self::new(handle.dropper.key)
     }
 
     pub fn send<M>(&self, msg: M)
@@ -61,11 +65,10 @@ impl<T> Context<T> {
         );
     }
 
-    pub fn bind<M, T2>(&self, other: &Context<T2>)
+    pub fn bind<M>(&self, other: &Context<impl Object + Handler<M> + 'static>)
     where
         T: Signal<M>,
         M: Clone + 'static,
-        T2: Object + Handler<M> + 'static,
     {
         let other = other.clone();
 

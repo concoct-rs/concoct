@@ -9,8 +9,8 @@ use std::{
     rc::Rc,
 };
 
-struct Dropper {
-    key: DefaultKey,
+pub(crate) struct Dropper {
+    pub(crate) key: DefaultKey,
 }
 
 impl Drop for Dropper {
@@ -22,7 +22,7 @@ impl Drop for Dropper {
 }
 
 pub struct Handle<T: ?Sized> {
-    dropper: Rc<Dropper>,
+    pub(crate) dropper: Rc<Dropper>,
     _marker: PhantomData<T>,
 }
 
@@ -59,13 +59,12 @@ impl<T> Handle<T> {
         Context::<T>::new(self.dropper.key).listen(f)
     }
 
-    pub fn bind<M, T2>(&self, other: &Handle<T2>)
+    pub fn bind<M>(&self, other: &Handle<impl Object + Handler<M> + 'static>)
     where
         T: Signal<M>,
         M: Clone + 'static,
-        T2: Object + Handler<M> + 'static,
     {
-        Context::<T>::new(self.dropper.key).bind(&Context::<T2>::new(other.dropper.key))
+        Context::<T>::new(self.dropper.key).bind(&Context::from_handle(other))
     }
 
     pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
