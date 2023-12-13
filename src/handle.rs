@@ -222,24 +222,24 @@ impl<O> Handle<O> {
         /// Spawn a `!Send` future attached to this object.
         ///
         /// The output of this future will be sent to this object as a message.
-        /// 
+        ///
         /// ```
         /// # let rt = concoct::Runtime::default();
         /// # let _guard = rt.enter();
         /// # let tokio_rt  = tokio::runtime::Runtime::new().unwrap();
         /// # tokio::task::LocalSet::new().block_on(&tokio_rt, async {
         /// use concoct::{Handle, Object, Slot};
-        /// 
+        ///
         /// struct Example;
-        /// 
+        ///
         /// impl Object for Example {}
-        /// 
+        ///
         /// impl Slot<i32> for Example {
         ///     fn handle(&mut self, _cx: Handle<Self>, msg: i32) {
         ///         assert_eq!(msg, 1);
         ///     }
         /// }
-        /// 
+        ///
         /// Example.start().spawn_local(async move { 1 });
         /// # rt.run().await;
         /// # })

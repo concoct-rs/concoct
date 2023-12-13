@@ -5,12 +5,10 @@ use slotmap::{DefaultKey, SlotMap};
 use std::{
     any::{Any, TypeId},
     cell::RefCell,
-    future::Future,
-    pin::Pin,
     rc::Rc,
 };
 
-pub struct RuntimeMessage(pub(crate) RuntimeMessageKind);
+pub(crate) struct RuntimeMessage(pub(crate) RuntimeMessageKind);
 
 pub(crate) enum RuntimeMessageKind {
     Emit {
@@ -157,12 +155,4 @@ impl Drop for RuntimeGuard {
     fn drop(&mut self) {
         CURRENT.try_with(|cell| cell.borrow_mut().take()).unwrap();
     }
-}
-
-pub trait Executor {
-    fn send(&mut self, msg: RuntimeMessage);
-
-    fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>>;
-
-    fn try_next(&mut self) -> Option<RuntimeMessage>;
 }
