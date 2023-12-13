@@ -1,5 +1,5 @@
 use crate::handle::HandleGuard;
-use crate::Handle;
+use crate::{Handle, Runtime};
 use std::any::Any;
 use std::marker::PhantomData;
 
@@ -12,11 +12,11 @@ pub trait Object {
     fn started(&mut self, cx: Handle<Self>) {}
 
     /// Start this object on the current runtime.
-    fn start(self) -> crate::Handle<Self>
+    fn start(self) -> Handle<Self>
     where
         Self: Sized + 'static,
     {
-        crate::Runtime::current().start(self)
+        Runtime::current().start(self)
     }
 }
 

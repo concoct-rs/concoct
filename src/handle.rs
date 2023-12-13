@@ -6,6 +6,8 @@ use std::{
     rc::Rc,
 };
 
+use crate::{Runtime, Signal, Slot};
+
 /// Handle to a spawned object.
 ///
 /// Dropping this handle will also despawn the attached object.
@@ -49,12 +51,12 @@ impl<O> Handle<O> {
     /// Send a message to this object.
     pub fn send<M>(&self, msg: M)
     where
-        O: crate::Slot<M> + 'static,
+        O: Slot<M> + 'static,
         M: 'static,
     {
         let key = self.guard.inner.key;
         let me = self.clone();
-        crate::Runtime::current()
+        Runtime::current()
             .tx
             .unbounded_send(crate::rt::RuntimeMessage(
                 crate::rt::RuntimeMessageKind::Handle {
@@ -71,10 +73,10 @@ impl<O> Handle<O> {
     /// Listen to messages emitted by this object.
     pub fn listen<M>(&self, mut on_message: impl FnMut(&M) + 'static)
     where
-        O: crate::Signal<M> + 'static,
+        O: Signal<M> + 'static,
         M: 'static,
     {
-        let rt = crate::Runtime::current().inner;
+        let rt = Runtime::current().inner;
         let mut rt = rt.borrow_mut();
 
         rt.listeners.insert(
@@ -97,9 +99,9 @@ impl<O> Handle<O> {
     }
 
     /// Bind another object to messages emitted by this object.
-    pub fn bind<M>(&self, other: &Handle<impl crate::Object + crate::Slot<M> + 'static>)
+    pub fn bind<M>(&self, other: &Handle<impl crate::Object + Slot<M> + 'static>)
     where
-        O: crate::Signal<M> + 'static,
+        O: Signal<M> + 'static,
         M: Clone + 'static,
     {
         let other = other.clone();
@@ -112,10 +114,10 @@ impl<O> Handle<O> {
     /// Bind another object to messages emitted by this object.
     pub fn map<M, M2>(
         &self,
-        other: &Handle<impl crate::Object + crate::Slot<M2> + 'static>,
+        other: &Handle<impl crate::Object + Slot<M2> + 'static>,
         mut f: impl FnMut(&M) -> M2 + 'static,
     ) where
-        O: crate::Signal<M> + 'static,
+        O: Signal<M> + 'static,
         M: 'static,
         M2: 'static,
     {
@@ -129,12 +131,12 @@ impl<O> Handle<O> {
     /// Emit a message from this object.
     pub fn emit<M>(&self, msg: M)
     where
-        O: crate::Signal<M> + 'static,
+        O: Signal<M> + 'static,
         M: 'static,
     {
         let key = self.guard.inner.key;
         let me = self.clone();
-        crate::Runtime::current()
+        Runtime::current()
             .tx
             .unbounded_send(crate::rt::RuntimeMessage(
                 crate::rt::RuntimeMessageKind::Emit {
@@ -152,7 +154,7 @@ impl<O> Handle<O> {
     /// Create a channel to messages emitted by this object.
     pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
     where
-        O: crate::Signal<M> + 'static,
+        O: Signal<M> + 'static,
         M: Clone + 'static,
     {
         let (tx, rx) = futures::channel::mpsc::unbounded();
@@ -164,7 +166,7 @@ impl<O> Handle<O> {
 
     /// Borrow a reference to this object.
     pub fn borrow(&self) -> Ref<O> {
-        let rc = crate::Runtime::current().inner.borrow_mut().objects[self.guard.inner.key].clone();
+        let rc = Runtime::current().inner.borrow_mut().objects[self.guard.inner.key].clone();
         let object: cell::Ref<O> = cell::Ref::map(rc.borrow(), |object| {
             object.as_any().downcast_ref().unwrap()
         });
@@ -178,7 +180,7 @@ impl<O> Handle<O> {
     /// Get a handle to this object's signal for a specific message.
     pub fn signal<M: 'static>(&self) -> crate::SignalHandle<M>
     where
-        O: crate::Signal<M> + 'static,
+        O: Signal<M> + 'static,
     {
         let key = self.guard.inner.key;
         let me = self.clone();
@@ -198,7 +200,7 @@ impl<O> Handle<O> {
     /// Get a handle to this object's slot for a specific message.
     pub fn slot<M>(&self) -> crate::SlotHandle<M>
     where
-        O: crate::Slot<M> + 'static,
+        O: Slot<M> + 'static,
         M: 'static,
     {
         let key = self.guard.inner.key;
@@ -220,6 +222,28 @@ impl<O> Handle<O> {
         /// Spawn a `!Send` future attached to this object.
         ///
         /// The output of this future will be sent to this object as a message.
+        /// 
+        /// ```
+        /// # let rt = concoct::Runtime::default();
+        /// # let _guard = rt.enter();
+        /// # let tokio_rt  = tokio::runtime::Runtime::new().unwrap();
+        /// # tokio::task::LocalSet::new().block_on(&tokio_rt, async {
+        /// use concoct::{Handle, Object, Slot};
+        /// 
+        /// struct Example;
+        /// 
+        /// impl Object for Example {}
+        /// 
+        /// impl Slot<i32> for Example {
+        ///     fn handle(&mut self, _cx: Handle<Self>, msg: i32) {
+        ///         assert_eq!(msg, 1);
+        ///     }
+        /// }
+        /// 
+        /// Example.start().spawn_local(async move { 1 });
+        /// # rt.run().await;
+        /// # })
+        /// ```
         pub fn spawn_local<M>(&self, future: impl std::future::Future<Output = M> + 'static)
         where
             O: crate::Slot<M> + 'static,
@@ -248,7 +272,7 @@ pub(crate) struct Inner {
 
 impl Drop for Inner {
     fn drop(&mut self) {
-        if let Some(rt) = crate::Runtime::try_current() {
+        if let Some(rt) = Runtime::try_current() {
             rt.inner.borrow_mut().objects.remove(self.key);
         }
     }
