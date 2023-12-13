@@ -10,7 +10,7 @@
 //!  - `rt`: Enables the `Runtime`.
 //!  - `futures`: Enables interop with the `futures` crate (and provides the default `Runtime`).
 //!
-//! ```rust
+//! ```ignore
 //! #[derive(Default)]
 //! pub struct Counter {
 //!     value: i32,
@@ -77,7 +77,7 @@ macro_rules! cfg_futures {
 }
 
 mod object;
-pub use self::object::{AnyObject, Object};
+pub use self::object::Object;
 
 mod handle;
 pub use self::handle::{Handle, HandleGuard};

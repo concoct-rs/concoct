@@ -12,7 +12,7 @@ pub(crate) struct Inner {
 }
 
 /// Type-erased handle to an object.
-/// 
+///
 /// Dropping this handle will also despawn the attached object.
 #[derive(Clone)]
 pub struct HandleGuard {
@@ -66,14 +66,14 @@ impl<O> Handle<O> {
             let key = self.guard.inner.key;
             let me = self.clone();
             crate::Runtime::current().inner.borrow_mut().channel.send(
-                crate::rt::RuntimeMessage::Handle {
+                crate::rt::RuntimeMessage(crate::rt::RuntimeMessageKind::Handle {
                     key,
                     f: Box::new(move |any_object| {
                         let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
                         object.handle(me, msg);
                     }),
                 },
-            )
+            ))
         }
 
         /// Listen to messages emitted by this object.
@@ -116,7 +116,7 @@ impl<O> Handle<O> {
             let key = self.guard.inner.key;
             let me = self.clone();
             crate::Runtime::current().inner.borrow_mut().channel.send(
-                crate::rt::RuntimeMessage::Emit {
+                crate::rt::RuntimeMessage(crate::rt::RuntimeMessageKind::Emit {
                     key,
                     msg: Box::new(msg),
                     f: Box::new(|object, _key, msg| {
@@ -124,7 +124,7 @@ impl<O> Handle<O> {
                         object.emit(me, msg.downcast_ref().unwrap());
                     }),
                 },
-            );
+            ));
         }
 
 
@@ -187,7 +187,7 @@ impl<O> Handle<O> {
             crate::SlotHandle {
                 key,
                 f: alloc::rc::Rc::new(core::cell::RefCell::new(
-                    move |any_object: &mut dyn crate::AnyObject, msg: Box<dyn core::any::Any>| {
+                    move |any_object: &mut dyn crate::object::AnyObject, msg: Box<dyn core::any::Any>| {
                         let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
                         object.handle(me.clone(), *msg.downcast().unwrap());
                     },
@@ -217,7 +217,7 @@ impl<O> Handle<O> {
 
 pub struct Ref<O: 'static> {
     object: cell::Ref<'static, O>,
-    _guard: Rc<RefCell<dyn crate::AnyObject>>,
+    _guard: Rc<RefCell<dyn crate::object::AnyObject>>,
 }
 
 impl<T: 'static> Deref for Ref<T> {

@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 /// A reactive object.
 pub trait Object {
     /// Called after this object is started.
-    /// 
+    ///
     /// By default this does nothing.
     #[allow(unused_variables)]
     fn started(&mut self, cx: Handle<Self>) {}
@@ -23,7 +23,7 @@ pub trait Object {
 }
 
 /// A dynamic reactive object.
-pub trait AnyObject {
+pub(crate) trait AnyObject {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;

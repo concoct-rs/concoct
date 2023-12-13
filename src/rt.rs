@@ -1,4 +1,4 @@
-use crate::{Handle, Object, AnyObject};
+use crate::{Handle, Object, object::AnyObject};
 use alloc::rc::Rc;
 use core::{
     any::{Any, TypeId},
@@ -10,9 +10,11 @@ use core::{
 use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 use slotmap::{DefaultKey, SlotMap};
-use tokio::task::LocalSet;
 
-pub enum RuntimeMessage {
+
+pub struct RuntimeMessage( pub(crate)RuntimeMessageKind);
+
+ pub(crate) enum RuntimeMessageKind {
     Emit {
         key: DefaultKey,
         msg: Box<dyn Any>,
@@ -38,6 +40,9 @@ thread_local! {
     static CURRENT: RefCell<Option<Runtime>> = RefCell::default();
 }
 
+/// Local reactive object runtime.
+///
+/// This executes tasks in a thread-per-core fashion.
 #[derive(Clone)]
 pub struct Runtime {
     pub(crate) inner: Rc<RefCell<Inner>>,
@@ -50,7 +55,7 @@ cfg_futures!(
             Self::new(Box::new(LocalExecutor {
                 tx,
                 rx,
-                local_set:LocalSet::new()
+                local_set: tokio::task::LocalSet::new()
             }))
         }
     }
@@ -125,8 +130,8 @@ impl Runtime {
     }
 
     fn run_inner(&self, msg: RuntimeMessage) {
-        match msg {
-            RuntimeMessage::Emit { key, msg, f } => {
+        match msg.0 {
+            RuntimeMessageKind::Emit { key, msg, f } => {
                 let me = self.inner.borrow();
                 let object = me.objects[key].clone();
                 drop(me);
@@ -145,7 +150,7 @@ impl Runtime {
                     }
                 }
             }
-            RuntimeMessage::Handle { key, f } => {
+            RuntimeMessageKind::Handle { key, f } => {
                 let me = self.inner.borrow();
                 let object = me.objects[key].clone();
                 drop(me);
