@@ -1,12 +1,5 @@
-use crate::{rt::AnyTask, Handle, Object, Runtime, Signal, SignalHandle, Slot, SlotHandle};
-use futures::channel::mpsc;
 use slotmap::DefaultKey;
-use std::{
-    any::{Any, TypeId},
-    cell::RefCell,
-    marker::PhantomData,
-    rc::Rc,
-};
+use std::marker::PhantomData;
 
 pub struct Context<T: ?Sized> {
     key: DefaultKey,
@@ -23,110 +16,116 @@ impl<T> Clone for Context<T> {
 }
 
 impl<T> Context<T> {
-    pub(crate) fn new(key: DefaultKey) -> Self {
-        Self {
-            key,
-            _marker: PhantomData,
-        }
-    }
-
-    pub(crate) fn from_handle(handle: &Handle<T>) -> Self {
-        Self::new(handle.dropper.key)
-    }
-
-    pub fn send<M>(&self, msg: M)
-    where
-        T: Slot<M> + 'static,
-        M: 'static,
-    {
-        let key = self.key;
-        Runtime::current()
-            .tx
-            .unbounded_send(crate::rt::RuntimeMessage::Handle {
+    cfg_rt!(
+        pub(crate) fn new(key: DefaultKey) -> Self {
+            Self {
                 key,
-                f: Box::new(move |any_task| {
-                    let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
-                    task.handle(Context::new(key), msg);
-                }),
-            })
-            .unwrap();
-    }
+                _marker: PhantomData,
+            }
+        }
 
-    pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
-    where
-        T: Signal<M>,
-        M: 'static,
-    {
-        Runtime::current().inner.borrow_mut().listeners.insert(
-            (self.key, TypeId::of::<M>()),
-            vec![Rc::new(RefCell::new(move |msg: &dyn Any| {
-                f(msg.downcast_ref().unwrap())
-            }))],
-        );
-    }
+        pub(crate) fn from_handle(handle: &crate::Handle<T>) -> Self {
+            Self::new(handle.dropper.key)
+        }
 
-    pub fn bind<M>(&self, other: &Context<impl Object + Slot<M> + 'static>)
-    where
-        T: Signal<M>,
-        M: Clone + 'static,
-    {
-        let other = other.clone();
+        pub fn send<M>(&self, msg: M)
+        where
+            T: crate::Slot<M> + 'static,
+            M: 'static,
+        {
+            let key = self.key;
+            crate::Runtime::current()
+                .tx
+                .unbounded_send(crate::rt::RuntimeMessage::Handle {
+                    key,
+                    f: Box::new(move |any_task| {
+                        let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
+                        task.handle(Context::new(key), msg);
+                    }),
+                })
+                .unwrap();
+        }
 
-        self.listen(move |msg: &M| {
-            other.send(msg.clone());
-        });
-    }
+        pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
+        where
+            T: crate::Signal<M>,
+            M: 'static,
+        {
+            crate::Runtime::current()
+                .inner
+                .borrow_mut()
+                .listeners
+                .insert(
+                    (self.key, std::any::TypeId::of::<M>()),
+                    vec![std::rc::Rc::new(std::cell::RefCell::new(
+                        move |msg: &dyn std::any::Any| f(msg.downcast_ref().unwrap()),
+                    ))],
+                );
+        }
 
-    pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
-    where
-        T: Signal<M>,
-        M: Clone + 'static,
-    {
-        let (tx, rx) = mpsc::unbounded();
-        self.listen(move |msg: &M| {
-            tx.unbounded_send(msg.clone()).unwrap();
-        });
-        rx
-    }
+        pub fn bind<M>(&self, other: &Context<impl crate::Object + crate::Slot<M> + 'static>)
+        where
+            T: crate::Signal<M>,
+            M: Clone + 'static,
+        {
+            let other = other.clone();
 
-    pub fn emit<M>(&self, msg: M)
-    where
-        T: Signal<M> + 'static,
-        M: 'static,
-    {
-        let key = self.key;
-        Runtime::current()
-            .tx
-            .unbounded_send(crate::rt::RuntimeMessage::Signal {
+            self.listen(move |msg: &M| {
+                other.send(msg.clone());
+            });
+        }
+
+        pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
+        where
+            T: crate::Signal<M>,
+            M: Clone + 'static,
+        {
+            let (tx, rx) = futures::channel::mpsc::unbounded();
+            self.listen(move |msg: &M| {
+                tx.unbounded_send(msg.clone()).unwrap();
+            });
+            rx
+        }
+
+        pub fn emit<M>(&self, msg: M)
+        where
+            T: crate::Signal<M> + 'static,
+            M: 'static,
+        {
+            let key = self.key;
+            crate::Runtime::current()
+                .tx
+                .unbounded_send(crate::rt::RuntimeMessage::Signal {
+                    key,
+                    msg: Box::new(msg),
+                })
+                .unwrap();
+        }
+
+        pub fn signal<M>(&self) -> crate::SignalHandle<M> {
+            let key = self.key;
+            crate::SignalHandle {
+                key: key,
+                _marker: PhantomData,
+            }
+        }
+
+        pub fn slot<M>(&self) -> crate::SlotHandle<M>
+        where
+            T: crate::Slot<M> + 'static,
+            M: 'static,
+        {
+            let key = self.key;
+            crate::SlotHandle {
                 key,
-                msg: Box::new(msg),
-            })
-            .unwrap();
-    }
-
-    pub fn signal<M>(&self) -> SignalHandle<M> {
-        let key = self.key;
-        SignalHandle {
-            key: key,
-            _marker: PhantomData,
+                f: std::rc::Rc::new(std::cell::RefCell::new(
+                    move |any_task: &mut dyn crate::rt::AnyTask, msg: Box<dyn std::any::Any>| {
+                        let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
+                        task.handle(Context::new(key), *msg.downcast().unwrap());
+                    },
+                )),
+                _marker: PhantomData,
+            }
         }
-    }
-
-    pub fn slot<M>(&self) -> SlotHandle<M>
-    where
-        T: Slot<M> + 'static,
-        M: 'static,
-    {
-        let key = self.key;
-        SlotHandle {
-            key,
-            f: Rc::new(RefCell::new(
-                move |any_task: &mut dyn AnyTask, msg: Box<dyn Any>| {
-                    let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
-                    task.handle(Context::new(key), *msg.downcast().unwrap());
-                },
-            )),
-            _marker: PhantomData,
-        }
-    }
+    );
 }

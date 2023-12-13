@@ -7,7 +7,8 @@ description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
-full = []
+rt = []
+full = ["rt"]
 
 [dependencies]
 futures = "0.3.29"
@@ -15,3 +16,11 @@ slotmap = "1.0.7"
 
 [dev-dependencies]
 tokio = { version = "1.35.0", features = ["full"] }
+
+[package.metadata.docs.rs]
+features = ["full"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "counter"
+required-features = ["full"]
