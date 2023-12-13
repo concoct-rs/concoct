@@ -79,25 +79,33 @@ impl<O> Handle<O> {
         /// Listen to messages emitted by this object.
         pub fn listen<M>(&self, mut on_message: impl FnMut(&M) + 'static)
         where
-            O: crate::Signal<M>,
+            O: crate::Signal<M> + 'static,
             M: 'static,
         {
-            crate::Runtime::current()
-                .inner
-                .borrow_mut()
-                .listeners
+            let rt = crate::Runtime::current()
+                .inner;
+            let mut rt = rt.borrow_mut();
+
+            rt.listeners
                 .insert(
                     (self.guard.inner.key, core::any::TypeId::of::<M>()),
                     vec![alloc::rc::Rc::new(core::cell::RefCell::new(
                         move |msg: &dyn core::any::Any| on_message(msg.downcast_ref().unwrap()),
                     ))],
                 );
+
+            let object = rt.objects[self.guard.inner.key].clone();
+            drop(rt);
+
+            let cx = self.clone();
+            object.borrow_mut().as_any_mut().downcast_mut::<O>().unwrap().listen(cx);
+
         }
 
         /// Bind another object to messages emitted by this object.
         pub fn bind<M>(&self, other: &Handle<impl crate::Object + crate::Slot<M> + 'static>)
         where
-            O: crate::Signal<M>,
+            O: crate::Signal<M> + 'static,
             M: Clone + 'static,
         {
             let other = other.clone();
@@ -113,7 +121,7 @@ impl<O> Handle<O> {
             other: &Handle<impl crate::Object + crate::Slot<M2> + 'static>,
             mut f: impl FnMut(&M) -> M2 + 'static,
         ) where
-            O: crate::Signal<M>,
+            O: crate::Signal<M> + 'static,
             M: 'static,
             M2: 'static,
         {
@@ -149,7 +157,7 @@ impl<O> Handle<O> {
             /// Create a channel to messages emitted by this object.
             pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
             where
-                O: crate::Signal<M>,
+                O: crate::Signal<M> + 'static,
                 M: Clone + 'static,
             {
                 let (tx, rx) = futures::channel::mpsc::unbounded();

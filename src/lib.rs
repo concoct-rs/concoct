@@ -95,9 +95,13 @@ cfg_rt!(
 
 /// Signal emitter of messages for an object.
 pub trait Signal<M>: Object {
-    /// Called when a value is emitted.
+    /// Called when a message is emitted.
     #[allow(unused_variables)]
     fn emit(&mut self, cx: Handle<Self>, msg: &M) {}
+
+    /// Called when a listener begins.
+    #[allow(unused_variables)]
+    fn listen(&mut self, cx: Handle<Self>) {}
 }
 
 /// Slot handler of messages for an object.
