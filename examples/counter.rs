@@ -1,4 +1,4 @@
-use concoct::{Context, Handler, Object, Runtime, Signal};
+use concoct::{Context, Object, Runtime, Signal, Slot};
 
 #[derive(Default)]
 pub struct Counter {
@@ -9,7 +9,7 @@ impl Object for Counter {}
 
 impl Signal<i32> for Counter {}
 
-impl Handler<i32> for Counter {
+impl Slot<i32> for Counter {
     fn handle(&mut self, cx: Context<Self>, msg: i32) {
         self.value = msg;
         cx.emit(msg);

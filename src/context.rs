@@ -1,4 +1,4 @@
-use crate::{Handle, Handler, Object, Runtime, Signal, SignalHandle};
+use crate::{rt::AnyTask, Handle, Object, Runtime, Signal, SignalHandle, Slot, SlotHandle};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -36,7 +36,7 @@ impl<T> Context<T> {
 
     pub fn send<M>(&self, msg: M)
     where
-        T: Handler<M> + 'static,
+        T: Slot<M> + 'static,
         M: 'static,
     {
         let key = self.key;
@@ -65,7 +65,7 @@ impl<T> Context<T> {
         );
     }
 
-    pub fn bind<M>(&self, other: &Context<impl Object + Handler<M> + 'static>)
+    pub fn bind<M>(&self, other: &Context<impl Object + Slot<M> + 'static>)
     where
         T: Signal<M>,
         M: Clone + 'static,
@@ -108,6 +108,24 @@ impl<T> Context<T> {
         let key = self.key;
         SignalHandle {
             key: key,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn slot<M>(&self) -> SlotHandle<M>
+    where
+        T: Slot<M> + 'static,
+        M: 'static,
+    {
+        let key = self.key;
+        SlotHandle {
+            key,
+            f: Rc::new(RefCell::new(
+                move |any_task: &mut dyn AnyTask, msg: Box<dyn Any>| {
+                    let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
+                    task.handle(Context::new(key), *msg.downcast().unwrap());
+                },
+            )),
             _marker: PhantomData,
         }
     }

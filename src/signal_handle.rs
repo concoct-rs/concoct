@@ -1,4 +1,4 @@
-use crate::{Handle, Handler, Object, Runtime};
+use crate::{Handle, Object, Runtime, Slot};
 use slotmap::DefaultKey;
 use std::{
     any::{Any, TypeId},
@@ -48,7 +48,7 @@ impl<M> SignalHandle<M> {
         );
     }
 
-    pub fn bind(&self, other: &Handle<impl Object + Handler<M> + 'static>)
+    pub fn bind(&self, other: &Handle<impl Object + Slot<M> + 'static>)
     where
         M: Clone + 'static,
     {

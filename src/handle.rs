@@ -1,4 +1,4 @@
-use crate::{rt::AnyTask, Context, Handler, Object, Runtime, Signal, SignalHandle};
+use crate::{rt::AnyTask, Context, Object, Runtime, Signal, SignalHandle, Slot};
 use futures::channel::mpsc;
 use slotmap::DefaultKey;
 use std::{
@@ -45,7 +45,7 @@ impl<T> Handle<T> {
 
     pub fn send<M>(&self, msg: M)
     where
-        T: Handler<M> + 'static,
+        T: Slot<M> + 'static,
         M: 'static,
     {
         Context::<T>::new(self.dropper.key).send(msg)
@@ -59,7 +59,7 @@ impl<T> Handle<T> {
         Context::<T>::new(self.dropper.key).listen(f)
     }
 
-    pub fn bind<M>(&self, other: &Handle<impl Object + Handler<M> + 'static>)
+    pub fn bind<M>(&self, other: &Handle<impl Object + Slot<M> + 'static>)
     where
         T: Signal<M>,
         M: Clone + 'static,
