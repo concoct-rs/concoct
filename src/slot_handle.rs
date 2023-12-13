@@ -1,22 +1,12 @@
 use crate::{object::AnyObject, Runtime};
 use slotmap::DefaultKey;
-use std::{any::Any, cell::RefCell, marker::PhantomData, rc::Rc};
+use std::{any::Any, marker::PhantomData, sync::Arc};
 
 /// Handle to an object's slot for a specific message.
 pub struct SlotHandle<M> {
     pub(crate) key: DefaultKey,
-    pub(crate) f: Rc<RefCell<dyn FnMut(&mut dyn AnyObject, Box<dyn Any>)>>,
+    pub(crate) f: Arc<dyn Fn(&mut dyn AnyObject, Box<dyn Any>) + Send + Sync>,
     pub(crate) _marker: PhantomData<M>,
-}
-
-impl<M> Clone for SlotHandle<M> {
-    fn clone(&self) -> Self {
-        Self {
-            key: self.key.clone(),
-            f: self.f.clone(),
-            _marker: self._marker.clone(),
-        }
-    }
 }
 
 impl<M> SlotHandle<M> {
@@ -32,10 +22,26 @@ impl<M> SlotHandle<M> {
                 crate::rt::RuntimeMessageKind::Handle {
                     key,
                     f: Box::new(move |any_object| {
-                        f.borrow_mut()(any_object, Box::new(msg));
+                        f(any_object, Box::new(msg));
                     }),
                 },
             ))
             .unwrap();
     }
 }
+
+impl<M> Clone for SlotHandle<M> {
+    fn clone(&self) -> Self {
+        Self {
+            key: self.key.clone(),
+            f: self.f.clone(),
+            _marker: self._marker.clone(),
+        }
+    }
+}
+
+unsafe impl<M> Send for SlotHandle<M> {}
+
+unsafe impl<M> Sync for SlotHandle<M> {}
+
+impl<M> Unpin for SlotHandle<M> {}

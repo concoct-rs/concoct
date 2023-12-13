@@ -1,3 +1,4 @@
+use crate::{rt::RuntimeMessage, Runtime, Signal, Slot, SlotHandle};
 use futures::channel::mpsc::UnboundedSender;
 use slotmap::DefaultKey;
 use std::{
@@ -7,8 +8,6 @@ use std::{
     rc::Rc,
     sync::Arc,
 };
-
-use crate::{rt::RuntimeMessage, Runtime, Signal, Slot};
 
 /// Handle to a spawned object.
 ///
@@ -180,7 +179,7 @@ impl<O> Handle<O> {
         let key = self.guard.inner.key;
         let me = self.clone();
         crate::SignalHandle {
-            make_emit: std::rc::Rc::new(move || {
+            make_emit: Arc::new(move || {
                 let me = me.clone();
                 Box::new(move |object, _key, msg| {
                     let object = object.as_any_mut().downcast_mut::<O>().unwrap();
@@ -193,22 +192,22 @@ impl<O> Handle<O> {
     }
 
     /// Get a handle to this object's slot for a specific message.
-    pub fn slot<M>(&self) -> crate::SlotHandle<M>
+    pub fn slot<M>(&self) -> SlotHandle<M>
     where
         O: Slot<M> + 'static,
         M: 'static,
     {
         let key = self.guard.inner.key;
         let me = self.clone();
-        crate::SlotHandle {
+        SlotHandle {
             key,
-            f: std::rc::Rc::new(std::cell::RefCell::new(
+            f: Arc::new(
                 move |any_object: &mut dyn crate::object::AnyObject,
                       msg: Box<dyn std::any::Any>| {
                     let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
                     object.handle(me.clone(), *msg.downcast().unwrap());
                 },
-            )),
+            ),
             _marker: PhantomData,
         }
     }

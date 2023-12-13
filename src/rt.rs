@@ -1,5 +1,5 @@
 use crate::{object::AnyObject, Handle, Object};
-use futures::StreamExt;
+use futures::{channel::mpsc, StreamExt};
 use rustc_hash::FxHashMap;
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -28,8 +28,7 @@ pub(crate) enum RuntimeMessageKind {
 pub(crate) struct Inner {
     pub(crate) objects: SlotMap<DefaultKey, Rc<RefCell<dyn AnyObject>>>,
     pub(crate) listeners: FxHashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>>,
-
-    pub(crate) rx: futures::channel::mpsc::UnboundedReceiver<RuntimeMessage>,
+    pub(crate) rx: mpsc::UnboundedReceiver<RuntimeMessage>,
 }
 
 /// Local reactive object runtime.
@@ -38,7 +37,7 @@ pub(crate) struct Inner {
 #[derive(Clone)]
 pub struct Runtime {
     pub(crate) inner: Rc<RefCell<Inner>>,
-    pub(crate) tx: futures::channel::mpsc::UnboundedSender<RuntimeMessage>,
+    pub(crate) tx: mpsc::UnboundedSender<RuntimeMessage>,
 }
 
 thread_local! {
@@ -47,7 +46,7 @@ thread_local! {
 
 impl Default for Runtime {
     fn default() -> Self {
-        let (tx, rx) = futures::channel::mpsc::unbounded();
+        let (tx, rx) = mpsc::unbounded();
         Self {
             inner: Rc::new(RefCell::new(Inner {
                 objects: SlotMap::new(),

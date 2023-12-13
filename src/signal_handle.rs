@@ -5,11 +5,13 @@ use std::{
     cell::RefCell,
     marker::PhantomData,
     rc::Rc,
+    sync::Arc,
 };
 
 /// Handle to an object's signal for a specific message.
 pub struct SignalHandle<M> {
-    pub(crate) make_emit: Rc<dyn Fn() -> Box<dyn FnOnce(&mut dyn AnyObject, DefaultKey, &dyn Any)>>,
+    pub(crate) make_emit:
+        Arc<dyn Fn() -> Box<dyn FnOnce(&mut dyn AnyObject, DefaultKey, &dyn Any)> + Send + Sync>,
     pub(crate) key: DefaultKey,
     pub(crate) _marker: PhantomData<M>,
 }
@@ -64,3 +66,9 @@ impl<M> SignalHandle<M> {
         });
     }
 }
+
+unsafe impl<M> Send for SignalHandle<M> {}
+
+unsafe impl<M> Sync for SignalHandle<M> {}
+
+impl<M> Unpin for SignalHandle<M> {}
