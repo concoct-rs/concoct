@@ -16,9 +16,7 @@
 </div>
 
 <div align="center">
- <a href="https://github.com/concoct-rs/concoct/tree/main/examples">Native Examples</a>
-  |
- <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Web Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/examples">Examples</a>
 </div>
 
 <br />
