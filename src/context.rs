@@ -1,5 +1,5 @@
+use core::marker::PhantomData;
 use slotmap::DefaultKey;
-use std::marker::PhantomData;
 
 pub struct Context<T: ?Sized> {
     key: DefaultKey,
@@ -55,9 +55,9 @@ impl<T> Context<T> {
                 .borrow_mut()
                 .listeners
                 .insert(
-                    (self.key, std::any::TypeId::of::<M>()),
-                    vec![std::rc::Rc::new(std::cell::RefCell::new(
-                        move |msg: &dyn std::any::Any| f(msg.downcast_ref().unwrap()),
+                    (self.key, core::any::TypeId::of::<M>()),
+                    vec![alloc::rc::Rc::new(core::cell::RefCell::new(
+                        move |msg: &dyn core::any::Any| f(msg.downcast_ref().unwrap()),
                     ))],
                 );
         }
@@ -74,17 +74,20 @@ impl<T> Context<T> {
             });
         }
 
-        pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
-        where
-            T: crate::Signal<M>,
-            M: Clone + 'static,
-        {
-            let (tx, rx) = futures::channel::mpsc::unbounded();
-            self.listen(move |msg: &M| {
-                tx.unbounded_send(msg.clone()).unwrap();
-            });
-            rx
-        }
+        cfg_futures!(
+            pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
+            where
+                T: crate::Signal<M>,
+                M: Clone + 'static,
+            {
+                let (tx, rx) = futures::channel::mpsc::unbounded();
+                self.listen(move |msg: &M| {
+                    tx.unbounded_send(msg.clone()).unwrap();
+                });
+                rx
+            }
+        );
+
 
         pub fn emit<M>(&self, msg: M)
         where
@@ -116,8 +119,8 @@ impl<T> Context<T> {
             let key = self.key;
             crate::SlotHandle {
                 key,
-                f: std::rc::Rc::new(std::cell::RefCell::new(
-                    move |any_task: &mut dyn crate::rt::AnyTask, msg: Box<dyn std::any::Any>| {
+                f: alloc::rc::Rc::new(core::cell::RefCell::new(
+                    move |any_task: &mut dyn crate::rt::AnyTask, msg: Box<dyn core::any::Any>| {
                         let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
                         task.handle(Context::new(key), *msg.downcast().unwrap());
                     },

@@ -1,6 +1,7 @@
 use crate::{rt::AnyTask, Runtime};
+use alloc::rc::Rc;
 use slotmap::DefaultKey;
-use std::{any::Any, cell::RefCell, marker::PhantomData, rc::Rc};
+use core::{any::Any, cell::RefCell, marker::PhantomData};
 
 pub struct SlotHandle<M> {
     pub(crate) key: DefaultKey,

@@ -1,13 +1,13 @@
 use crate::{rt::AnyTask, Context, Object, Runtime, Signal, SignalHandle, Slot};
-use futures::channel::mpsc;
 use slotmap::DefaultKey;
-use std::{
+use core::{
     cell::{self, RefCell},
     marker::PhantomData,
     mem,
     ops::Deref,
-    rc::Rc,
+    
 };
+use alloc::rc::Rc;
 
 pub(crate) struct Dropper {
     pub(crate) key: DefaultKey,
@@ -67,13 +67,16 @@ impl<T> Handle<T> {
         Context::<T>::new(self.dropper.key).bind(&Context::from_handle(other))
     }
 
-    pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
-    where
-        T: Signal<M>,
-        M: Clone + 'static,
-    {
-        Context::<T>::new(self.dropper.key).channel()
-    }
+    cfg_futures!(
+        pub fn channel<M>(&self) -> futures::channel::mpsc::UnboundedReceiver<M>
+        where
+            T: Signal<M>,
+            M: Clone + 'static,
+        {
+            Context::<T>::new(self.dropper.key).channel()
+        }
+    );
+   
 
     pub fn borrow(&self) -> Ref<T> {
         let rc = Runtime::current().inner.borrow_mut().tasks[self.dropper.key].clone();

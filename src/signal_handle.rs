@@ -1,10 +1,11 @@
 use crate::{Handle, Object, Runtime, Slot};
+use alloc::rc::Rc;
 use slotmap::DefaultKey;
-use std::{
+use core::{
     any::{Any, TypeId},
     cell::RefCell,
     marker::PhantomData,
-    rc::Rc,
+
 };
 
 pub struct SignalHandle<M> {

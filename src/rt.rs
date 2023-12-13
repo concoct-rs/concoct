@@ -1,12 +1,14 @@
 use crate::{Context, Handle, Object};
-use futures::{channel::mpsc, Future, StreamExt};
-use slotmap::{DefaultKey, SlotMap};
-use std::{
+use alloc::rc::Rc;
+use core::{
     any::{Any, TypeId},
     cell::RefCell,
-    collections::HashMap,
-    rc::Rc, pin::Pin,
+    pin::Pin, hash::BuildHasherDefault,
+    future::Future
 };
+use hashbrown::HashMap;
+use rustc_hash::FxHasher;
+use slotmap::{DefaultKey, SlotMap};
 
 pub enum RuntimeMessage {
     Signal {
@@ -21,7 +23,8 @@ pub enum RuntimeMessage {
 
 pub(crate) struct Inner {
     pub(crate) tasks: SlotMap<DefaultKey, Rc<RefCell<dyn AnyTask>>>,
-    pub(crate) listeners: HashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>>,
+    pub(crate) listeners:
+        HashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>, BuildHasherDefault<FxHasher>>,
     pub(crate) channel: Box<dyn Channel>,
 }
 
@@ -37,7 +40,7 @@ pub struct Runtime {
 cfg_futures!(
     impl Default for Runtime {
         fn default() -> Self {
-            let (tx, rx) = mpsc::unbounded();
+            let (tx, rx) = futures::channel::mpsc::unbounded();
             Self::new(Box::new(Mpsc {
                 tx,rx
             }))
@@ -50,7 +53,7 @@ impl Runtime {
         Self {
             inner: Rc::new(RefCell::new(Inner {
                 tasks: SlotMap::new(),
-                listeners: HashMap::new(),
+                listeners: HashMap::with_hasher(BuildHasherDefault::default()),
                 channel,
             })),
         }
@@ -175,15 +178,15 @@ impl Drop for RuntimeGuard {
 pub trait Channel {
     fn send(&mut self, msg: RuntimeMessage);
 
-    fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>>+ '_>>;
+    fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>>;
 
     fn try_next(&mut self) -> Option<RuntimeMessage>;
 }
 
 cfg_futures!(
     pub struct Mpsc {
-        pub tx: mpsc::UnboundedSender<RuntimeMessage>,
-        pub rx: mpsc::UnboundedReceiver<RuntimeMessage>,
+        pub tx: futures::channel::mpsc::UnboundedSender<RuntimeMessage>,
+        pub rx: futures::channel::mpsc::UnboundedReceiver<RuntimeMessage>,
     }
 
     impl Channel for Mpsc {
@@ -192,6 +195,7 @@ cfg_futures!(
         }
 
         fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>> {
+            use futures::StreamExt;
             Box::pin(async move {
                 self.rx.next().await
             })
