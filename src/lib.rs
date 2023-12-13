@@ -10,6 +10,17 @@ macro_rules! cfg_rt {
     };
 }
 
+#[allow(unused_macros)]
+macro_rules! cfg_futures {
+    ($($i:item)*) => {
+        $(
+            #[cfg(feature = "futures")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "futures")))]
+            $i
+        )*
+    };
+}
+
 mod context;
 pub use self::context::Context;
 
@@ -20,8 +31,8 @@ cfg_rt!(
     mod handle;
     pub use self::handle::Handle;
 
-    mod rt;
-    pub use self::rt::{Runtime, RuntimeGuard};
+    pub mod rt;
+    pub use self::rt::Runtime;
 
     mod slot_handle;
     pub use slot_handle::SlotHandle;

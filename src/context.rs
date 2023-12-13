@@ -34,16 +34,15 @@ impl<T> Context<T> {
             M: 'static,
         {
             let key = self.key;
-            crate::Runtime::current()
-                .tx
-                .unbounded_send(crate::rt::RuntimeMessage::Handle {
+            crate::Runtime::current().inner.borrow_mut().channel.send(
+                crate::rt::RuntimeMessage::Handle {
                     key,
                     f: Box::new(move |any_task| {
                         let task = any_task.as_any_mut().downcast_mut::<T>().unwrap();
                         task.handle(Context::new(key), msg);
                     }),
-                })
-                .unwrap();
+                },
+            )
         }
 
         pub fn listen<M>(&self, mut f: impl FnMut(&M) + 'static)
@@ -93,13 +92,12 @@ impl<T> Context<T> {
             M: 'static,
         {
             let key = self.key;
-            crate::Runtime::current()
-                .tx
-                .unbounded_send(crate::rt::RuntimeMessage::Signal {
+            crate::Runtime::current().inner.borrow_mut().channel.send(
+                crate::rt::RuntimeMessage::Signal {
                     key,
                     msg: Box::new(msg),
-                })
-                .unwrap();
+                },
+            );
         }
 
         pub fn signal<M>(&self) -> crate::SignalHandle<M> {

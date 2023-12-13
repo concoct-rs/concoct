@@ -26,13 +26,12 @@ impl<M> SlotHandle<M> {
         let key = self.key;
         let f = self.f.clone();
         Runtime::current()
-            .tx
-            .unbounded_send(crate::rt::RuntimeMessage::Handle {
+        .inner.borrow_mut().channel
+        .send(crate::rt::RuntimeMessage::Handle {
                 key,
                 f: Box::new(move |any_task| {
                     f.borrow_mut()(any_task, Box::new(msg));
                 }),
-            })
-            .unwrap();
+            });
     }
 }

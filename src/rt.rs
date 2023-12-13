@@ -1,14 +1,14 @@
 use crate::{Context, Handle, Object};
-use futures::{channel::mpsc, StreamExt};
+use futures::{channel::mpsc, Future, StreamExt};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
     any::{Any, TypeId},
     cell::RefCell,
     collections::HashMap,
-    rc::Rc,
+    rc::Rc, pin::Pin,
 };
 
-pub(crate) enum RuntimeMessage {
+pub enum RuntimeMessage {
     Signal {
         key: DefaultKey,
         msg: Box<dyn Any>,
@@ -22,7 +22,7 @@ pub(crate) enum RuntimeMessage {
 pub(crate) struct Inner {
     pub(crate) tasks: SlotMap<DefaultKey, Rc<RefCell<dyn AnyTask>>>,
     pub(crate) listeners: HashMap<(DefaultKey, TypeId), Vec<Rc<RefCell<dyn FnMut(&dyn Any)>>>>,
-    rx: mpsc::UnboundedReceiver<RuntimeMessage>,
+    pub(crate) channel: Box<dyn Channel>,
 }
 
 thread_local! {
@@ -32,24 +32,30 @@ thread_local! {
 #[derive(Clone)]
 pub struct Runtime {
     pub(crate) inner: Rc<RefCell<Inner>>,
-    pub(crate) tx: mpsc::UnboundedSender<RuntimeMessage>,
 }
 
-impl Default for Runtime {
-    fn default() -> Self {
-        let (tx, rx) = mpsc::unbounded();
+cfg_futures!(
+    impl Default for Runtime {
+        fn default() -> Self {
+            let (tx, rx) = mpsc::unbounded();
+            Self::new(Box::new(Mpsc {
+                tx,rx
+            }))
+        }
+    }
+);
+
+impl Runtime {
+    pub fn new(channel: Box<dyn Channel>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(Inner {
                 tasks: SlotMap::new(),
                 listeners: HashMap::new(),
-                rx,
+                channel,
             })),
-            tx,
         }
     }
-}
 
-impl Runtime {
     pub fn current() -> Self {
         Self::try_current().unwrap()
     }
@@ -87,7 +93,7 @@ impl Runtime {
 
     pub async fn run(&self) {
         let mut me = self.inner.borrow_mut();
-        if let Some(msg) = me.rx.next().await {
+        if let Some(msg) = me.channel.next().await {
             drop(me);
             self.run_inner(msg);
 
@@ -98,7 +104,7 @@ impl Runtime {
     pub fn try_run(&self) {
         loop {
             let mut me = self.inner.borrow_mut();
-            if let Ok(Some(msg)) = me.rx.try_next() {
+            if let Some(msg) = me.channel.try_next() {
                 drop(me);
                 self.run_inner(msg);
             } else {
@@ -134,7 +140,7 @@ impl Runtime {
     }
 }
 
-pub(crate) trait AnyTask {
+pub trait AnyTask {
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -165,3 +171,34 @@ impl Drop for RuntimeGuard {
         CURRENT.try_with(|cell| cell.borrow_mut().take()).unwrap();
     }
 }
+
+pub trait Channel {
+    fn send(&mut self, msg: RuntimeMessage);
+
+    fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>>+ '_>>;
+
+    fn try_next(&mut self) -> Option<RuntimeMessage>;
+}
+
+cfg_futures!(
+    pub struct Mpsc {
+        pub tx: mpsc::UnboundedSender<RuntimeMessage>,
+        pub rx: mpsc::UnboundedReceiver<RuntimeMessage>,
+    }
+
+    impl Channel for Mpsc {
+        fn send(&mut self, msg: RuntimeMessage) {
+            self.tx.unbounded_send(msg).unwrap();
+        }
+
+        fn next(&mut self) -> Pin<Box<dyn Future<Output = Option<RuntimeMessage>> + '_>> {
+            Box::pin(async move {
+                self.rx.next().await
+            })
+        }
+
+        fn try_next(&mut self) -> Option<RuntimeMessage> {
+            self.rx.try_next().ok().flatten()
+        }
+    }
+);

@@ -7,8 +7,10 @@ description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
+std = []
 rt = []
-full = ["rt"]
+futures = ["std"]
+full = ["rt", "futures"]
 
 [dependencies]
 futures = "0.3.29"

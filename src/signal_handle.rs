@@ -28,12 +28,11 @@ impl<M> SignalHandle<M> {
     {
         let key = self.key;
         Runtime::current()
-            .tx
-            .unbounded_send(crate::rt::RuntimeMessage::Signal {
+            .inner.borrow_mut().channel
+            .send(crate::rt::RuntimeMessage::Signal {
                 key,
                 msg: Box::new(msg),
-            })
-            .unwrap();
+            });
     }
 
     pub fn listen(&self, mut f: impl FnMut(&M) + 'static)
