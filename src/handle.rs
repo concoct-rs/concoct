@@ -6,29 +6,6 @@ use std::{
     rc::Rc,
 };
 
-pub(crate) struct Inner {
-    #[allow(dead_code)]
-    pub(crate) key: DefaultKey,
-}
-
-impl Drop for Inner {
-    fn drop(&mut self) {
-        #[cfg(feature = "rt")]
-        if let Some(rt) = crate::Runtime::try_current() {
-            rt.inner.borrow_mut().objects.remove(self.key);
-        }
-    }
-}
-
-/// Type-erased handle to an object.
-///
-/// Dropping this handle will also despawn the attached object.
-#[derive(Clone)]
-pub struct HandleGuard {
-    #[allow(dead_code)]
-    pub(crate) inner: Rc<Inner>,
-}
-
 /// Handle to a spawned object.
 ///
 /// Dropping this handle will also despawn the attached object.
@@ -255,6 +232,26 @@ impl<O> Handle<O> {
             });
         }
     );
+}
+
+/// Type-erased handle to an object.
+///
+/// Dropping this handle will also despawn the attached object.
+#[derive(Clone)]
+pub struct HandleGuard {
+    pub(crate) inner: Rc<Inner>,
+}
+
+pub(crate) struct Inner {
+    pub(crate) key: DefaultKey,
+}
+
+impl Drop for Inner {
+    fn drop(&mut self) {
+        if let Some(rt) = crate::Runtime::try_current() {
+            rt.inner.borrow_mut().objects.remove(self.key);
+        }
+    }
 }
 
 pub struct Ref<O: 'static> {

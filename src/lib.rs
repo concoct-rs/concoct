@@ -3,12 +3,10 @@
 //! Concoct is a runtime for user-interfaces in Rust.
 //!
 //! ## Feature flags
-//! Concoct uses a set of feature flags to provide support for `#![no_std]`
-//! (and to reduce the amount of compiled code).
+//! Concoct uses a set of feature flags to reduce the amount of compiled code.
 //!
 //!  - `full`: Enables all features listed below.
-//!  - `rt`: Enables the `Runtime`.
-//!  - `futures`: Enables interop with the `futures` crate (and provides the default `Runtime`).
+//!  - `tokio`: Enables interop with the `tokio` runtime.
 //!
 //! ```
 //! use concoct::{Handle, Object, Runtime, Signal, Slot};
