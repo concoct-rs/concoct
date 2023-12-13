@@ -107,6 +107,23 @@ impl<O> Handle<O> {
             });
         }
 
+        /// Bind another object to messages emitted by this object.
+        pub fn map<M, M2>(
+            &self,
+            other: &Handle<impl crate::Object + crate::Slot<M2> + 'static>,
+            mut f: impl FnMut(&M) -> M2 + 'static,
+        ) where
+            O: crate::Signal<M>,
+            M: 'static,
+            M2: 'static,
+        {
+            let other = other.clone();
+
+            self.listen(move |msg: &M| {
+                other.send(f(msg));
+            });
+        }
+
         /// Emit a message from this object.
         pub fn emit<M>(&self, msg: M)
         where
