@@ -20,6 +20,12 @@ pub(crate) enum RuntimeMessageKind {
         key: DefaultKey,
         f: Box<dyn FnOnce(&mut dyn AnyObject)>,
     },
+    Listen {
+        key: DefaultKey,
+        type_id: TypeId,
+        f: Rc<RefCell<dyn FnMut(&dyn Any)>>,
+        listen_f: Box<dyn FnOnce(&mut dyn AnyObject)>,
+    },
     Remove {
         key: DefaultKey,
     },
@@ -144,6 +150,20 @@ impl Runtime {
 
                 let mut object_ref = object.borrow_mut();
                 f(&mut *object_ref);
+            }
+            RuntimeMessageKind::Listen {
+                key,
+                type_id,
+                f,
+                listen_f,
+            } => {
+                self.inner
+                    .borrow_mut()
+                    .listeners
+                    .insert((key, type_id), vec![f]);
+
+                let object = self.inner.borrow().objects[key].clone();
+                listen_f(&mut *object.borrow_mut());
             }
             RuntimeMessageKind::Remove { key } => {
                 self.inner.borrow_mut().objects.remove(key);

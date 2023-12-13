@@ -2,6 +2,7 @@ use crate::{rt::RuntimeMessage, Runtime, Signal, Slot, SlotHandle};
 use futures::channel::mpsc::UnboundedSender;
 use slotmap::DefaultKey;
 use std::{
+    any::TypeId,
     cell::{self, RefCell},
     marker::PhantomData,
     ops::Deref,
@@ -69,26 +70,21 @@ impl<O> Handle<O> {
         O: Signal<M> + 'static,
         M: 'static,
     {
-        let rt = Runtime::current().inner;
-        let mut rt = rt.borrow_mut();
-
-        rt.listeners.insert(
-            (self.guard.inner.key, std::any::TypeId::of::<M>()),
-            vec![std::rc::Rc::new(std::cell::RefCell::new(
-                move |msg: &dyn std::any::Any| on_message(msg.downcast_ref().unwrap()),
-            ))],
-        );
-
-        let object = rt.objects[self.guard.inner.key].clone();
-        drop(rt);
-
         let cx = self.clone();
-        object
-            .borrow_mut()
-            .as_any_mut()
-            .downcast_mut::<O>()
-            .unwrap()
-            .listen(cx);
+        self.guard
+            .inner
+            .tx
+            .unbounded_send(RuntimeMessage(crate::rt::RuntimeMessageKind::Listen {
+                key: self.guard.inner.key,
+                type_id: TypeId::of::<M>(),
+                f: Rc::new(RefCell::new(move |msg: &dyn std::any::Any| {
+                    on_message(msg.downcast_ref().unwrap())
+                })),
+                listen_f: Box::new(|object| {
+                    object.as_any_mut().downcast_mut::<O>().unwrap().listen(cx);
+                }),
+            }))
+            .unwrap();
     }
 
     /// Bind another object to messages emitted by this object.
