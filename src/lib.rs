@@ -1,96 +1,84 @@
-//! # Concoct
-//!
-//! Concoct is a runtime for user-interfaces in Rust.
-//!
-//! ## Feature flags
-//! Concoct uses a set of feature flags to reduce the amount of compiled code.
-//!
-//!  - `full`: Enables all features listed below.
-//!  - `tokio`: Enables interop with the `tokio` runtime.
-//!
-//! ```
-//! use concoct::{Handle, Object, Runtime, Signal, Slot};
-//!
-//! #[derive(Default)]
-//! pub struct Counter {
-//!     value: i32,
-//! }
-//!
-//! impl Object for Counter {}
-//!
-//! impl Signal<i32> for Counter {}
-//!
-//! impl Slot<i32> for Counter {
-//!     fn update(&mut self, cx: Handle<Self>, msg: i32) {
-//!         if self.value != msg {
-//!             self.value = msg;
-//!             cx.emit(msg);
-//!         }
-//!     }
-//! }
-//!
-//! #[tokio::main]
-//! async fn main() {
-//!     let rt = Runtime::default();
-//!     let _guard = rt.enter();
-//!
-//!     let a = Counter::default().start();
-//!     let b = Counter::default().start();
-//!
-//!     a.bind(&b);
-//!
-//!     a.send(1);
-//!     a.send(2);
-//!
-//!     rt.run().await;
-//!
-//!     assert_eq!(a.borrow().value, 2);
-//!     assert_eq!(b.borrow().value, 2);
-//! }
-//! ```
-//!
+use std::{
+    any::{Any, TypeId},
+    cell::{Ref, RefCell, RefMut},
+    marker::PhantomData,
+    rc::Rc,
+};
 
-#![cfg_attr(docsrs, feature(doc_cfg))]
-
-#[allow(unused_macros)]
-macro_rules! cfg_tokio {
-    ($($i:item)*) => {
-        $(
-            #[cfg(feature = "tokio")]
-            #[cfg_attr(docsrs, doc(cfg(feature = "tokio")))]
-            $i
-        )*
-    };
+struct ListenerData {
+    type_id: TypeId,
+    f: Box<dyn FnMut(&dyn Any)>,
 }
 
-mod object;
-pub use self::object::Object;
-
-pub mod handle;
-pub use self::handle::Handle;
-
-pub mod rt;
-pub use self::rt::Runtime;
-
-mod slot_handle;
-pub use slot_handle::SlotHandle;
-
-mod signal_handle;
-pub use signal_handle::SignalHandle;
-
-/// Signal emitter of messages for an object.
-pub trait Signal<M>: Object {
-    /// Called when a message is emitted.
-    #[allow(unused_variables)]
-    fn emit(&mut self, cx: Handle<Self>, msg: &M) {}
-
-    /// Called when a listener starts on this signal.
-    #[allow(unused_variables)]
-    fn listen(&mut self, cx: Handle<Self>) {}
+struct Node {
+    object: Box<dyn Any>,
+    listeners: Vec<ListenerData>,
 }
 
-/// Slot handler of messages for an object.
-pub trait Slot<M>: Object {
-    /// Handle a message.
-    fn update(&mut self, cx: Handle<Self>, msg: M);
+pub struct Handle<O> {
+    node: Rc<RefCell<Node>>,
+    _marker: PhantomData<O>,
+}
+
+impl<O> Handle<O> {
+    pub fn listen<M: 'static>(&self, mut listener: impl FnMut(&M) + 'static) {
+        let listener = ListenerData {
+            type_id: listener.type_id(),
+            f: Box::new(move |msg| listener(msg.downcast_ref().unwrap())),
+        };
+        self.node.borrow_mut().listeners.push(listener);
+    }
+
+    pub fn unlisten<M: 'static>(&self, listener: impl FnMut(&M) + 'static) -> bool {
+        let mut node = self.node.borrow_mut();
+        if let Some(idx) = node
+            .listeners
+            .iter()
+            .position(|listener_data| listener_data.type_id == listener.type_id())
+        {
+            node.listeners.remove(idx);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn borrow(&self) -> Ref<O>
+    where
+        O: 'static,
+    {
+        Ref::map(self.node.borrow(), |node| {
+            node.object.downcast_ref().unwrap()
+        })
+    }
+
+    pub fn borrow_mut(&self) -> RefMut<O>
+    where
+        O: 'static,
+    {
+        RefMut::map(self.node.borrow_mut(), |node| {
+            node.object.downcast_mut().unwrap()
+        })
+    }
+}
+
+pub struct Listener {
+    type_id: TypeId,
+    node: Rc<RefCell<Node>>,
+}
+
+impl Listener {
+    pub fn unlisten(&self) -> bool {
+        let mut node = self.node.borrow_mut();
+        if let Some(idx) = node
+            .listeners
+            .iter()
+            .position(|listener| listener.type_id == self.type_id)
+        {
+            node.listeners.remove(idx);
+            true
+        } else {
+            false
+        }
+    }
 }
