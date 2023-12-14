@@ -3,18 +3,23 @@ use crate::{
     rt::{Node, RuntimeMessage, RuntimeMessageKind},
     Object, Runtime, Signal, SignalHandle, Slot, SlotHandle,
 };
-use futures::channel::mpsc::{self, UnboundedSender};
+use futures::{
+    channel::mpsc::{self, UnboundedSender},
+    Stream, StreamExt,
+};
 use slotmap::DefaultKey;
 use std::{
     any::TypeId,
     cell::{self, RefCell},
     marker::PhantomData,
     ops::Deref,
+    pin::Pin,
     rc::Rc,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
     },
+    task::{Context, Poll},
 };
 
 pub(crate) static LISTENER_ID: AtomicU64 = AtomicU64::new(0);
@@ -136,16 +141,19 @@ impl<O> Handle<O> {
     }
 
     /// Create a channel to messages emitted by this object.
-    pub fn channel<M>(&self) -> mpsc::UnboundedReceiver<M>
+    pub fn channel<M>(&self) -> Channel<M>
     where
         O: Signal<M> + 'static,
         M: Clone + 'static,
     {
         let (tx, rx) = mpsc::unbounded();
-        self.listen(move |msg: &M| {
-            tx.unbounded_send(msg.clone()).unwrap();
-        });
-        rx
+        let guard = self.listen_inner(
+            move |msg: &M| {
+                tx.unbounded_send(msg.clone()).unwrap();
+            },
+            None,
+        );
+        Channel { rx, _guard: guard }
     }
 
     /// Borrow a reference to this object.
@@ -364,5 +372,19 @@ impl BindHandle {
                 type_id: self.type_id,
             }))
             .unwrap();
+    }
+}
+
+/// Stream for the [`Handle::channel`] method.
+pub struct Channel<M> {
+    rx: mpsc::UnboundedReceiver<M>,
+    _guard: BindHandle,
+}
+
+impl<M> Stream for Channel<M> {
+    type Item = M;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        self.rx.poll_next_unpin(cx)
     }
 }

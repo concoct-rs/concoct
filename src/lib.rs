@@ -66,8 +66,8 @@ macro_rules! cfg_tokio {
 mod object;
 pub use self::object::Object;
 
-mod handle;
-pub use self::handle::{Handle, HandleGuard};
+pub mod handle;
+pub use self::handle::Handle;
 
 pub mod rt;
 pub use self::rt::Runtime;

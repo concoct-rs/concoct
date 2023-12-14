@@ -1,5 +1,8 @@
 use crate::{
-    handle::LISTENER_ID, object::AnyObject, rt::RuntimeMessage, Handle, HandleGuard, Object, Slot,
+    handle::{HandleGuard, LISTENER_ID},
+    object::AnyObject,
+    rt::RuntimeMessage,
+    Handle, Object, Slot,
 };
 use slotmap::DefaultKey;
 use std::{

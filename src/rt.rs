@@ -1,7 +1,7 @@
 use crate::{
-    handle::{BindHandle, ListenerGuard},
+    handle::{BindHandle, HandleGuard, ListenerGuard},
     object::AnyObject,
-    Handle, HandleGuard, Object,
+    Handle, Object,
 };
 use futures::{channel::mpsc, StreamExt};
 use rustc_hash::FxHashMap;
