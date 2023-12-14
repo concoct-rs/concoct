@@ -191,7 +191,7 @@ impl<O> Handle<O> {
         let cx = me.clone();
 
         SignalHandle {
-            make_emit: Arc::new(move || {
+            make_emit: Rc::new(move || {
                 let me = me.clone();
                 Box::new(move |object, _key, msg| {
                     let object = object.as_any_mut().downcast_mut::<O>().unwrap();
@@ -199,7 +199,7 @@ impl<O> Handle<O> {
                 })
             }),
             handle: self.guard.clone(),
-            make_listen: Arc::new(move || {
+            make_listen: Rc::new(move || {
                 let cx = cx.clone();
                 Box::new(move |object| {
                     object
@@ -223,7 +223,7 @@ impl<O> Handle<O> {
         let me = self.clone();
         SlotHandle {
             key,
-            f: Arc::new(
+            f: Rc::new(
                 move |any_object: &mut dyn AnyObject, msg: Box<dyn std::any::Any>| {
                     let object = any_object.as_any_mut().downcast_mut::<O>().unwrap();
                     object.update(me.clone(), *msg.downcast().unwrap());
@@ -317,10 +317,6 @@ impl<O> Clone for Handle<O> {
         }
     }
 }
-
-unsafe impl<O> Send for Handle<O> {}
-
-unsafe impl<O> Sync for Handle<O> {}
 
 impl<O> Unpin for Handle<O> {}
 

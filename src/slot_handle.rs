@@ -1,11 +1,11 @@
 use crate::{object::AnyObject, Runtime};
 use slotmap::DefaultKey;
-use std::{any::Any, marker::PhantomData, sync::Arc};
+use std::{any::Any, marker::PhantomData, rc::Rc};
 
 /// Handle to an object's slot for a specific message.
 pub struct SlotHandle<M> {
     pub(crate) key: DefaultKey,
-    pub(crate) f: Arc<dyn Fn(&mut dyn AnyObject, Box<dyn Any>) + Send + Sync>,
+    pub(crate) f: Rc<dyn Fn(&mut dyn AnyObject, Box<dyn Any>)>,
     pub(crate) _marker: PhantomData<M>,
 }
 
@@ -39,9 +39,5 @@ impl<M> Clone for SlotHandle<M> {
         }
     }
 }
-
-unsafe impl<M> Send for SlotHandle<M> {}
-
-unsafe impl<M> Sync for SlotHandle<M> {}
 
 impl<M> Unpin for SlotHandle<M> {}
