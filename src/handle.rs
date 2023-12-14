@@ -89,14 +89,7 @@ impl<O> Handle<O> {
         O: Signal<M> + 'static,
         M: Clone + 'static,
     {
-        let other = other.clone();
-        let guard = other.guard.clone();
-        self.listen_inner(
-            move |msg: &M| {
-                other.send(msg.clone());
-            },
-            Some(guard),
-        )
+        self.map(other, |msg| msg.clone())
     }
 
     /// Bind another object to messages emitted by this object.
@@ -104,16 +97,20 @@ impl<O> Handle<O> {
         &self,
         other: &Handle<impl Object + Slot<M2> + 'static>,
         mut f: impl FnMut(&M) -> M2 + 'static,
-    ) where
+    ) -> BindHandle
+    where
         O: Signal<M> + 'static,
         M: 'static,
         M2: 'static,
     {
         let other = other.clone();
-
-        self.listen(move |msg: &M| {
-            other.send(f(msg));
-        });
+        let guard = other.guard.clone();
+        self.listen_inner(
+            move |msg: &M| {
+                other.send(f(msg));
+            },
+            Some(guard),
+        )
     }
 
     /// Emit a message from this object.
