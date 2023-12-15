@@ -19,8 +19,8 @@ impl Counter {
 }
 
 fn main() {
-    let a = Counter::default().start();
-    let b = Counter::default().start();
+    let a = Counter::create();
+    let b = Counter::create();
 
     a.bind(&b, Counter::set_value);
 

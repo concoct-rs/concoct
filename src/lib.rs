@@ -63,8 +63,6 @@ use alloc::rc::Weak;
 use alloc::vec::Vec;
 use core::any::{Any, TypeId};
 use core::cell::RefCell;
-use core::ops::{Deref, DerefMut};
-use core::pin::Pin;
 
 mod context;
 pub use self::context::Context;
@@ -72,40 +70,11 @@ pub use self::context::Context;
 mod handle;
 pub use self::handle::{Binding, Handle};
 
+mod object;
+pub use self::object::Object;
+
 pub mod signal;
 pub use self::signal::Signal;
-
-/// A reactive object.
-pub trait Object {
-    /// Called when the object is first started.
-    #[allow(unused_variables)]
-    fn started(cx: &mut Context<Self>)
-    where
-        Self: Sized + 'static,
-    {
-    }
-
-    /// Start this object and create a handle.
-    fn start(self) -> Handle<Self>
-    where
-        Self: Sized + 'static,
-    {
-        let handle = Handle::new(self);
-        Self::started(&mut handle.cx());
-        handle
-    }
-}
-
-impl<O: Object + ?Sized> Object for &mut O {}
-
-impl<F> Object for Box<F> where F: Object + ?Sized {}
-
-impl<P> Object for Pin<P>
-where
-    P: DerefMut,
-    <P as Deref>::Target: Object,
-{
-}
 
 #[derive(Clone)]
 struct ListenerData {
