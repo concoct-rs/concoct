@@ -26,12 +26,16 @@ impl<O> Handle<O> {
     where
         O: 'static,
     {
+        Self::from_node(Rc::new(RefCell::new(Node {
+            object: Box::new(object),
+            listeners: Vec::new(),
+            listening: Vec::new(),
+        })))
+    }
+
+    fn from_node(node: Rc<RefCell<Node>>) -> Self {
         Self {
-            node: Rc::new(RefCell::new(Node {
-                object: Box::new(object),
-                listeners: Vec::new(),
-                listening: Vec::new(),
-            })),
+            node,
             _marker: PhantomData,
         }
     }
@@ -43,47 +47,66 @@ impl<O> Handle<O> {
         O2: 'static,
         M: Clone + 'static,
     {
-        let listener_id = slot.type_id();
+        let slot_id = slot.type_id();
         let listener = ListenerData {
             msg_id: TypeId::of::<M>(),
-            listener_id: slot.type_id(),
+            slot_id,
             node: Rc::downgrade(&other.node),
             listen: |node, slot, msg: &dyn Any| {
                 let slot = unsafe { *(slot as *const fn(&mut Context<O2>, &M)) };
-                let handle = Handle {
-                    node: node.upgrade().unwrap(),
-                    _marker: PhantomData,
-                };
-                let mut cx = handle.cx();
-                slot(&mut cx, msg.downcast_ref().unwrap())
+                if let Some(node) = node.upgrade() {
+                    let handle = Handle::from_node(node);
+                    let mut cx = handle.cx();
+                    slot(&mut cx, msg.downcast_ref().unwrap())
+                }
             },
             slot: slot as _,
         };
         self.node.borrow_mut().listeners.push(listener);
 
         Binding {
-            type_id: listener_id,
+            slot_id,
             node: Rc::downgrade(&self.node),
         }
     }
 
     /// Remove a binding from this object.
-    pub fn unbind<O2, M>(&self, other: &Handle<O2>, slot: fn(&mut Context<O2>, M)) -> bool
+    ///
+    /// ```
+    /// use concoct::{Object, Signal};
+    ///
+    /// struct App;
+    ///
+    /// impl App {
+    ///     fn set_value(cx: &mut concoct::Context<Self>, value: i32) {}
+    /// }
+    ///
+    /// impl Object for App {}
+    ///
+    /// impl Signal<i32> for App {}
+    ///
+    /// let object_a = App.start();
+    /// let object_b = App.start();
+    ///
+    /// object_a.bind(&object_b, App::set_value);
+    ///
+    /// assert!(object_a.unbind(App::set_value));
+    /// ```
+    pub fn unbind<O2, M>(&self, slot: fn(&mut Context<O2>, M)) -> bool
     where
         O: Signal<M>,
         O2: 'static,
         M: Clone + 'static,
     {
         let mut node = self.node.borrow_mut();
-        if let Some(idx) = node.listeners.iter().position(|listener_data| {
-            listener_data.node.ptr_eq(&Rc::downgrade(&other.node))
-                && listener_data.listener_id == slot.type_id()
-        }) {
-            node.listeners.remove(idx);
-            true
-        } else {
-            false
+        // TODO remove from other handle
+        for (idx, listener) in node.listeners.iter().enumerate() {
+            if listener.slot_id == slot.type_id() {
+                node.listeners.remove(idx);
+                return true;
+            }
         }
+        false
     }
 
     /// Get the slot context for this object.
@@ -119,14 +142,14 @@ impl<O> Clone for Handle<O> {
     fn clone(&self) -> Self {
         Self {
             node: self.node.clone(),
-            _marker: self._marker.clone(),
+            _marker: self._marker,
         }
     }
 }
 
 /// A handle to a listener for an object's signal.
 pub struct Binding {
-    type_id: TypeId,
+    slot_id: TypeId,
     node: Weak<RefCell<Node>>,
 }
 
@@ -137,7 +160,7 @@ impl Binding {
         let mut node = node_cell.borrow_mut();
 
         if let Some(idx) = node.listeners.iter().position(|listener_data| {
-            listener_data.node.ptr_eq(&self.node) && listener_data.listener_id == self.type_id
+            listener_data.node.ptr_eq(&self.node) && listener_data.slot_id == self.slot_id
         }) {
             node.listeners.remove(idx);
             true

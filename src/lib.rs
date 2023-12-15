@@ -18,7 +18,6 @@
 //! A slot is a callback into the mutable state of an object.
 //! As such, they can be implemented as normal functions that take a
 //! [`Context`] self parameter and a message.
-//! They can be also be ran as static methods for your object, such as `MyObject::my_slot(&mut object.cx(), my_data)`.
 //!
 //! ```no_run
 //! use concoct::{Context, Object, Signal};
@@ -41,18 +40,27 @@
 //!     }
 //! }
 //!
-//! fn main() {
-//!     let a = Counter::default().start();
-//!     let b = Counter::default().start();
+//! let a = Counter::default().start();
+//! let b = Counter::default().start();
 //!
-//!     a.bind(&b, Counter::set_value);
+//! a.bind(&b, Counter::set_value);
 //!
-//!     Counter::set_value(&mut a.cx(), 2);
+//! Counter::set_value(&mut a.cx(), 2);
 //!
-//!     assert_eq!(a.borrow().value, 2);
-//!     assert_eq!(b.borrow().value, 2);
-//! }
+//! assert_eq!(a.borrow().value, 2);
+//! assert_eq!(b.borrow().value, 2);
 //! ```
+//! 
+//! ## Installation
+//! The easiest way to get started is using the `full` feature flag.
+//! ```ignore
+//! cargo add concoct --features full
+//! ```
+//! 
+//! ## Feature flags
+//!  - `full`: Enables all the features below.
+//!  - `channel`: Enables the `channel` module for channels between objects.
+//! 
 #![no_std]
 #![deny(missing_docs)]
 
@@ -76,10 +84,14 @@ pub use self::object::Object;
 pub mod signal;
 pub use self::signal::Signal;
 
+#[cfg(feature = "channel")]
+#[cfg_attr(docsrs, doc(cfg(feature = "channel")))]
+pub mod channel;
+
 #[derive(Clone)]
 struct ListenerData {
     msg_id: TypeId,
-    listener_id: TypeId,
+    slot_id: TypeId,
     node: Weak<RefCell<Node>>,
     listen: fn(Weak<RefCell<Node>>, *const (), &dyn Any),
     slot: *const (),

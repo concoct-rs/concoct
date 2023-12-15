@@ -7,10 +7,11 @@ description = "A runtime for user-interfaces"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
-tokio = ["dep:tokio"]
-full = ["tokio"]
+channel = ["dep:futures"]
+full = ["channel"]
 
 [dependencies]
+futures = { version = "0.3.29", optional = true }
 tokio = { version = "1.35.0", features = ["full"], optional = true }
 
 [dev-dependencies]
