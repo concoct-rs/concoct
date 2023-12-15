@@ -93,8 +93,8 @@ struct ListenerData {
     msg_id: TypeId,
     slot_id: TypeId,
     node: Weak<RefCell<Node>>,
-    listen: fn(Weak<RefCell<Node>>, *const (), &dyn Any),
-    slot: *const (),
+    listen: fn(Weak<RefCell<Node>>, usize, &dyn Any),
+    slot: usize,
 }
 
 struct Node {

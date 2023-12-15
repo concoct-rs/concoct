@@ -9,7 +9,7 @@ use alloc::{
 use core::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
-    marker::PhantomData,
+    marker::PhantomData, mem,
 };
 
 /// A shared handle to an object.
@@ -53,7 +53,7 @@ impl<O> Handle<O> {
             slot_id,
             node: Rc::downgrade(&other.node),
             listen: |node, slot, msg: &dyn Any| {
-                let slot = unsafe { *(slot as *const fn(&mut Context<O2>, M)) };
+                let slot: fn(&mut Context<O2>, M)  = unsafe { mem::transmute(slot) };
                 if let Some(node) = node.upgrade() {
                     let handle = Handle::from_node(node);
                     let mut cx = handle.cx();
