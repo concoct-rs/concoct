@@ -1,9 +1,11 @@
-use concoct::{Context, Handle};
+use concoct::{Context, Handle, Signal};
 
 #[derive(Default)]
 struct Counter {
     value: i32,
 }
+
+impl Signal<i32> for Counter {}
 
 impl Counter {
     fn set_value(cx: &mut Context<Self>, value: i32) {
