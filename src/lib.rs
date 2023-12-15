@@ -53,7 +53,9 @@ pub trait Object {
 struct ListenerData {
     msg_id: TypeId,
     listener_id: TypeId,
-    f: Rc<RefCell<dyn FnMut(&dyn Any)>>,
+    node: Rc<RefCell<Node>>,
+    listen: fn(Rc<RefCell<Node>>, *const (), &dyn Any),
+    slot: *const (),
 }
 
 struct Node {

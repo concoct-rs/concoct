@@ -10,7 +10,7 @@ pub fn emit<M: 'static>(cx: &mut Context<impl Signal<M>>, msg: M) {
 
     for listener in &listeners {
         if listener.msg_id == msg.type_id() {
-            listener.f.borrow_mut()(&msg)
+            (listener.listen)(listener.node.clone(), listener.slot, &msg)
         }
     }
 }

@@ -30,32 +30,27 @@ impl<O> Handle<O> {
     }
 
     /// Bind a signal from this object to another object's slot.
-    pub fn bind<O2, M>(
-        &self,
-        other: &Handle<O2>,
-        mut slot: impl FnMut(&mut Context<O2>, M) + 'static,
-    ) -> Listener
+    pub fn bind<O2, M>(&self, other: &Handle<O2>, slot: fn(&mut Context<O2>, M)) -> Listener
     where
         O: Signal<M>,
         O2: 'static,
         M: Clone + 'static,
     {
-        let other = other.clone();
-        self.listen::<M>(move |msg| {
-            slot(&mut other.cx(), msg.clone());
-        })
-    }
-
-    /// Listen to a signal from this object.
-    pub fn listen<M: 'static>(&self, mut listener: impl FnMut(&M) + 'static) -> Listener
-    where
-        O: Signal<M>,
-    {
-        let listener_id = listener.type_id();
+        let listener_id = slot.type_id();
         let listener = ListenerData {
             msg_id: TypeId::of::<M>(),
-            listener_id: listener.type_id(),
-            f: Rc::new(RefCell::new(move |msg: &dyn Any| listener(msg.downcast_ref().unwrap()))),
+            listener_id: slot.type_id(),
+            node: other.node.clone(),
+            listen: |node, slot, msg: &dyn Any| {
+                let slot = unsafe { *(slot as *const fn(&mut Context<O2>, &M)) };
+                let handle = Handle {
+                    node,
+                    _marker: PhantomData,
+                };
+                let mut cx = handle.cx();
+                slot(&mut cx, msg.downcast_ref().unwrap())
+            },
+            slot: slot as _,
         };
         self.node.borrow_mut().listeners.push(listener);
 
@@ -71,7 +66,8 @@ impl<O> Handle<O> {
         O: Signal<M>,
     {
         let mut node = self.node.borrow_mut();
-        if let Some(idx) = node.listeners
+        if let Some(idx) = node
+            .listeners
             .iter()
             .position(|listener_data| listener_data.listener_id == listener.type_id())
         {
@@ -130,8 +126,9 @@ impl Listener {
     /// Remove this listener.
     pub fn unlisten(&self) -> bool {
         let mut node = self.node.borrow_mut();
-  
-        if let Some(idx) = node.listeners
+
+        if let Some(idx) = node
+            .listeners
             .iter()
             .position(|listener_data| listener_data.listener_id == self.type_id)
         {
