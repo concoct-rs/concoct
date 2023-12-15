@@ -100,12 +100,12 @@ struct ListenerData {
 struct Node {
     object: Box<dyn Any>,
     listeners: Vec<ListenerData>,
-    listening: Vec<Binding>,
+    bindings: Vec<Binding>,
 }
 
 impl Drop for Node {
     fn drop(&mut self) {
-        for listener in &self.listening {
+        for listener in &self.bindings {
             listener.unbind();
         }
     }

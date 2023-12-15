@@ -29,7 +29,7 @@ impl<O> Handle<O> {
         Self::from_node(Rc::new(RefCell::new(Node {
             object: Box::new(object),
             listeners: Vec::new(),
-            listening: Vec::new(),
+            bindings: Vec::new(),
         })))
     }
 
@@ -71,6 +71,7 @@ impl<O> Handle<O> {
     }
 
     /// Remove a binding from this object.
+    /// This function returns `true` if the object previously had this listener attached.
     ///
     /// ```
     /// use concoct::{Object, Signal};
@@ -99,14 +100,32 @@ impl<O> Handle<O> {
         M: Clone + 'static,
     {
         let mut node = self.node.borrow_mut();
-        // TODO remove from other handle
-        for (idx, listener) in node.listeners.iter().enumerate() {
-            if listener.slot_id == slot.type_id() {
-                node.listeners.remove(idx);
-                return true;
+
+        // Check if this slot exists as a listener for this object.
+        if let Some(idx) = node
+            .listeners
+            .iter()
+            .position(|listener| listener.slot_id == slot.type_id())
+        {
+            // Remove this listener.
+            let listener = node.listeners.remove(idx);
+
+            // Remove the binding to this listener from the bound object.
+            if let Some(listener_node) = listener.node.upgrade() {
+                let mut listener_node = listener_node.borrow_mut();
+                if let Some(idx) = listener_node
+                    .bindings
+                    .iter()
+                    .position(|binding| binding.slot_id == slot.type_id())
+                {
+                    listener_node.bindings.remove(idx).unbind();
+                }
             }
+
+            true
+        } else {
+            false
         }
-        false
     }
 
     /// Get the slot context for this object.
