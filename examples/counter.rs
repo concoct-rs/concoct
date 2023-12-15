@@ -11,7 +11,6 @@ impl Signal<i32> for Counter {}
 
 impl Counter {
     fn set_value(cx: &mut Context<Self>, value: i32) {
-        dbg!(value);
         if cx.value != value {
             cx.value = value;
             cx.emit(value);

@@ -1,4 +1,4 @@
-use std::any::Any;
+use core::any::Any;
 use crate::Context;
 
 pub fn emit<M: 'static>(cx: &mut Context<impl Signal<M>>, msg: M) {

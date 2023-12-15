@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A runtime for user-interfaces"
@@ -11,9 +11,6 @@ tokio = ["dep:tokio"]
 full = ["tokio"]
 
 [dependencies]
-futures = { version = "0.3.29" }
-rustc-hash = { version = "1.1.0"}
-slotmap = { version = "1.0.7" }
 tokio = { version = "1.35.0", features = ["full"], optional = true }
 
 [dev-dependencies]

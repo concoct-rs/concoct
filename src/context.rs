@@ -1,5 +1,5 @@
 use crate::{Handle, Node, Signal};
-use std::{
+use core::{
     cell::RefMut,
     ops::{Deref, DerefMut},
 };

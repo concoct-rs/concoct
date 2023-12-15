@@ -1,10 +1,15 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
+use alloc::{boxed::Box, rc::Rc, vec::Vec};
+
 use crate::{Context, ListenerData, Node, Signal};
-use std::{
+use core::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
     marker::PhantomData,
-    rc::Rc,
+    
 };
+
 
 pub struct Handle<O> {
     node: Rc<RefCell<Node>>,

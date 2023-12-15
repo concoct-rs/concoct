@@ -23,6 +23,8 @@
 
 Concoct is a runtime for user-interfaces in Rust.
 
+This crate provides an event-driven state management system that runs anywhere (including `#![no_std]`).
+
 ```rust
 use concoct::{Context, Object, Signal};
 
@@ -37,7 +39,6 @@ impl Signal<i32> for Counter {}
 
 impl Counter {
     fn set_value(cx: &mut Context<Self>, value: i32) {
-        dbg!(value);
         if cx.value != value {
             cx.value = value;
             cx.emit(value);
