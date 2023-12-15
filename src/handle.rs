@@ -1,22 +1,21 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use alloc::{boxed::Box, rc::Rc, vec::Vec};
-
 use crate::{Context, ListenerData, Node, Signal};
+use alloc::{boxed::Box, rc::Rc, vec::Vec};
 use core::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
     marker::PhantomData,
-    
 };
 
-
+/// A shared handle to an object.
 pub struct Handle<O> {
     node: Rc<RefCell<Node>>,
     _marker: PhantomData<O>,
 }
 
 impl<O> Handle<O> {
+    /// Start an object and create a new handle to it.
     pub fn new(object: O) -> Self
     where
         O: 'static,
@@ -30,10 +29,11 @@ impl<O> Handle<O> {
         }
     }
 
+    /// Bind a signal from this object to another object's slot.
     pub fn bind<O2, M>(
         &self,
         other: &Handle<O2>,
-        mut listener: impl FnMut(&mut Context<O2>, M) + 'static,
+        mut slot: impl FnMut(&mut Context<O2>, M) + 'static,
     ) -> Listener
     where
         O: Signal<M>,
@@ -46,10 +46,11 @@ impl<O> Handle<O> {
                 handle: other.clone(),
                 node: other.node.borrow_mut(),
             };
-            listener(&mut cx, msg.clone());
+            slot(&mut cx, msg.clone());
         })
     }
 
+    /// Listen to a signal from this object.
     pub fn listen<M: 'static>(&self, mut listener: impl FnMut(&M) + 'static) -> Listener
     where
         O: Signal<M>,
@@ -68,6 +69,7 @@ impl<O> Handle<O> {
         }
     }
 
+    /// Remove a listener from this object.
     pub fn unlisten<M: 'static>(&self, listener: impl FnMut(&M) + 'static) -> bool
     where
         O: Signal<M>,
@@ -85,6 +87,7 @@ impl<O> Handle<O> {
         }
     }
 
+    /// Get the slot context for this object.
     pub fn cx(&self) -> Context<O> {
         Context {
             handle: self.clone(),
@@ -92,6 +95,7 @@ impl<O> Handle<O> {
         }
     }
 
+    /// Borrow this object.
     pub fn borrow(&self) -> Ref<O>
     where
         O: 'static,
@@ -101,6 +105,7 @@ impl<O> Handle<O> {
         })
     }
 
+    /// Mutably borrow this object.
     pub fn borrow_mut(&self) -> RefMut<O>
     where
         O: 'static,
@@ -120,12 +125,14 @@ impl<O> Clone for Handle<O> {
     }
 }
 
+/// A handle to a listener for an object's signal.
 pub struct Listener {
     type_id: TypeId,
     node: Rc<RefCell<Node>>,
 }
 
 impl Listener {
+    /// Remove this listener.
     pub fn unlisten(&self) -> bool {
         let mut node = self.node.borrow_mut();
         if let Some(idx) = node
