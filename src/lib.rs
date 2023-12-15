@@ -24,7 +24,7 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use alloc::rc::Rc;
+use alloc::rc::Weak;
 use alloc::vec::Vec;
 use core::any::{Any, TypeId};
 use core::cell::RefCell;
@@ -33,7 +33,7 @@ mod context;
 pub use self::context::Context;
 
 mod handle;
-pub use self::handle::{Handle, Listener};
+pub use self::handle::{Binding, Handle};
 
 pub mod signal;
 pub use self::signal::Signal;
@@ -53,12 +53,21 @@ pub trait Object {
 struct ListenerData {
     msg_id: TypeId,
     listener_id: TypeId,
-    node: Rc<RefCell<Node>>,
-    listen: fn(Rc<RefCell<Node>>, *const (), &dyn Any),
+    node: Weak<RefCell<Node>>,
+    listen: fn(Weak<RefCell<Node>>, *const (), &dyn Any),
     slot: *const (),
 }
 
 struct Node {
     object: Box<dyn Any>,
     listeners: Vec<ListenerData>,
+    listening: Vec<Binding>,
+}
+
+impl Drop for Node {
+    fn drop(&mut self) {
+        for listener in &self.listening {
+            listener.unbind();
+        }
+    }
 }

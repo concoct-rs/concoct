@@ -1,7 +1,11 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 use crate::{Context, ListenerData, Node, Signal};
-use alloc::{boxed::Box, rc::Rc};
+use alloc::{
+    boxed::Box,
+    rc::{Rc, Weak},
+    vec::Vec,
+};
 use core::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
@@ -9,6 +13,8 @@ use core::{
 };
 
 /// A shared handle to an object.
+/// 
+/// The underlying object will be dropped when all handles to it are dropped.
 pub struct Handle<O> {
     node: Rc<RefCell<Node>>,
     _marker: PhantomData<O>,
@@ -23,14 +29,15 @@ impl<O> Handle<O> {
         Self {
             node: Rc::new(RefCell::new(Node {
                 object: Box::new(object),
-                listeners: Default::default(),
+                listeners: Vec::new(),
+                listening: Vec::new(),
             })),
             _marker: PhantomData,
         }
     }
 
     /// Bind a signal from this object to another object's slot.
-    pub fn bind<O2, M>(&self, other: &Handle<O2>, slot: fn(&mut Context<O2>, M)) -> Listener
+    pub fn bind<O2, M>(&self, other: &Handle<O2>, slot: fn(&mut Context<O2>, M)) -> Binding
     where
         O: Signal<M>,
         O2: 'static,
@@ -40,11 +47,11 @@ impl<O> Handle<O> {
         let listener = ListenerData {
             msg_id: TypeId::of::<M>(),
             listener_id: slot.type_id(),
-            node: other.node.clone(),
+            node: Rc::downgrade(&other.node),
             listen: |node, slot, msg: &dyn Any| {
                 let slot = unsafe { *(slot as *const fn(&mut Context<O2>, &M)) };
                 let handle = Handle {
-                    node,
+                    node: node.upgrade().unwrap(),
                     _marker: PhantomData,
                 };
                 let mut cx = handle.cx();
@@ -54,23 +61,24 @@ impl<O> Handle<O> {
         };
         self.node.borrow_mut().listeners.push(listener);
 
-        Listener {
+        Binding {
             type_id: listener_id,
-            node: self.node.clone(),
+            node: Rc::downgrade(&self.node),
         }
     }
 
-    /// Remove a listener from this object.
-    pub fn unlisten<M: 'static>(&self, listener: impl FnMut(&M) + 'static) -> bool
+    /// Remove a binding from this object.
+    pub fn unbind<O2, M>(&self, other: &Handle<O2>, slot: fn(&mut Context<O2>, M)) -> bool
     where
         O: Signal<M>,
+        O2: 'static,
+        M: Clone + 'static,
     {
         let mut node = self.node.borrow_mut();
-        if let Some(idx) = node
-            .listeners
-            .iter()
-            .position(|listener_data| listener_data.listener_id == listener.type_id())
-        {
+        if let Some(idx) = node.listeners.iter().position(|listener_data| {
+            listener_data.node.ptr_eq(&Rc::downgrade(&other.node))
+                && listener_data.listener_id == slot.type_id()
+        }) {
             node.listeners.remove(idx);
             true
         } else {
@@ -117,21 +125,20 @@ impl<O> Clone for Handle<O> {
 }
 
 /// A handle to a listener for an object's signal.
-pub struct Listener {
+pub struct Binding {
     type_id: TypeId,
-    node: Rc<RefCell<Node>>,
+    node: Weak<RefCell<Node>>,
 }
 
-impl Listener {
+impl Binding {
     /// Remove this listener.
-    pub fn unlisten(&self) -> bool {
-        let mut node = self.node.borrow_mut();
+    pub fn unbind(&self) -> bool {
+        let node_cell = self.node.upgrade().unwrap();
+        let mut node = node_cell.borrow_mut();
 
-        if let Some(idx) = node
-            .listeners
-            .iter()
-            .position(|listener_data| listener_data.listener_id == self.type_id)
-        {
+        if let Some(idx) = node.listeners.iter().position(|listener_data| {
+            listener_data.node.ptr_eq(&self.node) && listener_data.listener_id == self.type_id
+        }) {
             node.listeners.remove(idx);
             true
         } else {
