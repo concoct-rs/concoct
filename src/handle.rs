@@ -53,11 +53,11 @@ impl<O> Handle<O> {
             slot_id,
             node: Rc::downgrade(&other.node),
             listen: |node, slot, msg: &dyn Any| {
-                let slot = unsafe { *(slot as *const fn(&mut Context<O2>, &M)) };
+                let slot = unsafe { *(slot as *const fn(&mut Context<O2>, M)) };
                 if let Some(node) = node.upgrade() {
                     let handle = Handle::from_node(node);
                     let mut cx = handle.cx();
-                    slot(&mut cx, msg.downcast_ref().unwrap())
+                    slot(&mut cx, msg.downcast_ref::<M>().unwrap().clone())
                 }
             },
             slot: slot as _,
