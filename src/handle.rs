@@ -1,7 +1,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 use crate::{Context, ListenerData, Node, Signal};
-use alloc::{boxed::Box, rc::Rc, vec::Vec};
+use alloc::{boxed::Box, rc::Rc};
 use core::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
@@ -23,7 +23,7 @@ impl<O> Handle<O> {
         Self {
             node: Rc::new(RefCell::new(Node {
                 object: Box::new(object),
-                listeners: Vec::new(),
+                listeners: Default::default(),
             })),
             _marker: PhantomData,
         }
@@ -42,11 +42,7 @@ impl<O> Handle<O> {
     {
         let other = other.clone();
         self.listen::<M>(move |msg| {
-            let mut cx = Context {
-                handle: other.clone(),
-                node: other.node.borrow_mut(),
-            };
-            slot(&mut cx, msg.clone());
+            slot(&mut other.cx(), msg.clone());
         })
     }
 
@@ -59,7 +55,7 @@ impl<O> Handle<O> {
         let listener = ListenerData {
             msg_id: TypeId::of::<M>(),
             listener_id: listener.type_id(),
-            f: Box::new(move |msg| listener(msg.downcast_ref().unwrap())),
+            f: Rc::new(RefCell::new(move |msg: &dyn Any| listener(msg.downcast_ref().unwrap()))),
         };
         self.node.borrow_mut().listeners.push(listener);
 
@@ -75,8 +71,7 @@ impl<O> Handle<O> {
         O: Signal<M>,
     {
         let mut node = self.node.borrow_mut();
-        if let Some(idx) = node
-            .listeners
+        if let Some(idx) = node.listeners
             .iter()
             .position(|listener_data| listener_data.listener_id == listener.type_id())
         {
@@ -91,7 +86,7 @@ impl<O> Handle<O> {
     pub fn cx(&self) -> Context<O> {
         Context {
             handle: self.clone(),
-            node: self.node.borrow_mut(),
+            node: Some(self.node.borrow_mut()),
         }
     }
 
@@ -135,10 +130,10 @@ impl Listener {
     /// Remove this listener.
     pub fn unlisten(&self) -> bool {
         let mut node = self.node.borrow_mut();
-        if let Some(idx) = node
-            .listeners
+  
+        if let Some(idx) = node.listeners
             .iter()
-            .position(|listener| listener.listener_id == self.type_id)
+            .position(|listener_data| listener_data.listener_id == self.type_id)
         {
             node.listeners.remove(idx);
             true

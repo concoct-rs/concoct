@@ -7,7 +7,7 @@ use core::{
 /// A mutable context to an object.
 pub struct Context<'a, O> {
     pub(crate) handle: Handle<O>,
-    pub(crate) node: RefMut<'a, Node>,
+    pub(crate) node: Option<RefMut<'a, Node>>,
 }
 
 impl<'a, O> Context<'a, O> {
@@ -30,12 +30,12 @@ impl<O: 'static> Deref for Context<'_, O> {
     type Target = O;
 
     fn deref(&self) -> &Self::Target {
-        self.node.object.downcast_ref().unwrap()
+        self.node.as_ref().unwrap().object.downcast_ref().unwrap()
     }
 }
 
 impl<O: 'static> DerefMut for Context<'_, O> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.node.object.downcast_mut().unwrap()
+        self.node.as_mut().unwrap().object.downcast_mut().unwrap()
     }
 }

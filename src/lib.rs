@@ -24,8 +24,10 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
+use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::any::{Any, TypeId};
+use core::cell::RefCell;
 
 mod context;
 pub use self::context::Context;
@@ -47,10 +49,11 @@ pub trait Object {
     }
 }
 
+#[derive(Clone)]
 struct ListenerData {
     msg_id: TypeId,
     listener_id: TypeId,
-    f: Box<dyn FnMut(&dyn Any)>,
+    f: Rc<RefCell<dyn FnMut(&dyn Any)>>,
 }
 
 struct Node {
