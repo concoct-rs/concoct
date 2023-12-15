@@ -13,7 +13,7 @@ use core::{
 };
 
 /// A shared handle to an object.
-/// 
+///
 /// The underlying object will be dropped when all handles to it are dropped.
 pub struct Handle<O> {
     node: Rc<RefCell<Node>>,
@@ -22,7 +22,7 @@ pub struct Handle<O> {
 
 impl<O> Handle<O> {
     /// Start an object and create a new handle to it.
-    pub fn new(object: O) -> Self
+    pub(crate) fn new(object: O) -> Self
     where
         O: 'static,
     {
