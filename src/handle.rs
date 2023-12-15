@@ -29,7 +29,8 @@ impl<O> Handle<O> {
         &self,
         other: &Handle<O2>,
         mut listener: impl FnMut(&mut Context<O2>, M) + 'static,
-    ) where
+    ) -> Listener
+    where
         O: Signal<M>,
         O2: 'static,
         M: Clone + 'static,
@@ -44,16 +45,22 @@ impl<O> Handle<O> {
         })
     }
 
-    pub fn listen<M: 'static>(&self, mut listener: impl FnMut(&M) + 'static)
+    pub fn listen<M: 'static>(&self, mut listener: impl FnMut(&M) + 'static) -> Listener
     where
         O: Signal<M>,
     {
+        let listener_id = listener.type_id();
         let listener = ListenerData {
-            msg_type_id: TypeId::of::<M>(),
-            listener_type_id: listener.type_id(),
+            msg_id: TypeId::of::<M>(),
+            listener_id: listener.type_id(),
             f: Box::new(move |msg| listener(msg.downcast_ref().unwrap())),
         };
         self.node.borrow_mut().listeners.push(listener);
+
+        Listener {
+            type_id: listener_id,
+            node: self.node.clone(),
+        }
     }
 
     pub fn unlisten<M: 'static>(&self, listener: impl FnMut(&M) + 'static) -> bool
@@ -64,7 +71,7 @@ impl<O> Handle<O> {
         if let Some(idx) = node
             .listeners
             .iter()
-            .position(|listener_data| listener_data.listener_type_id == listener.type_id())
+            .position(|listener_data| listener_data.listener_id == listener.type_id())
         {
             node.listeners.remove(idx);
             true
@@ -104,6 +111,27 @@ impl<O> Clone for Handle<O> {
         Self {
             node: self.node.clone(),
             _marker: self._marker.clone(),
+        }
+    }
+}
+
+pub struct Listener {
+    type_id: TypeId,
+    node: Rc<RefCell<Node>>,
+}
+
+impl Listener {
+    pub fn unlisten(&self) -> bool {
+        let mut node = self.node.borrow_mut();
+        if let Some(idx) = node
+            .listeners
+            .iter()
+            .position(|listener| listener.listener_id == self.type_id)
+        {
+            node.listeners.remove(idx);
+            true
+        } else {
+            false
         }
     }
 }

@@ -24,10 +24,10 @@
 Concoct is a runtime for user-interfaces in Rust.
 
 ```rust
-use concoct::{Context, Object, Runtime, Signal, Slot};
+use concoct::{Context, Object, Signal};
 
 #[derive(Default)]
-pub struct Counter {
+struct Counter {
     value: i32,
 }
 
@@ -35,29 +35,23 @@ impl Object for Counter {}
 
 impl Signal<i32> for Counter {}
 
-impl Slot<i32> for Counter {
-    fn update(&mut self, cx: Handle<Self>, msg: i32) {
-        if self.value != msg {
-            self.value = msg;
-            cx.emit(msg);
+impl Counter {
+    fn set_value(cx: &mut Context<Self>, value: i32) {
+        dbg!(value);
+        if cx.value != value {
+            cx.value = value;
+            cx.emit(value);
         }
     }
 }
 
-#[tokio::main]
-async fn main() {
-    let rt = Runtime::default();
-    let _guard = rt.enter();
-
+fn main() {
     let a = Counter::default().start();
     let b = Counter::default().start();
 
-    a.bind(&b);
+    a.bind(&b, Counter::set_value);
 
-    a.send(1);
-    a.send(2);
-
-    rt.run().await;
+    Counter::set_value(&mut a.cx(), 2);
 
     assert_eq!(a.borrow().value, 2);
     assert_eq!(b.borrow().value, 2);

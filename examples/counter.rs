@@ -1,9 +1,11 @@
-use concoct::{Context, Handle, Signal};
+use concoct::{Context, Object, Signal};
 
 #[derive(Default)]
 struct Counter {
     value: i32,
 }
+
+impl Object for Counter {}
 
 impl Signal<i32> for Counter {}
 
@@ -18,8 +20,8 @@ impl Counter {
 }
 
 fn main() {
-    let a = Handle::new(Counter::default());
-    let b = Handle::new(Counter::default());
+    let a = Counter::default().start();
+    let b = Counter::default().start();
 
     a.bind(&b, Counter::set_value);
 
