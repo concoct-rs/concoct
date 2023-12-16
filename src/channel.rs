@@ -7,7 +7,10 @@ use futures::{channel::mpsc, StreamExt};
 pub fn unbounded<M: 'static>() -> (UnboundedChannel<M>, UnboundedChannel<M>) {
     let (a_tx, a_rx) = mpsc::unbounded();
     let (b_tx, b_rx) = mpsc::unbounded();
-    (UnboundedChannel { tx: a_tx, rx: b_rx }, UnboundedChannel { tx: b_tx, rx: a_rx })
+    (
+        UnboundedChannel { tx: a_tx, rx: b_rx },
+        UnboundedChannel { tx: b_tx, rx: a_rx },
+    )
 }
 
 /// A channel between two objects.

@@ -1,7 +1,7 @@
 //! Signals
 
 use crate::Context;
-use core::any::Any;
+use core::{any::Any, mem};
 
 /// The default implementation of `Signal::emit`.
 pub fn emit<M: 'static>(cx: &mut Context<impl Signal<M>>, msg: M) {
@@ -13,6 +13,8 @@ pub fn emit<M: 'static>(cx: &mut Context<impl Signal<M>>, msg: M) {
             (listener.listen)(listener.node.clone(), listener.slot, &msg)
         }
     }
+
+    cx.node = Some(unsafe { mem::transmute(cx.handle.node.borrow_mut()) });
 }
 
 /// A signal to messages from an object.

@@ -1,7 +1,7 @@
+use crate::{Context, Handle};
 use alloc::boxed::Box;
 use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
-use crate::{Context, Handle};
 
 /// A reactive object.
 pub trait Object {

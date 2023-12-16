@@ -9,14 +9,15 @@ use alloc::{
 use core::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
-    marker::PhantomData, mem,
+    marker::PhantomData,
+    mem,
 };
 
 /// A shared handle to an object.
 ///
 /// The underlying object will be dropped when all handles to it are dropped.
 pub struct Handle<O> {
-    node: Rc<RefCell<Node>>,
+    pub(crate) node: Rc<RefCell<Node>>,
     _marker: PhantomData<O>,
 }
 
@@ -53,7 +54,7 @@ impl<O> Handle<O> {
             slot_id,
             node: Rc::downgrade(&other.node),
             listen: |node, slot, msg: &dyn Any| {
-                let slot: fn(&mut Context<O2>, M)  = unsafe { mem::transmute(slot) };
+                let slot: fn(&mut Context<O2>, M) = unsafe { mem::transmute(slot) };
                 if let Some(node) = node.upgrade() {
                     let handle = Handle::from_node(node);
                     let mut cx = handle.cx();

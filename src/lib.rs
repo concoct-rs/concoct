@@ -40,8 +40,8 @@
 //!     }
 //! }
 //!
-//! let a = Counter::default().start();
-//! let b = Counter::default().start();
+//! let a = Counter::create();
+//! let b = Counter::create();
 //!
 //! a.bind(&b, Counter::set_value);
 //!
@@ -50,17 +50,17 @@
 //! assert_eq!(a.borrow().value, 2);
 //! assert_eq!(b.borrow().value, 2);
 //! ```
-//! 
+//!
 //! ## Installation
 //! The easiest way to get started is using the `full` feature flag.
 //! ```ignore
 //! cargo add concoct --features full
 //! ```
-//! 
+//!
 //! ## Feature flags
 //!  - `full`: Enables all the features below.
 //!  - `channel`: Enables the `channel` module for channels between objects.
-//! 
+//!
 #![no_std]
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
