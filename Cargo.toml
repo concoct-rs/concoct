@@ -1,6 +1,6 @@
 [package]
 name = "concoct"
-version = "0.16.4"
+version = "0.17.0-alpha.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A runtime for user-interfaces"

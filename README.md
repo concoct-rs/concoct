@@ -21,41 +21,60 @@
 
 <br />
 
-Concoct is a runtime for user-interfaces in Rust.
+Concoct is a framework for user-interfaces in Rust.
 
-This crate provides an event-driven state management system that runs anywhere (including `#![no_std]`).
+This crate provides a diffing-engine and state management system for any backend.
 
 ```rust
-use concoct::{Context, Object, Signal};
+use concoct::{composable, Composable, Composer, Model};
+use std::time::Duration;
+use tokio::time;
 
-#[derive(Default)]
-struct Counter {
-    value: i32,
+#[derive(Debug)]
+enum Message {
+    Increment,
+    Decrement,
 }
 
-impl Object for Counter {}
+#[derive(Default)]
+struct App {
+    count: i32,
+}
 
-impl Signal<i32> for Counter {}
-
-impl Counter {
-    fn set_value(cx: &mut Context<Self>, value: i32) {
-        if cx.value != value {
-            cx.value = value;
-            cx.emit(value);
+impl Model<Message> for App {
+    fn handle(&mut self, msg: Message) {
+        match msg {
+            Message::Decrement => self.count -= 1,
+            Message::Increment => self.count += 1,
         }
     }
 }
 
-fn main() {
-    let a = Counter::create();
-    let b = Counter::create();
+fn app(model: &App) -> impl Composable<Message> {
+    dbg!(model.count);
 
-    a.bind(&b, Counter::set_value);
+    composable::once(composable::from_fn(|cx| {
+        let sender = cx.clone();
 
-    Counter::set_value(&mut a.cx(), 2);
+        sender.send(Message::Decrement);
+        tokio::spawn(async move {
+            loop {
+                time::sleep(Duration::from_secs(1)).await;
+                sender.send(Message::Increment)
+            }
+        });
+    }))
+}
 
-    assert_eq!(a.borrow().value, 2);
-    assert_eq!(b.borrow().value, 2);
+#[tokio::main]
+async fn main() {
+    let mut composer = Composer::new(App::default(), app);
+
+    composer.compose();
+    loop {
+        composer.handle().await;
+        composer.recompose();
+    }
 }
 ```
 
