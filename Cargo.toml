@@ -12,6 +12,8 @@ full = ["channel"]
 
 [dependencies]
 futures = { version = "0.3.29", optional = true }
+slab = "0.4.9"
+slotmap = "1.0.7"
 tokio = { version = "1.35.0", features = ["full"], optional = true }
 
 [dev-dependencies]
