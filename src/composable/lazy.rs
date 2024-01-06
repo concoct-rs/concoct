@@ -1,7 +1,8 @@
 use crate::Composable;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-pub fn lazy<M, C>(value: &impl Hash, composable: C) -> Lazy<C>
+/// Create a lazy view that only renders when the given value changes.
+pub fn lazy<M, C>(value: impl Hash, composable: C) -> Lazy<C>
 where
     C: Composable<M>,
 {
@@ -12,6 +13,7 @@ where
     Lazy { hash, composable }
 }
 
+/// View for the [`lazy`] function.
 pub struct Lazy<C> {
     hash: u64,
     composable: C,

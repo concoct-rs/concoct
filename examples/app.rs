@@ -1,33 +1,21 @@
 use concoct::{composable, Composable, Composer, Model};
 
-#[derive(Debug)]
-enum Message {
-    Increment,
-    Decrement,
-}
-
 #[derive(Default)]
 struct App {
-    count: i32,
+    name: String,
 }
 
-impl Model<Message> for App {
-    fn handle(&mut self, msg: Message) {
-        match msg {
-            Message::Decrement => self.count -= 1,
-            Message::Increment => self.count += 1,
-        }
-    }
+impl Model<()> for App {
+    fn handle(&mut self, _msg: ()) {}
 }
 
-fn app(model: &App) -> impl Composable<Message> {
-    dbg!(model.count);
+fn app(model: &App) -> impl Composable<()> {
+    dbg!(&model.name);
 
-    let count = model.count;
     composable::lazy(
-        &model.count,
+        &model.name,
         composable::from_fn(move |_| {
-            dbg!(count);
+            dbg!("Changed");
         }),
     )
 }

@@ -18,8 +18,10 @@ impl<M> Receiver<M> {
     }
 }
 
+type Mapper<M> = Arc<dyn Fn(M) -> Box<dyn Any + Send> + Send + Sync>;
+
 pub struct Context<M> {
-    mapper: Option<Arc<dyn Fn(M) -> Box<dyn Any + Send> + Send + Sync>>,
+    mapper: Option<Mapper<M>>,
     tx: mpsc::UnboundedSender<Box<dyn Any + Send>>,
 }
 

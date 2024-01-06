@@ -1,8 +1,7 @@
+use crate::{Composable, Context};
 use std::{any::Any, marker::PhantomData, sync::Arc};
 
-use super::Composable;
-use crate::Context;
-
+/// View for the `View::map` method.
 pub struct Map<V, F, M> {
     pub(super) view: V,
     pub(super) f: Arc<F>,
