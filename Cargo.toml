@@ -8,7 +8,7 @@ repository = "https://github.com/concoct-rs/concoct"
 
 [features]
 channel = ["dep:futures"]
-full = ["channel"]
+full = ["channel", "tokio"]
 
 [dependencies]
 futures = { version = "0.3.29", optional = true }

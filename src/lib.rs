@@ -75,6 +75,27 @@ pub trait Composable<M> {
     }
 }
 
+impl<M> Composable<M> for () {
+    type State = ();
+
+    fn compose(&mut self, cx: &mut Context<M>) -> Self::State {}
+
+    fn recompose(&mut self, cx: &mut Context<M>, state: &mut Self::State) {}
+}
+
+impl<M, C1: Composable<M>, C2: Composable<M>> Composable<M> for (C1, C2) {
+    type State = (C1::State, C2::State);
+
+    fn compose(&mut self, cx: &mut Context<M>) -> Self::State {
+        (self.0.compose(cx), self.1.compose(cx))
+    }
+
+    fn recompose(&mut self, cx: &mut Context<M>, state: &mut Self::State) {
+        self.0.recompose(cx, &mut state.0);
+        self.1.recompose(cx, &mut state.1);
+    }
+}
+
 pub struct Map<V, F, M> {
     view: V,
     f: Arc<F>,
@@ -107,5 +128,31 @@ where
             tx: cx.tx.clone(),
         };
         self.view.recompose(&mut cx, state)
+    }
+}
+
+pub fn from_fn<F, M>(f: F) -> FromFn<F>
+where
+    F: FnMut(&mut Context<M>),
+{
+    FromFn { f }
+}
+
+pub struct FromFn<F> {
+    f: F,
+}
+
+impl<M, F> Composable<M> for FromFn<F>
+where
+    F: FnMut(&mut Context<M>),
+{
+    type State = ();
+
+    fn compose(&mut self, cx: &mut Context<M>) -> Self::State {
+        (self.f)(cx)
+    }
+
+    fn recompose(&mut self, cx: &mut Context<M>, state: &mut Self::State) {
+        (self.f)(cx)
     }
 }
