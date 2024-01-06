@@ -84,4 +84,15 @@ impl<T, F, S, M> Composer<T, F, S, M> {
         let msg = self.rx.recv().await.unwrap();
         self.model.handle(msg);
     }
+
+    pub  fn try_handle(&mut self)
+    where
+        T: Model<M>,
+        M: 'static,
+    {
+        if let Ok(msg) = self.rx.try_recv() {
+            self.model.handle(msg);
+        }
+       
+    }
 }
