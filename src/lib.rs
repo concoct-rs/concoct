@@ -1,60 +1,27 @@
-use std::{any::Any, marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub mod composable;
 pub use composable::Composable;
 
-pub struct Receiver<M> {
-    rx: mpsc::UnboundedReceiver<Box<dyn Any + Send>>,
-    _marker: PhantomData<M>,
-}
-
-impl<M> Receiver<M> {
-    pub async fn recv(&mut self) -> Option<M>
-    where
-        M: 'static,
-    {
-        self.rx.recv().await.map(|any| *any.downcast().unwrap())
-    }
-}
-
-type Mapper<M> = Arc<dyn Fn(M) -> Box<dyn Any + Send> + Send + Sync>;
-
 pub struct Context<M> {
-    mapper: Option<Mapper<M>>,
-    tx: mpsc::UnboundedSender<Box<dyn Any + Send>>,
+    send: Arc<dyn Fn(M) + Send + Sync>,
 }
 
 impl<M> Context<M> {
-    pub fn new() -> (Self, Receiver<M>) {
-        let (tx, rx) = mpsc::unbounded_channel();
-        (
-            Self { mapper: None, tx },
-            Receiver {
-                rx,
-                _marker: PhantomData,
-            },
-        )
+    pub fn new(send: Arc<dyn Fn(M) + Send + Sync>) -> Self {
+        Self { send }
     }
 
-    pub fn send(&self, msg: M)
-    where
-        M: Send + 'static,
-    {
-        let boxed = if let Some(mapper) = self.mapper.as_ref() {
-            mapper(msg)
-        } else {
-            Box::new(msg)
-        };
-        self.tx.send(boxed).unwrap();
+    pub fn send(&self, msg: M) {
+        (self.send)(msg)
     }
 }
 
 impl<M> Clone for Context<M> {
     fn clone(&self) -> Self {
         Self {
-            mapper: self.mapper.clone(),
-            tx: self.tx.clone(),
+            send: self.send.clone(),
         }
     }
 }
@@ -68,12 +35,18 @@ pub struct Composer<T, F, S, M> {
     composable: F,
     state: Option<S>,
     cx: Context<M>,
-    rx: Receiver<M>,
+    rx: mpsc::UnboundedReceiver<M>,
 }
 
 impl<T, F, S, M> Composer<T, F, S, M> {
-    pub fn new(model: T, composable: F) -> Self {
-        let (cx, rx) = Context::new();
+    pub fn new(model: T, composable: F) -> Self
+    where
+        M: Send + 'static,
+    {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let cx = Context::new(Arc::new(move |msg| {
+            tx.send(msg).unwrap();
+        }));
         Self {
             model,
             composable,

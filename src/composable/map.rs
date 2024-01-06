@@ -1,5 +1,5 @@
 use crate::{Composable, Context};
-use std::{any::Any, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 /// View for the `View::map` method.
 pub struct Map<V, F, M> {
@@ -18,23 +18,17 @@ where
 
     fn compose(&mut self, cx: &mut Context<M1>) -> Self::State {
         let f = self.f.clone();
-        let mapper: Arc<dyn Fn(M2) -> Box<dyn Any + Send> + Send + Sync> =
-            Arc::new(move |msg| Box::new((f)(msg)));
-        let mut cx = Context {
-            mapper: Some(mapper),
-            tx: cx.tx.clone(),
-        };
+        let send = cx.send.clone();
+        let mut cx = Context::new(Arc::new(move |msg| send(f(msg))));
+
         self.view.compose(&mut cx)
     }
 
     fn recompose(&mut self, cx: &mut Context<M1>, state: &mut Self::State) {
         let f = self.f.clone();
-        let mapper: Arc<dyn Fn(M2) -> Box<dyn Any + Send> + Send + Sync> =
-            Arc::new(move |msg| Box::new((f)(msg)));
-        let mut cx = Context {
-            mapper: Some(mapper),
-            tx: cx.tx.clone(),
-        };
+        let send = cx.send.clone();
+        let mut cx = Context::new(Arc::new(move |msg| send(f(msg))));
+
         self.view.recompose(&mut cx, state)
     }
 }
