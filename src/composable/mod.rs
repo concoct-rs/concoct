@@ -4,6 +4,9 @@ use std::{marker::PhantomData, sync::Arc};
 mod from_fn;
 pub use self::from_fn::{from_fn, FromFn};
 
+mod lazy;
+pub use self::lazy::{lazy, Lazy};
+
 mod map;
 pub use self::map::Map;
 
