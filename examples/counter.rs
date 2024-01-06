@@ -1,7 +1,24 @@
-use concoct::{Composable, Context};
+use std::time::Duration;
 
-fn app() -> impl Composable<i32> {
-    concoct::from_fn(|cx| cx.send(())).map(|()| 2)
+use concoct::{composable, Composable, Context};
+use tokio::time;
+
+#[derive(Debug)]
+enum Message {
+    Increment,
+    Decrement,
+}
+
+fn app() -> impl Composable<Message> {
+    composable::once(composable::from_fn(|cx| {
+        let sender = cx.clone();
+
+        sender.send(Message::Increment);
+        tokio::spawn(async move {
+            time::sleep(Duration::from_secs(1)).await;
+            sender.send(Message::Decrement)
+        });
+    }))
 }
 
 #[tokio::main]
@@ -10,5 +27,6 @@ async fn main() {
     let mut state = app().compose(&mut cx);
     app().recompose(&mut cx, &mut state);
 
+    dbg!(rx.recv().await);
     dbg!(rx.recv().await);
 }
