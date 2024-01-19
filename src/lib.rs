@@ -13,10 +13,18 @@ pub mod hook;
 pub mod view;
 pub use self::view::View;
 
+pub mod web;
+
 #[derive(Default)]
 struct ScopeInner {
     hooks: Vec<Rc<dyn Any>>,
     hook_idx: usize,
+}
+
+impl Drop for ScopeInner {
+    fn drop(&mut self) {
+        tracing::info!("drop")
+    }
 }
 
 #[derive(Clone, Default)]
@@ -79,6 +87,13 @@ pub struct Node<V, B, F> {
     body: Option<B>,
     builder: F,
     scope: Scope,
+    key: Option<DefaultKey>,
+}
+
+impl<V, B, F> Drop for Node<V, B, F> {
+    fn drop(&mut self) {
+        tracing::info!("DROP NODE");
+    }
 }
 
 pub trait Tree {
@@ -106,9 +121,15 @@ where
         let cx = Context::current();
         let mut cx_ref = cx.inner.borrow_mut();
 
-        let key = cx_ref.nodes.insert(self as _);
-        cx_ref.node = Some(key);
+        let key = if let Some(key) = self.key {
+            key
+        } else {
+            let key = cx_ref.nodes.insert(self as _);
+            self.key = Some(key);
+            key
+        };
 
+        cx_ref.node = Some(key);
         cx_ref.scope = Some(self.scope.clone());
         drop(cx_ref);
 
@@ -121,12 +142,24 @@ where
     }
 }
 
+struct Dropper<T> {
+    value: T,
+}
+
+impl<T> Drop for Dropper<T> {
+    fn drop(&mut self) {
+        dbg!("DROP TREE");
+    }
+}
+
 pub async fn run(view: impl Body) {
     let cx = Context::default();
     cx.enter();
 
-    let mut tree = view.tree();
-    tree.build();
+    let tree: &'static mut _ = Box::leak(Box::new(Dropper {
+        value: view.into_tree(),
+    }));
+    tree.value.build();
 
     loop {
         cx.rebuild().await

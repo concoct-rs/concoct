@@ -19,7 +19,8 @@ full = []
 bumpalo = "3.14.0"
 futures = "0.3.30"
 slotmap = "1.0.7"
-web-sys = { version = "0.3.66", features = ["Document", "HtmlElement", "HtmlCollection", "Text", "Window"] }
+web-sys = { version = "0.3.66", features = ["Document", "Event", "HtmlElement", "HtmlCollection", "Text", "Window"] }
+tracing = "0.1.40"
 
 [package.metadata.docs.rs]
 features = ["full"]

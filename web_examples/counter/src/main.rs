@@ -1,24 +1,14 @@
-use concoct::{hook::use_state, Body, Tree, View};
+use concoct::{hook::use_state, web::Div, Body, View};
 use wasm_bindgen_futures::spawn_local;
-
-struct A {
-    n: u8,
-}
-
-impl View for A {
-    fn body(&self) -> impl Body {
-        let (count, _set_count) = use_state(|| 0);
-        tracing::info!("{:?}", (self.n, &count));
-
-        // set_count(*count + 1)
-    }
-}
 
 struct App;
 
 impl View for App {
     fn body(&self) -> impl Body {
-        (A { n: 0 }, A { n: 1 })
+        let (count, set_count) = use_state(|| 0);
+
+        let n = *count;
+        Div::default().on_click(move |_| set_count(n + 1))
     }
 }
 
