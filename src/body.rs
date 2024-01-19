@@ -1,7 +1,29 @@
+use std::{rc::Rc, cell::RefCell};
+
 use crate::{Node, Scope, Tree, View};
 
 pub trait Body: 'static {
     fn into_tree(self) -> impl Tree;
+}
+
+pub struct Child<B>{cell: Rc<RefCell< Option<B>>>}
+
+impl <B> Child<B> {
+    pub fn new(body: B) -> Self {
+        Self { cell: Rc::new(RefCell::new(Some(body))) }
+    }
+}
+
+impl<B> Clone for Child<B> {
+    fn clone(&self) -> Self {
+        Self { cell: self.cell.clone() }
+    }
+}
+
+impl<B: Body> Body for Child<B> {
+    fn into_tree(mut self) -> impl Tree {
+        self.cell.take().unwrap().into_tree()
+    }
 }
 
 pub struct Empty;

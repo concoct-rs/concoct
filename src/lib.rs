@@ -8,7 +8,7 @@ pub use self::body::Body;
 use body::Empty;
 
 use slotmap::{DefaultKey, SlotMap};
-use web::WebRoot;
+
 
 pub mod hook;
 
@@ -16,6 +16,7 @@ pub mod view;
 pub use self::view::View;
 
 pub mod web;
+use web::WebRoot;
 
 #[derive(Default)]
 struct ScopeInner {
