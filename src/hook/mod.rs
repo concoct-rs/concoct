@@ -1,6 +1,9 @@
 use crate::Context;
 use std::{cell::RefCell, rc::Rc};
 
+mod use_context;
+pub use use_context::{use_context, use_provider};
+
 pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
     let cx = Context::current();
     let cx_ref = cx.inner.borrow();

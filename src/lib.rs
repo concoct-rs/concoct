@@ -1,5 +1,5 @@
-use std::any::Any;
-use std::collections::VecDeque;
+use std::any::{Any, TypeId};
+use std::collections::{HashMap, VecDeque};
 use std::task::{Poll, Waker};
 use std::{cell::RefCell, mem, rc::Rc};
 
@@ -17,6 +17,7 @@ pub mod web;
 
 #[derive(Default)]
 struct ScopeInner {
+    contexts: HashMap<TypeId, Rc<dyn Any>>,
     hooks: Vec<Rc<dyn Any>>,
     hook_idx: usize,
 }
@@ -33,6 +34,7 @@ struct ContextInner {
     scope: Option<Scope>,
     nodes: SlotMap<DefaultKey, *mut dyn Tree>,
     waker: Option<Waker>,
+    contexts: HashMap<TypeId, Rc<dyn Any>>,
 }
 
 #[derive(Clone, Default)]
@@ -121,6 +123,10 @@ where
         let mut cx_ref = cx.inner.borrow_mut();
 
         if let Some(key) = self.key {
+            let mut scope = self.scope.inner.borrow_mut();
+            scope.contexts = cx_ref.contexts.clone();
+            drop(scope);
+
             cx_ref.node = Some(key);
             cx_ref.scope = Some(self.scope.clone());
             drop(cx_ref);
@@ -130,10 +136,17 @@ where
             let mut body = mem::replace(&mut self.body, Some(body)).unwrap();
             self.body.as_mut().unwrap().rebuild(&mut body);
 
-            self.scope.inner.borrow_mut().hook_idx = 0;
+            let mut cx_ref = cx.inner.borrow_mut();
+            let mut scope = self.scope.inner.borrow_mut();
+            cx_ref.contexts = scope.contexts.clone();
+            scope.hook_idx = 0;
         } else {
             let key = cx_ref.nodes.insert(self as _);
             self.key = Some(key);
+
+            let mut scope = self.scope.inner.borrow_mut();
+            scope.contexts = cx_ref.contexts.clone();
+            drop(scope);
 
             cx_ref.node = Some(key);
             cx_ref.scope = Some(self.scope.clone());
@@ -141,10 +154,16 @@ where
 
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
+
+            {
+                let mut cx_ref = cx.inner.borrow_mut();
+                let mut scope = self.scope.inner.borrow_mut();
+                cx_ref.contexts = scope.contexts.clone();
+                scope.hook_idx = 0;
+            }
+
             self.body = Some(body);
             self.body.as_mut().unwrap().build();
-
-            self.scope.inner.borrow_mut().hook_idx = 0;
         }
     }
 

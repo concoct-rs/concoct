@@ -1,5 +1,18 @@
-use concoct::{hook::use_state, web::div, Body, View};
+use concoct::{
+    hook::{use_context, use_provider, use_state},
+    web::div,
+    Body, View,
+};
 use wasm_bindgen_futures::spawn_local;
+
+struct Child;
+
+impl View for Child {
+    fn body(&self) -> impl Body {
+        let n = use_context::<u8>();
+        tracing::info!("{:?}", n);
+    }
+}
 
 struct App;
 
@@ -8,9 +21,12 @@ impl View for App {
         let (count, set_count) = use_state(|| 0);
 
         let n = *count;
+
+        use_provider(|| 42u8);
+
         (
-            count.to_string(),
             div(String::from("Up high!")).on_click(move |_| set_count(n + 1)),
+            Child,
         )
     }
 }
