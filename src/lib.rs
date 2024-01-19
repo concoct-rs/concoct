@@ -5,26 +5,12 @@ use std::{cell::RefCell, mem, rc::Rc};
 pub mod body;
 pub use self::body::Body;
 use body::Empty;
+use slotmap::{DefaultKey, SlotMap};
+
+pub mod hook;
 
 pub mod view;
 pub use self::view::View;
-
-pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
-    let cx = Context::current();
-    let cx_ref = cx.inner.borrow();
-    let scope = &mut *cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
-
-    let idx = scope.hook_idx;
-    scope.hook_idx += 1;
-
-    if let Some(any) = scope.hooks.get(idx) {
-        Rc::downcast(any.clone()).unwrap()
-    } else {
-        let value = Rc::new(make_value());
-        scope.hooks.push(value.clone());
-        value
-    }
-}
 
 #[derive(Default)]
 struct ScopeInner {
@@ -39,9 +25,10 @@ pub struct Scope {
 
 #[derive(Default)]
 struct ContextInner {
-    node: Option<*mut dyn Tree>,
-    pending: VecDeque<*mut dyn Tree>,
+    node: Option<DefaultKey>,
+    pending: VecDeque<DefaultKey>,
     scope: Option<Scope>,
+    nodes: SlotMap<DefaultKey, *mut dyn Tree>,
 }
 
 #[derive(Clone, Default)]
@@ -64,7 +51,8 @@ impl Context {
 
     pub fn rebuild(&self) {
         let mut inner = self.inner.borrow_mut();
-        if let Some(raw) = inner.pending.pop_front() {
+        if let Some(key) = inner.pending.pop_front() {
+            let raw = inner.nodes[key];
             drop(inner);
 
             let pending = unsafe { &mut *raw };
@@ -76,7 +64,7 @@ impl Context {
 pub fn request_update() {
     let cx = Context::current();
     let cx = &mut *cx.inner.borrow_mut();
-    cx.pending.push_back(cx.node.unwrap() as *mut _);
+    cx.pending.push_back(cx.node.unwrap());
 }
 
 thread_local! {
@@ -115,7 +103,9 @@ where
         let cx = Context::current();
         let mut cx_ref = cx.inner.borrow_mut();
 
-        cx_ref.node = Some(self as _);
+        let key = cx_ref.nodes.insert(self as _);
+        cx_ref.node = Some(key);
+
         cx_ref.scope = Some(self.scope.clone());
         drop(cx_ref);
 

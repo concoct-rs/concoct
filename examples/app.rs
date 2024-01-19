@@ -1,5 +1,4 @@
-use concoct::{use_ref, Body, Context, Tree, View};
-use std::cell::RefCell;
+use concoct::{hook::use_state, Body, Context, Tree, View};
 
 struct A {
     n: u8,
@@ -7,12 +6,10 @@ struct A {
 
 impl View for A {
     fn body(&self) -> impl Body {
-        concoct::request_update();
+        let (count, set_count) = use_state(|| 0);
+        dbg!((self.n, &count));
 
-        let count = use_ref(|| RefCell::new(0));
-        dbg!(self.n, &count);
-
-        *count.borrow_mut() += 1;
+        set_count(*count + 1)
     }
 }
 
