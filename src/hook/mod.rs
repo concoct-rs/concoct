@@ -21,7 +21,7 @@ pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
     }
 }
 
-pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> (Rc<T>, impl Fn(T)) {
+pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> (Rc<T>, Rc<impl Fn(T)>) {
     let cell = use_ref(|| RefCell::new(Rc::new(make_value())));
     let getter = cell.borrow().clone();
 
@@ -37,5 +37,5 @@ pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> (Rc<T>, impl Fn(
         }
     };
 
-    (getter, setter)
+    (getter, Rc::new(setter))
 }

@@ -1,6 +1,5 @@
-use std::rc::Rc;
-
 use crate::{body::Empty, Body};
+use std::rc::Rc;
 
 pub trait View: 'static {
     fn body(&self) -> impl Body;

@@ -2,11 +2,8 @@ use crate::{
     hook::{use_context, use_provider, use_ref},
     Body, View,
 };
-use std::{borrow::Cow, cell::RefCell, rc::Rc};
-use web_sys::{
-    wasm_bindgen::{closure::Closure, JsCast},
-    Document, Element, Event, Node, Text, Window,
-};
+use std::{cell::RefCell, rc::Rc};
+use web_sys::{wasm_bindgen::closure::Closure, Document, Element, Event, Node, Text, Window};
 
 pub mod html;
 
@@ -44,22 +41,29 @@ struct Data {
     )>,
 }
 
-impl View for String {
-    fn body(&self) -> impl Body {
-        let web_cx = use_context::<WebContext>().unwrap();
+macro_rules! impl_string_view {
+    ($t:ty) => {
+        impl View for $t {
+            fn body(&self) -> impl Body {
+                let web_cx = use_context::<WebContext>().unwrap();
 
-        let data = use_ref(|| RefCell::new((self.clone(), None::<Text>)));
-        let (last, node_cell) = &mut *data.borrow_mut();
+                let data = use_ref(|| RefCell::new((self.clone(), None::<Text>)));
+                let (last, node_cell) = &mut *data.borrow_mut();
 
-        if let Some(node) = node_cell {
-            if self != last {
-                node.set_text_content(Some(&self));
-                *last = self.clone();
+                if let Some(node) = node_cell {
+                    if self != last {
+                        node.set_text_content(Some(&self));
+                        *last = self.clone();
+                    }
+                } else {
+                    let node = web_cx.document.create_text_node(self);
+                    web_cx.parent.append_child(&node).unwrap();
+                    *node_cell = Some(node);
+                }
             }
-        } else {
-            let node = web_cx.document.create_text_node(self);
-            web_cx.parent.append_child(&node).unwrap();
-            *node_cell = Some(node);
         }
-    }
+    };
 }
+
+impl_string_view!(&'static str);
+impl_string_view!(String);

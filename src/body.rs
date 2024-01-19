@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{Node, Scope, Tree, View};
 
@@ -6,22 +6,28 @@ pub trait Body: 'static {
     fn into_tree(self) -> impl Tree;
 }
 
-pub struct Child<B>{cell: Rc<RefCell< Option<B>>>}
+pub struct Child<B> {
+    cell: Rc<RefCell<Option<B>>>,
+}
 
-impl <B> Child<B> {
+impl<B> Child<B> {
     pub fn new(body: B) -> Self {
-        Self { cell: Rc::new(RefCell::new(Some(body))) }
+        Self {
+            cell: Rc::new(RefCell::new(Some(body))),
+        }
     }
 }
 
 impl<B> Clone for Child<B> {
     fn clone(&self) -> Self {
-        Self { cell: self.cell.clone() }
+        Self {
+            cell: self.cell.clone(),
+        }
     }
 }
 
 impl<B: Body> Body for Child<B> {
-    fn into_tree(mut self) -> impl Tree {
+    fn into_tree(self) -> impl Tree {
         self.cell.take().unwrap().into_tree()
     }
 }
@@ -46,8 +52,24 @@ impl<V: View> Body for V {
     }
 }
 
-impl<V1: Body, V2: Body> Body for (V1, V2) {
-    fn into_tree(self) -> impl Tree {
-        (self.0.into_tree(), self.1.into_tree())
-    }
+macro_rules! impl_body_for_tuple {
+    ($($t:tt : $idx:tt),*) => {
+        impl<$($t : Body),*> Body for ($($t),*) {
+            fn into_tree(self) -> impl Tree {
+                ($(  self.$idx.into_tree() ),*)
+
+            }
+        }
+
+    };
 }
+
+impl_body_for_tuple!(V1: 0, V2: 1);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7, V9: 8);
+impl_body_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7, V9: 8, V10: 9);

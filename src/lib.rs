@@ -9,7 +9,6 @@ use body::Empty;
 
 use slotmap::{DefaultKey, SlotMap};
 
-
 pub mod hook;
 
 pub mod view;
@@ -95,19 +94,36 @@ pub trait Tree: 'static {
     fn rebuild(&mut self, last: &mut dyn Any);
 }
 
-impl<T1: Tree, T2: Tree> Tree for (T1, T2) {
-    fn build(&mut self) {
-        self.0.build();
-        self.1.build();
-    }
+macro_rules! impl_tree_for_tuple {
+    ($($t:tt : $idx:tt),*) => {
+        impl<$($t: Tree),*> Tree for ($($t),*) {
+            fn build(&mut self) {
+               $(
+                    self.$idx.build();
+               )*
+            }
 
-    fn rebuild(&mut self, last: &mut dyn Any) {
-        if let Some(last) = last.downcast_mut::<Self>() {
-            self.0.rebuild(&mut last.0);
-            self.1.rebuild(&mut last.1);
+            fn rebuild(&mut self, last: &mut dyn Any) {
+                if let Some(last) = last.downcast_mut::<Self>() {
+                    $(
+                        self.$idx.rebuild(&mut last.$idx);
+                    )*
+                }
+            }
         }
-    }
+
+    };
 }
+
+impl_tree_for_tuple!(V1: 0, V2: 1);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7, V9: 8);
+impl_tree_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7, V9: 8, V10: 9);
 
 impl Tree for Empty {
     fn build(&mut self) {}

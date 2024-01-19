@@ -1,8 +1,15 @@
-use std::{rc::Rc, borrow::Cow, cell::RefCell};
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
 
-use web_sys::{Event, wasm_bindgen::{closure::Closure, JsCast}};
+use web_sys::{
+    wasm_bindgen::{closure::Closure, JsCast},
+    Event,
+};
 
-use crate::{hook::{use_ref, use_context, use_provider}, View, Body, body::Child};
+use crate::{
+    body::Child,
+    hook::{use_context, use_provider, use_ref},
+    Body, View,
+};
 
 use super::{Data, WebContext};
 
@@ -15,8 +22,6 @@ macro_rules! make_tag_fns {
         )*
     };
 }
-
-
 
 make_tag_fns!(
     a, abbr, address, area, article, aside, audio, b, base, bdi, bdo, blockquote, body, br, button,
@@ -37,7 +42,11 @@ pub struct Html<C> {
 
 impl<C> Html<C> {
     pub fn new(tag: impl Into<Cow<'static, str>>, child: C) -> Self {
-        Self { tag: tag.into(), handlers: Vec::new(), child: Child::new(child) }
+        Self {
+            tag: tag.into(),
+            handlers: Vec::new(),
+            child: Child::new(child),
+        }
     }
 
     pub fn on_click(mut self, handler: impl FnMut(Event) + 'static) -> Self {
@@ -47,7 +56,6 @@ impl<C> Html<C> {
     }
 }
 
-
 impl<C: Body> View for Html<C> {
     fn body(&self) -> impl Body {
         let data = use_ref(|| RefCell::new(Data::default()));
@@ -56,7 +64,7 @@ impl<C: Body> View for Html<C> {
         let web_cx = use_context::<WebContext>().unwrap();
 
         if data_ref.element.is_none() {
-            let elem = web_cx.document.create_element("div").unwrap();
+            let elem = web_cx.document.create_element(&self.tag).unwrap();
             web_cx.parent.append_child(&elem).unwrap();
 
             for (name, handler) in &self.handlers {

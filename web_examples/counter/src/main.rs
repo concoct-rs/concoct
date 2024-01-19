@@ -6,11 +6,13 @@ struct App;
 impl View for App {
     fn body(&self) -> impl Body {
         let (count, set_count) = use_state(|| 0);
+        let set_count_clone = set_count.clone();
 
         let n = *count;
         (
             format!("High five count: {}", count),
-            html::button(String::from("Up high!")).on_click(move |_| set_count(n + 1)),
+            html::button("Up high!").on_click(move |_| set_count(n + 1)),
+            html::button("Down low!").on_click(move |_| set_count_clone(n - 1)),
         )
     }
 }
