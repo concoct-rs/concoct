@@ -10,9 +10,9 @@ repository = "https://github.com/concoct-rs/concoct"
 full = []
 
 [dependencies]
-slab = "0.4.9"
+bumpalo = "3.14.0"
 slotmap = "1.0.7"
-tokio = { version = "1.35.0", features = ["full"] }
+web-sys = { version = "0.3.66", features = ["Document", "HtmlElement", "HtmlCollection", "Text", "Window"] }
 
 [package.metadata.docs.rs]
 features = ["full"]
