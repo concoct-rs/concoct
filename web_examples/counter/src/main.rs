@@ -1,4 +1,4 @@
-use concoct::{hook::use_state, web::Div, Body, View};
+use concoct::{hook::use_state, web::div, Body, View};
 use wasm_bindgen_futures::spawn_local;
 
 struct App;
@@ -10,7 +10,7 @@ impl View for App {
         let n = *count;
         (
             count.to_string(),
-            Div::default().on_click(move |_| set_count(n + 1)),
+            div(String::from("Up high!")).on_click(move |_| set_count(n + 1)),
         )
     }
 }
