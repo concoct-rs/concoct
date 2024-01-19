@@ -9,8 +9,6 @@ pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
     let idx = scope.hook_idx;
     scope.hook_idx += 1;
 
-    tracing::info!("{}, {}", scope.hooks.len(), idx);
-
     if let Some(any) = scope.hooks.get(idx) {
         Rc::downcast(any.clone()).unwrap()
     } else {

@@ -8,7 +8,10 @@ impl View for App {
         let (count, set_count) = use_state(|| 0);
 
         let n = *count;
-        Div::default().on_click(move |_| set_count(n + 1))
+        (
+            count.to_string(),
+            Div::default().on_click(move |_| set_count(n + 1)),
+        )
     }
 }
 

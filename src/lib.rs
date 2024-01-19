@@ -21,12 +21,6 @@ struct ScopeInner {
     hook_idx: usize,
 }
 
-impl Drop for ScopeInner {
-    fn drop(&mut self) {
-        tracing::info!("drop")
-    }
-}
-
 #[derive(Clone, Default)]
 pub struct Scope {
     inner: Rc<RefCell<ScopeInner>>,
@@ -90,14 +84,10 @@ pub struct Node<V, B, F> {
     key: Option<DefaultKey>,
 }
 
-impl<V, B, F> Drop for Node<V, B, F> {
-    fn drop(&mut self) {
-        tracing::info!("DROP NODE");
-    }
-}
-
-pub trait Tree {
+pub trait Tree: 'static {
     fn build(&mut self);
+
+    fn rebuild(&mut self, last: &mut dyn Any);
 }
 
 impl<T1: Tree, T2: Tree> Tree for (T1, T2) {
@@ -105,10 +95,19 @@ impl<T1: Tree, T2: Tree> Tree for (T1, T2) {
         self.0.build();
         self.1.build();
     }
+
+    fn rebuild(&mut self, last: &mut dyn Any) {
+        if let Some(last) = last.downcast_mut::<Self>() {
+            self.0.rebuild(&mut last.0);
+            self.1.rebuild(&mut last.1);
+        }
+    }
 }
 
 impl Tree for Empty {
     fn build(&mut self) {}
+
+    fn rebuild(&mut self, _last: &mut dyn Any) {}
 }
 
 impl<V, B, F> Tree for Node<V, B, F>
@@ -121,34 +120,53 @@ where
         let cx = Context::current();
         let mut cx_ref = cx.inner.borrow_mut();
 
-        let key = if let Some(key) = self.key {
-            key
+        if let Some(key) = self.key {
+            cx_ref.node = Some(key);
+            cx_ref.scope = Some(self.scope.clone());
+            drop(cx_ref);
+
+            let view = unsafe { mem::transmute(&self.view) };
+            let body = (self.builder)(view);
+            let mut body = mem::replace(&mut self.body, Some(body)).unwrap();
+            self.body.as_mut().unwrap().rebuild(&mut body);
+
+            self.scope.inner.borrow_mut().hook_idx = 0;
         } else {
             let key = cx_ref.nodes.insert(self as _);
             self.key = Some(key);
-            key
-        };
 
-        cx_ref.node = Some(key);
-        cx_ref.scope = Some(self.scope.clone());
-        drop(cx_ref);
+            cx_ref.node = Some(key);
+            cx_ref.scope = Some(self.scope.clone());
+            drop(cx_ref);
 
-        let view = unsafe { mem::transmute(&self.view) };
-        let body = (self.builder)(view);
-        self.body = Some(body);
-        self.body.as_mut().unwrap().build();
+            let view = unsafe { mem::transmute(&self.view) };
+            let body = (self.builder)(view);
+            self.body = Some(body);
+            self.body.as_mut().unwrap().build();
 
-        self.scope.inner.borrow_mut().hook_idx = 0;
+            self.scope.inner.borrow_mut().hook_idx = 0;
+        }
     }
-}
 
-struct Dropper<T> {
-    value: T,
-}
+    fn rebuild(&mut self, last: &mut dyn Any) {
+        if let Some(last) = last.downcast_mut::<Self>() {
+            let key = last.key.unwrap();
+            self.key = Some(key);
+            self.scope = last.scope.clone();
 
-impl<T> Drop for Dropper<T> {
-    fn drop(&mut self) {
-        dbg!("DROP TREE");
+            let cx = Context::current();
+            let mut cx_ref = cx.inner.borrow_mut();
+            cx_ref.node = Some(key);
+            cx_ref.scope = Some(self.scope.clone());
+            drop(cx_ref);
+
+            let view = unsafe { mem::transmute(&self.view) };
+            let body = (self.builder)(view);
+            self.body = Some(body);
+            self.body.as_mut().unwrap().rebuild(&mut last.body);
+
+            self.scope.inner.borrow_mut().hook_idx = 0;
+        }
     }
 }
 
@@ -156,10 +174,8 @@ pub async fn run(view: impl Body) {
     let cx = Context::default();
     cx.enter();
 
-    let tree: &'static mut _ = Box::leak(Box::new(Dropper {
-        value: view.into_tree(),
-    }));
-    tree.value.build();
+    let mut tree = view.into_tree();
+    tree.build();
 
     loop {
         cx.rebuild().await
