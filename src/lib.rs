@@ -147,7 +147,7 @@ where
             drop(scope);
 
             cx_ref.node = Some(key);
-            cx_ref.scope = Some(self.scope.clone());
+            let _parent_scope = mem::replace(&mut cx_ref.scope, Some(self.scope.clone()));
             drop(cx_ref);
 
             let view = unsafe { mem::transmute(&self.view) };
@@ -174,15 +174,18 @@ where
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
 
-            {
+            let parent_contexts = {
                 let mut cx_ref = cx.inner.borrow_mut();
                 let mut scope = self.scope.inner.borrow_mut();
-                cx_ref.contexts = scope.contexts.clone();
                 scope.hook_idx = 0;
-            }
+                mem::replace(&mut cx_ref.contexts, scope.contexts.clone())
+            };
 
             self.body = Some(body);
             self.body.as_mut().unwrap().build();
+
+            let mut cx_ref = cx.inner.borrow_mut();
+            cx_ref.contexts = parent_contexts;
         }
     }
 
