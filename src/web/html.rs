@@ -1,17 +1,14 @@
-use std::{borrow::Cow, cell::RefCell, rc::Rc};
-
-use web_sys::{
-    wasm_bindgen::{closure::Closure, JsCast},
-    Event,
-};
-
+use super::{Data, WebContext};
 use crate::{
     body::Child,
     hook::{use_context, use_provider, use_ref},
     Body, View,
 };
-
-use super::{Data, WebContext};
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
+use web_sys::{
+    wasm_bindgen::{closure::Closure, JsCast},
+    Event,
+};
 
 macro_rules! make_tag_fns {
     ($($name:tt),*) => {

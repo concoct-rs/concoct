@@ -1,4 +1,6 @@
+use slotmap::{DefaultKey, SlotMap};
 use std::any::{Any, TypeId};
+use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::task::{Poll, Waker};
 use std::{cell::RefCell, mem, rc::Rc};
@@ -6,8 +8,6 @@ use std::{cell::RefCell, mem, rc::Rc};
 pub mod body;
 pub use self::body::Body;
 use body::Empty;
-
-use slotmap::{DefaultKey, SlotMap};
 
 pub mod hook;
 
@@ -223,5 +223,17 @@ pub async fn run(view: impl View) {
 
     loop {
         cx.rebuild().await
+    }
+}
+
+pub struct TextViewContext {
+    view: RefCell<Box<dyn FnMut(Cow<'static, str>)>>,
+}
+
+impl TextViewContext {
+    pub fn new(view: impl FnMut(Cow<'static, str>) + 'static) -> Self {
+        Self {
+            view: RefCell::new(Box::new(view)),
+        }
     }
 }

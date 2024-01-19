@@ -1,6 +1,5 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::{Node, Scope, Tree, View};
+use std::{cell::RefCell, rc::Rc};
 
 pub trait Body: 'static {
     fn into_tree(self) -> impl Tree;

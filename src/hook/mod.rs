@@ -1,41 +1,8 @@
-use crate::Context;
-use std::{cell::RefCell, rc::Rc};
-
 mod use_context;
 pub use use_context::{use_context, use_provider};
 
-pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
-    let cx = Context::current();
-    let cx_ref = cx.inner.borrow();
-    let scope = &mut *cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
+mod use_ref;
+pub use use_ref::use_ref;
 
-    let idx = scope.hook_idx;
-    scope.hook_idx += 1;
-
-    if let Some(any) = scope.hooks.get(idx) {
-        Rc::downcast(any.clone()).unwrap()
-    } else {
-        let value = Rc::new(make_value());
-        scope.hooks.push(value.clone());
-        value
-    }
-}
-
-pub fn use_state<T: 'static>(make_value: impl FnOnce() -> T) -> (Rc<T>, Rc<impl Fn(T)>) {
-    let cell = use_ref(|| RefCell::new(Rc::new(make_value())));
-    let getter = cell.borrow().clone();
-
-    let cx = Context::current();
-    let key = cx.inner.borrow().node.unwrap();
-    let setter = move |value| {
-        *cell.borrow_mut() = Rc::new(value);
-
-        let mut cx_ref = cx.inner.borrow_mut();
-        cx_ref.pending.push_back(key);
-        if let Some(waker) = cx_ref.waker.take() {
-            waker.wake();
-        }
-    };
-
-    (getter, Rc::new(setter))
-}
+mod use_state;
+pub use use_state::use_state;

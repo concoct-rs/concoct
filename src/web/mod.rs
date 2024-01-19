@@ -1,6 +1,6 @@
 use crate::{
     hook::{use_context, use_provider, use_ref},
-    Body, View,
+    Body, TextViewContext, View,
 };
 use std::{cell::RefCell, rc::Rc};
 use web_sys::{wasm_bindgen::closure::Closure, Document, Element, Event, Node, Text, Window};
@@ -28,6 +28,25 @@ impl<B: View> View for WebRoot<B> {
             document,
             parent: body.into(),
         });
+
+        use_provider(TextViewContext::new(|s| {
+            let web_cx = use_context::<WebContext>().unwrap();
+
+            let data = use_ref(|| RefCell::new((s.clone(), None::<Text>)));
+            let (last, node_cell) = &mut *data.borrow_mut();
+
+            if let Some(node) = node_cell {
+                if s != *last {
+                    node.set_text_content(Some(&s));
+                    *last = s.clone();
+                }
+            } else {
+                let node = web_cx.document.create_text_node(&s);
+                web_cx.parent.append_child(&node).unwrap();
+                *node_cell = Some(node);
+            }
+        }));
+
         self.body.clone()
     }
 }
@@ -45,21 +64,9 @@ macro_rules! impl_string_view {
     ($t:ty) => {
         impl View for $t {
             fn body(&self) -> impl Body {
-                let web_cx = use_context::<WebContext>().unwrap();
-
-                let data = use_ref(|| RefCell::new((self.clone(), None::<Text>)));
-                let (last, node_cell) = &mut *data.borrow_mut();
-
-                if let Some(node) = node_cell {
-                    if self != last {
-                        node.set_text_content(Some(&self));
-                        *last = self.clone();
-                    }
-                } else {
-                    let node = web_cx.document.create_text_node(self);
-                    web_cx.parent.append_child(&node).unwrap();
-                    *node_cell = Some(node);
-                }
+                let cx = use_context::<TextViewContext>().unwrap();
+                let mut view = cx.view.borrow_mut();
+                view(self.clone().into())
             }
         }
     };
