@@ -22,3 +22,9 @@ impl<V: View> Body for V {
         }
     }
 }
+
+impl<V1: Body, V2: Body> Body for (V1, V2) {
+    fn tree(self) -> impl Tree {
+        (self.0.tree(), self.1.tree())
+    }
+}

@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::collections::VecDeque;
 use std::{cell::RefCell, mem, rc::Rc};
 
 pub mod body;
@@ -13,8 +14,10 @@ pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
     let cx_ref = cx.inner.borrow();
     let scope = &mut *cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
 
-    if let Some(any) = scope.hooks.get(scope.hook_idx) {
-        scope.hook_idx += 1;
+    let idx = scope.hook_idx;
+    scope.hook_idx += 1;
+
+    if let Some(any) = scope.hooks.get(idx) {
         Rc::downcast(any.clone()).unwrap()
     } else {
         let value = Rc::new(make_value());
@@ -37,7 +40,7 @@ pub struct Scope {
 #[derive(Default)]
 struct ContextInner {
     node: Option<*mut dyn Tree>,
-    pending: Vec<*mut dyn Tree>,
+    pending: VecDeque<*mut dyn Tree>,
     scope: Option<Scope>,
 }
 
@@ -60,16 +63,20 @@ impl Context {
     }
 
     pub fn rebuild(&self) {
-        let raw = self.inner.borrow_mut().pending.pop().unwrap();
-        let pending = unsafe { &mut *raw };
-        pending.build();
+        let mut inner = self.inner.borrow_mut();
+        if let Some(raw) = inner.pending.pop_front() {
+            drop(inner);
+
+            let pending = unsafe { &mut *raw };
+            pending.build();
+        }
     }
 }
 
 pub fn request_update() {
     let cx = Context::current();
     let cx = &mut *cx.inner.borrow_mut();
-    cx.pending.push(cx.node.unwrap() as *mut _);
+    cx.pending.push_back(cx.node.unwrap() as *mut _);
 }
 
 thread_local! {
@@ -85,6 +92,13 @@ pub struct Node<V, B, F> {
 
 pub trait Tree {
     fn build(&mut self);
+}
+
+impl<T1: Tree, T2: Tree> Tree for (T1, T2) {
+    fn build(&mut self) {
+        self.0.build();
+        self.1.build();
+    }
 }
 
 impl Tree for Empty {
@@ -110,6 +124,6 @@ where
         self.body = Some(body);
         self.body.as_mut().unwrap().build();
 
-        let _cx_ref = cx.inner.borrow_mut();
+        self.scope.inner.borrow_mut().hook_idx = 0;
     }
 }

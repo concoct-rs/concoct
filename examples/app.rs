@@ -1,19 +1,18 @@
+use concoct::{use_ref, Body, Context, Tree, View};
 use std::cell::RefCell;
 
-use concoct::{use_ref, Body, Context, Tree, View};
-
-struct A;
+struct A {
+    n: u8,
+}
 
 impl View for A {
     fn body(&self) -> impl Body {
         concoct::request_update();
 
         let count = use_ref(|| RefCell::new(0));
-        dbg!(&count);
+        dbg!(self.n, &count);
 
         *count.borrow_mut() += 1;
-
-        dbg!("A");
     }
 }
 
@@ -21,8 +20,7 @@ struct App;
 
 impl View for App {
     fn body(&self) -> impl Body {
-        dbg!("App");
-        A
+        (A { n: 0 }, A { n: 1 })
     }
 }
 
@@ -34,5 +32,6 @@ fn main() {
     let mut tree = v.tree();
     tree.build();
 
+    cx.rebuild();
     cx.rebuild();
 }
