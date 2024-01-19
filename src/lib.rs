@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::VecDeque;
+use std::task::{Poll, Waker};
 use std::{cell::RefCell, mem, rc::Rc};
 
 pub mod body;
@@ -29,6 +30,7 @@ struct ContextInner {
     pending: VecDeque<DefaultKey>,
     scope: Option<Scope>,
     nodes: SlotMap<DefaultKey, *mut dyn Tree>,
+    waker: Option<Waker>,
 }
 
 #[derive(Clone, Default)]
@@ -49,22 +51,23 @@ impl Context {
             .unwrap()
     }
 
-    pub fn rebuild(&self) {
-        let mut inner = self.inner.borrow_mut();
-        if let Some(key) = inner.pending.pop_front() {
-            let raw = inner.nodes[key];
-            drop(inner);
+    pub async fn rebuild(&self) {
+        futures::future::poll_fn(|cx| {
+            let mut inner = self.inner.borrow_mut();
+            inner.waker = Some(cx.waker().clone());
 
-            let pending = unsafe { &mut *raw };
-            pending.build();
-        }
+            if let Some(key) = inner.pending.pop_front() {
+                let raw = inner.nodes[key];
+                drop(inner);
+
+                let pending = unsafe { &mut *raw };
+                pending.build();
+            }
+
+            Poll::Pending
+        })
+        .await
     }
-}
-
-pub fn request_update() {
-    let cx = Context::current();
-    let cx = &mut *cx.inner.borrow_mut();
-    cx.pending.push_back(cx.node.unwrap());
 }
 
 thread_local! {
@@ -115,5 +118,17 @@ where
         self.body.as_mut().unwrap().build();
 
         self.scope.inner.borrow_mut().hook_idx = 0;
+    }
+}
+
+pub async fn run(view: impl Body) {
+    let cx = Context::default();
+    cx.enter();
+
+    let mut tree = view.tree();
+    tree.build();
+
+    loop {
+        cx.rebuild().await
     }
 }

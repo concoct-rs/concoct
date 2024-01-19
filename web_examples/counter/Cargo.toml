@@ -1,0 +1,11 @@
+[package]
+name = "counter-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+concoct = { path = "../.." }
+wasm-bindgen-futures = "0.4.40"
+console_error_panic_hook = "0.1.7"
+tracing-wasm = { version = "0.2.1" }
+tracing = "0.1.40"
