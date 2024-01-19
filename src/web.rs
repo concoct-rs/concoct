@@ -1,8 +1,11 @@
-use crate::{hook::use_ref, Body, View};
+use crate::{
+    hook::{use_context, use_provider, use_ref},
+    Body, View,
+};
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
     wasm_bindgen::{closure::Closure, JsCast},
-    Element, Event, Text,
+    Document, Element, Event, Node, Text, Window,
 };
 
 pub fn div<C>(child: C) -> Div<C> {
@@ -25,6 +28,31 @@ impl<C> Div<C> {
     }
 }
 
+struct WebContext {
+    window: Window,
+    document: Document,
+    parent: Node,
+}
+
+pub struct WebRoot<B> {
+    pub body: Rc<B>,
+}
+
+impl<B: View> View for WebRoot<B> {
+    fn body(&self) -> impl Body {
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let body = document.body().unwrap();
+
+        use_provider(WebContext {
+            window,
+            document,
+            parent: body.into(),
+        });
+        self.body.clone()
+    }
+}
+
 #[derive(Default)]
 struct Data {
     element: Option<Element>,
@@ -39,13 +67,11 @@ impl<C: View> View for Div<C> {
         let data = use_ref(|| RefCell::new(Data::default()));
         let mut data_ref = data.borrow_mut();
 
-        if data_ref.element.is_none() {
-            let window = web_sys::window().unwrap();
-            let document = window.document().unwrap();
-            let body = document.body().unwrap();
+        let web_cx = use_context::<WebContext>().unwrap();
 
-            let elem = document.create_element("div").unwrap();
-            body.append_child(&elem).unwrap();
+        if data_ref.element.is_none() {
+            let elem = web_cx.document.create_element("div").unwrap();
+            web_cx.parent.append_child(&elem).unwrap();
 
             for (name, handler) in &self.handlers {
                 let handler = Rc::new(RefCell::new(handler.clone()));
@@ -67,12 +93,20 @@ impl<C: View> View for Div<C> {
             }
         }
 
+        use_provider(WebContext {
+            window: web_cx.window.clone(),
+            document: web_cx.document.clone(),
+            parent: data_ref.element.as_ref().unwrap().clone().into(),
+        });
+
         self.child.clone()
     }
 }
 
 impl View for String {
     fn body(&self) -> impl Body {
+        let web_cx = use_context::<WebContext>().unwrap();
+
         let data = use_ref(|| RefCell::new((self.clone(), None::<Text>)));
         let (last, node_cell) = &mut *data.borrow_mut();
 
@@ -82,12 +116,8 @@ impl View for String {
                 *last = self.clone();
             }
         } else {
-            let window = web_sys::window().unwrap();
-            let document = window.document().unwrap();
-            let body = document.body().unwrap();
-
-            let node = document.create_text_node(self);
-            body.append_child(&node).unwrap();
+            let node = web_cx.document.create_text_node(self);
+            web_cx.parent.append_child(&node).unwrap();
             *node_cell = Some(node);
         }
     }

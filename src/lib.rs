@@ -6,7 +6,9 @@ use std::{cell::RefCell, mem, rc::Rc};
 pub mod body;
 pub use self::body::Body;
 use body::Empty;
+
 use slotmap::{DefaultKey, SlotMap};
+use web::WebRoot;
 
 pub mod hook;
 
@@ -189,11 +191,14 @@ where
     }
 }
 
-pub async fn run(view: impl Body) {
+pub async fn run(view: impl View) {
     let cx = Context::default();
     cx.enter();
 
-    let mut tree = view.into_tree();
+    let mut tree = WebRoot {
+        body: Rc::new(view),
+    }
+    .into_tree();
     tree.build();
 
     loop {
