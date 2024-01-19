@@ -1,17 +1,44 @@
+use std::any::Any;
 use std::{cell::RefCell, mem, rc::Rc};
 
-mod body;
+pub mod body;
+pub use self::body::Body;
 use body::Empty;
 
-pub use self::body::Body;
-
-mod view;
+pub mod view;
 pub use self::view::View;
+
+pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
+    let cx = Context::current();
+    let cx_ref = cx.inner.borrow();
+    let scope = &mut *cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
+
+    if let Some(any) = scope.hooks.get(scope.hook_idx) {
+        scope.hook_idx += 1;
+        Rc::downcast(any.clone()).unwrap()
+    } else {
+        let value = Rc::new(make_value());
+        scope.hooks.push(value.clone());
+        value
+    }
+}
+
+#[derive(Default)]
+struct ScopeInner {
+    hooks: Vec<Rc<dyn Any>>,
+    hook_idx: usize,
+}
+
+#[derive(Clone, Default)]
+pub struct Scope {
+    inner: Rc<RefCell<ScopeInner>>,
+}
 
 #[derive(Default)]
 struct ContextInner {
     node: Option<*mut dyn Tree>,
     pending: Vec<*mut dyn Tree>,
+    scope: Option<Scope>,
 }
 
 #[derive(Clone, Default)]
@@ -53,6 +80,7 @@ pub struct Node<V, B, F> {
     view: V,
     body: Option<B>,
     builder: F,
+    scope: Scope,
 }
 
 pub trait Tree {
@@ -70,22 +98,18 @@ where
     F: FnMut(&'static V) -> B + 'static,
 {
     fn build(&mut self) {
-        Context::current().inner.borrow_mut().node = Some(self as _);
+        let cx = Context::current();
+        let mut cx_ref = cx.inner.borrow_mut();
+
+        cx_ref.node = Some(self as _);
+        cx_ref.scope = Some(self.scope.clone());
+        drop(cx_ref);
 
         let view = unsafe { mem::transmute(&self.view) };
         let body = (self.builder)(view);
         self.body = Some(body);
-
         self.body.as_mut().unwrap().build();
-    }
-}
 
-impl<V: View> Body for V {
-    fn tree(self) -> impl Tree {
-        Node {
-            view: self,
-            body: None,
-            builder: |me: &'static V| me.body().tree(),
-        }
+        let _cx_ref = cx.inner.borrow_mut();
     }
 }
