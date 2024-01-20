@@ -33,24 +33,51 @@ make_tag_fns!(
 
 pub struct Html<C> {
     tag: Cow<'static, str>,
+    attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     handlers: Vec<(Cow<'static, str>, Rc<RefCell<dyn FnMut(Event)>>)>,
     child: Child<C>,
+}
+
+macro_rules! impl_handler_methods {
+    ($($fn_name: tt: $name: tt),*) => {
+        $(
+            pub fn $fn_name(self, handler: impl FnMut(Event) + 'static) -> Self {
+                self.handler($name, handler)
+            }
+        )*
+    };
 }
 
 impl<C> Html<C> {
     pub fn new(tag: impl Into<Cow<'static, str>>, child: C) -> Self {
         Self {
             tag: tag.into(),
+            attrs: Vec::new(),
             handlers: Vec::new(),
             child: Child::new(child),
         }
     }
 
-    pub fn on_click(mut self, handler: impl FnMut(Event) + 'static) -> Self {
-        self.handlers
-            .push((Cow::Borrowed("click"), Rc::new(RefCell::new(handler))));
+    pub fn attr(
+        mut self,
+        name: impl Into<Cow<'static, str>>,
+        value: impl Into<Cow<'static, str>>,
+    ) -> Self {
+        self.attrs.push((name.into(), value.into()));
         self
     }
+
+    pub fn handler(
+        mut self,
+        name: impl Into<Cow<'static, str>>,
+        handler: impl FnMut(Event) + 'static,
+    ) -> Self {
+        self.handlers
+            .push((name.into(), Rc::new(RefCell::new(handler))));
+        self
+    }
+
+    impl_handler_methods!(on_click: "click", on_input: "input", on_submit: "submit");
 }
 
 impl<C: Body> View for Html<C> {
@@ -70,6 +97,10 @@ impl<C: Body> View for Html<C> {
         if data_ref.element.is_none() {
             let elem = web_cx.document.create_element(&self.tag).unwrap();
             web_cx.parent.append_child(&elem).unwrap();
+
+            for (name, value) in &self.attrs {
+                elem.set_attribute(name, value).unwrap();
+            }
 
             for (name, handler) in &self.handlers {
                 let handler = Rc::new(RefCell::new(handler.clone()));

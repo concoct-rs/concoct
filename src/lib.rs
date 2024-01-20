@@ -178,7 +178,7 @@ where
         let mut cx_ref = cx.inner.borrow_mut();
 
         if let Some(key) = self.key {
-            let mut scope = self.scope.inner.borrow_mut();
+            let scope = self.scope.inner.borrow_mut();
             let parent_contexts = mem::replace(&mut cx_ref.contexts, scope.contexts.clone());
             drop(scope);
 
