@@ -28,7 +28,6 @@ impl View for App {
             format!("High five count: {}", count),
             html::button("Up high!").on_click(move |_| set_count(n + 1)),
             html::button("Down low!").on_click(move |_| set_count_clone(n - 1)),
-            if n == 0 { Some(Child) } else { None },
         )
     }
 }

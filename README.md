@@ -26,54 +26,19 @@ Concoct is a framework for user-interfaces in Rust.
 This crate provides a diffing-engine and state management system for any backend.
 
 ```rust
-use concoct::{composable, Composable, Composer, Model};
-use std::time::Duration;
-use tokio::time;
+struct App;
 
-#[derive(Debug)]
-enum Message {
-    Increment,
-    Decrement,
-}
+impl View for App {
+    fn body(&self) -> impl Body {
+        let (count, set_count_high) = use_state(|| 0);
+        let set_count_low = set_count_high.clone();
 
-#[derive(Default)]
-struct App {
-    count: i32,
-}
-
-impl Model<Message> for App {
-    fn handle(&mut self, msg: Message) {
-        match msg {
-            Message::Decrement => self.count -= 1,
-            Message::Increment => self.count += 1,
-        }
-    }
-}
-
-fn app(model: &App) -> impl Composable<Message> {
-    dbg!(model.count);
-
-    composable::once(composable::from_fn(|cx| {
-        let sender = cx.clone();
-
-        sender.send(Message::Decrement);
-        tokio::spawn(async move {
-            loop {
-                time::sleep(Duration::from_secs(1)).await;
-                sender.send(Message::Increment)
-            }
-        });
-    }))
-}
-
-#[tokio::main]
-async fn main() {
-    let mut composer = Composer::new(App::default(), app);
-
-    composer.compose();
-    loop {
-        composer.handle().await;
-        composer.recompose();
+        let n = *count;
+        (
+            format!("High five count: {}", count),
+            html::button("Up high!").on_click(move |_| set_count_high(n + 1)),
+            html::button("Down low!").on_click(move |_| set_count_low(n - 1)),
+        )
     }
 }
 ```
