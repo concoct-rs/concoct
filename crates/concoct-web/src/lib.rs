@@ -1,6 +1,6 @@
 use concoct::{
     hook::{use_context, use_on_drop, use_provider, use_ref},
-    Body, TextViewContext, View,
+    View, TextViewContext, ViewBuilder,
 };
 use std::{cell::RefCell, rc::Rc};
 use web_sys::{Document, Node, Text, Window};
@@ -17,8 +17,8 @@ pub struct WebRoot<B> {
     pub body: Rc<B>,
 }
 
-impl<B: View> View for WebRoot<B> {
-    fn body(&self) -> impl Body {
+impl<B: ViewBuilder> ViewBuilder for WebRoot<B> {
+    fn build(&self) -> impl View {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         let body = document.body().unwrap();
@@ -58,7 +58,7 @@ impl<B: View> View for WebRoot<B> {
     }
 }
 
-pub async fn run(view: impl View) {
+pub async fn run(view: impl ViewBuilder) {
     concoct::run(WebRoot {
         body: Rc::new(view),
     })

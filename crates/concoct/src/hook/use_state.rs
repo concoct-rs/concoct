@@ -1,6 +1,6 @@
 use super::use_ref;
 use crate::Context;
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
 
 /// Hook to create render state.
 ///

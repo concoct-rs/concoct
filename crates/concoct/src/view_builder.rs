@@ -1,26 +1,26 @@
-use crate::{body::Empty, Body};
+use crate::{view::Empty, View};
 use std::rc::Rc;
 
-pub trait View: 'static {
-    fn body(&self) -> impl Body;
+pub trait ViewBuilder: 'static {
+    fn build(&self) -> impl View;
 }
 
-impl View for () {
-    fn body(&self) -> impl Body {
+impl ViewBuilder for () {
+    fn build(&self) -> impl View {
         Empty
     }
 }
 
-impl<V: View> View for Rc<V> {
-    fn body(&self) -> impl Body {
-        (&**self).body()
+impl<V: ViewBuilder> ViewBuilder for Rc<V> {
+    fn build(&self) -> impl View {
+        (&**self).build()
     }
 }
 
 macro_rules! impl_string_view {
     ($t:ty) => {
-        impl View for $t {
-            fn body(&self) -> impl Body {
+        impl ViewBuilder for $t {
+            fn build(&self) -> impl View {
                 let cx = crate::hook::use_context::<crate::TextViewContext>().unwrap();
                 let mut view = cx.view.borrow_mut();
                 view(self.clone().into())

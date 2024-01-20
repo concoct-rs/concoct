@@ -1,11 +1,11 @@
-use concoct::{hook::use_state, Body, View};
+use concoct::{hook::use_state, View, ViewBuilder};
 use concoct_web::html;
 use wasm_bindgen_futures::spawn_local;
 
 struct App;
 
-impl View for App {
-    fn body(&self) -> impl Body {
+impl ViewBuilder for App {
+    fn build(&self) -> impl View {
         let (count, set_high) = use_state(|| 0);
         let set_low = set_high.clone();
 

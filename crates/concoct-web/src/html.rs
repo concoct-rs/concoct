@@ -1,8 +1,8 @@
 use super::WebContext;
 use concoct::{
-    body::Child,
+    view::Child,
     hook::{use_context, use_on_drop, use_provider, use_ref},
-    Body, View,
+    View, ViewBuilder,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -13,7 +13,7 @@ use web_sys::{
 macro_rules! make_tag_fns {
     ($($name:tt),*) => {
         $(
-            pub fn $name<C: Body>(child: C) -> Html<C> {
+            pub fn $name<C: View>(child: C) -> Html<C> {
                 Html::new(stringify!($name), child)
             }
         )*
@@ -108,8 +108,8 @@ impl<C> Html<C> {
     );
 }
 
-impl<C: Body> View for Html<C> {
-    fn body(&self) -> impl Body {
+impl<C: View> ViewBuilder for Html<C> {
+    fn build(&self) -> impl View {
         let data = use_ref(|| RefCell::new(Data::default()));
         let mut data_ref = data.borrow_mut();
 
