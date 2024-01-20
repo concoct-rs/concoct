@@ -4,21 +4,21 @@ mod node;
 pub use node::Node;
 
 pub trait Tree: 'static {
-    fn build(&mut self);
+    unsafe fn build(&mut self);
 
-    fn rebuild(&mut self, last: &mut dyn Any);
+    unsafe fn rebuild(&mut self, last: &mut dyn Any);
 
-    fn remove(&mut self);
+    unsafe fn remove(&mut self);
 }
 
 impl<T: Tree> Tree for Option<T> {
-    fn build(&mut self) {
+    unsafe fn build(&mut self) {
         if let Some(tree) = self {
             tree.build()
         }
     }
 
-    fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
         if let Some(tree) = self {
             if let Some(last_tree) = last.downcast_mut::<Self>().unwrap() {
                 tree.rebuild(last_tree)
@@ -30,7 +30,7 @@ impl<T: Tree> Tree for Option<T> {
         }
     }
 
-    fn remove(&mut self) {
+    unsafe fn remove(&mut self) {
         if let Some(tree) = self {
             tree.remove()
         }
@@ -42,13 +42,13 @@ where
     K: Hash + Eq + 'static,
     T: Tree,
 {
-    fn build(&mut self) {
+    unsafe fn build(&mut self) {
         for (_, body) in self.iter_mut() {
             body.build()
         }
     }
 
-    fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
         let mut visited = HashSet::new();
         let last = last.downcast_mut::<Self>().unwrap();
 
@@ -68,7 +68,7 @@ where
         }
     }
 
-    fn remove(&mut self) {
+    unsafe fn remove(&mut self) {
         for (_, body) in self.iter_mut() {
             body.remove()
         }
@@ -78,13 +78,13 @@ where
 macro_rules! impl_tree_for_tuple {
     ($($t:tt : $idx:tt),*) => {
         impl<$($t: Tree),*> Tree for ($($t),*) {
-            fn build(&mut self) {
+            unsafe fn build(&mut self) {
                $(
                     self.$idx.build();
                )*
             }
 
-            fn rebuild(&mut self, last: &mut dyn Any) {
+            unsafe fn rebuild(&mut self, last: &mut dyn Any) {
                 if let Some(last) = last.downcast_mut::<Self>() {
                     $(
                         self.$idx.rebuild(&mut last.$idx);
@@ -92,7 +92,7 @@ macro_rules! impl_tree_for_tuple {
                 }
             }
 
-            fn remove(&mut self) {
+            unsafe fn remove(&mut self) {
                 $(
                      self.$idx.remove();
                 )*

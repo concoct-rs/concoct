@@ -1,4 +1,4 @@
-use crate::Context;
+use crate::Runtime;
 use std::rc::Rc;
 
 /// Hook to store a stateless value.
@@ -6,7 +6,7 @@ use std::rc::Rc;
 /// This function will only call `make_value` once, on the first render,
 /// to create the initial value.
 pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
-    let cx = Context::current();
+    let cx = Runtime::current();
     let cx_ref = cx.inner.borrow();
     let mut scope = cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
 
@@ -20,7 +20,7 @@ pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
         drop(cx_ref);
         let value = Rc::new(make_value());
 
-        let cx = Context::current();
+        let cx = Runtime::current();
         let cx_ref = cx.inner.borrow();
         let scope = &mut *cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
         scope.hooks.push(value.clone());

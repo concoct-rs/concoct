@@ -1,4 +1,4 @@
-use crate::{Context, Scope, Tree, ViewBuilder};
+use crate::{Runtime, Scope, Tree, ViewBuilder};
 use slotmap::DefaultKey;
 use std::{any::Any, mem};
 
@@ -16,8 +16,8 @@ where
     B: Tree + 'static,
     F: FnMut(&'static V) -> B + 'static,
 {
-    fn build(&mut self) {
-        let cx = Context::current();
+    unsafe fn build(&mut self) {
+        let cx = Runtime::current();
         let mut cx_ref = cx.inner.borrow_mut();
 
         if let Some(key) = self.key {
@@ -78,9 +78,9 @@ where
         }
     }
 
-    fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
         let last = (*last).downcast_mut::<Self>().unwrap();
-        let cx = Context::current();
+        let cx = Runtime::current();
         let mut cx_ref = cx.inner.borrow_mut();
 
         let key = last.key.unwrap();
@@ -119,8 +119,8 @@ where
         cx_ref.contexts = parent_contexts;
     }
 
-    fn remove(&mut self) {
-        let cx = Context::current();
+    unsafe fn remove(&mut self) {
+        let cx = Runtime::current();
         let mut cx_ref = cx.inner.borrow_mut();
         let key = self.key.unwrap();
         cx_ref.nodes.remove(key);

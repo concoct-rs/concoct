@@ -1,5 +1,5 @@
 use super::use_ref;
-use crate::Context;
+use crate::Runtime;
 use std::cell::RefCell;
 
 /// Hook to create render state.
@@ -20,7 +20,7 @@ pub fn use_state<T: Clone + 'static>(
     let cell = use_ref(|| RefCell::new(make_value()));
     let getter = cell.borrow().clone();
 
-    let cx = Context::current();
+    let cx = Runtime::current();
     let key = cx.inner.borrow().node.unwrap();
     let setter = move |value| {
         *cell.borrow_mut() = value;

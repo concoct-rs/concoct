@@ -1,6 +1,6 @@
 use concoct::{
     hook::{use_context, use_on_drop, use_provider, use_ref},
-    View, TextViewContext, ViewBuilder,
+    TextViewContext, View, ViewBuilder,
 };
 use std::{cell::RefCell, rc::Rc};
 use web_sys::{Document, Node, Text, Window};

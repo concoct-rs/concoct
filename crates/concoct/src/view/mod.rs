@@ -7,6 +7,9 @@ pub use child::Child;
 mod empty;
 pub use empty::Empty;
 
+mod memo;
+pub use memo::{memo, Memo};
+
 mod one_of;
 pub use one_of::*;
 

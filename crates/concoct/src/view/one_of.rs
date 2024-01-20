@@ -18,7 +18,7 @@ macro_rules! one_of {
         }
 
         impl<$($t: Tree),*> Tree for $name<$($t),*> {
-            fn build(&mut self) {
+            unsafe fn build(&mut self) {
                 match self {
                     $(
                         $name::$t(tree) => tree.build(),
@@ -26,7 +26,7 @@ macro_rules! one_of {
                 }
             }
 
-            fn rebuild(&mut self, last: &mut dyn Any) {
+            unsafe fn rebuild(&mut self, last: &mut dyn Any) {
                 let last =  last.downcast_mut::<Self>().unwrap();
                 match (self, last) {
                     $(
@@ -42,7 +42,7 @@ macro_rules! one_of {
 
             }
 
-            fn remove(&mut self) {
+            unsafe fn remove(&mut self) {
                 match self {
                     $(
                         $name::$t(tree) => tree.remove(),

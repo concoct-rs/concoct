@@ -1,9 +1,9 @@
-use crate::Context;
+use crate::Runtime;
 use std::{any::TypeId, rc::Rc};
 
 /// Hook to provide a context.
 pub fn use_provider<T: 'static>(value: T) {
-    let cx = Context::current();
+    let cx = Runtime::current();
     let cx_ref = cx.inner.borrow();
     let mut scope = cx_ref.scope.as_ref().unwrap().inner.borrow_mut();
 
@@ -12,7 +12,7 @@ pub fn use_provider<T: 'static>(value: T) {
 
 /// Hook to get a context from its type.
 pub fn use_context<T: 'static>() -> Option<Rc<T>> {
-    Context::current()
+    Runtime::current()
         .inner
         .borrow()
         .scope
