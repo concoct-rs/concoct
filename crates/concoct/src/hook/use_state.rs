@@ -2,7 +2,7 @@ use super::use_ref;
 use crate::Context;
 use std::{cell::RefCell, rc::Rc};
 
-pub fn use_state<T: Clone + 'static>(make_value: impl FnOnce() -> T) -> (T, Rc<impl Fn(T)>) {
+pub fn use_state<T: Clone + 'static>(make_value: impl FnOnce() -> T) -> (T, Rc<dyn Fn(T)>) {
     let cell = use_ref(|| RefCell::new(make_value()));
     let getter = cell.borrow().clone();
 

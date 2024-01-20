@@ -1,5 +1,5 @@
 use crate::{Node, Tree, View};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, hash::Hash, rc::Rc};
 
 pub trait Body: 'static {
     fn into_tree(self) -> impl Tree;
@@ -8,6 +8,14 @@ pub trait Body: 'static {
 impl<B: Body> Body for Option<B> {
     fn into_tree(self) -> impl Tree {
         self.map(|me| me.into_tree())
+    }
+}
+
+impl<K: Hash + Eq + 'static, B: Body> Body for Vec<(K, B)> {
+    fn into_tree(self) -> impl Tree {
+        self.into_iter()
+            .map(|(key, body)| (key, body.into_tree()))
+            .collect::<Vec<_>>()
     }
 }
 

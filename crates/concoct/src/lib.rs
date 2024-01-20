@@ -1,7 +1,8 @@
 use slotmap::{DefaultKey, SlotMap};
 use std::any::{Any, TypeId};
 use std::borrow::Cow;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::hash::Hash;
 use std::task::{Poll, Waker};
 use std::{cell::RefCell, mem, rc::Rc};
 
@@ -222,6 +223,40 @@ impl Tree for Empty {
     fn rebuild(&mut self, _last: &mut dyn Any) {}
 
     fn remove(&mut self) {}
+}
+
+impl<K: Hash + Eq + 'static, T: Tree> Tree for Vec<(K, T)> {
+    fn build(&mut self) {
+        for (_, body) in self.iter_mut() {
+            body.build()
+        }
+    }
+
+    fn rebuild(&mut self, last: &mut dyn Any) {
+        let mut visited = HashSet::new();
+        let last = last.downcast_mut::<Self>().unwrap();
+
+        for (key, body) in self.iter_mut() {
+            if let Some((_, last_body)) = last.iter_mut().find(|(last_key, _)| last_key == key) {
+                body.rebuild(last_body);
+                visited.insert(key);
+            } else {
+                body.build();
+            }
+        }
+
+        for (key, body) in last.iter_mut() {
+            if !visited.contains(key) {
+                body.remove();
+            }
+        }
+    }
+
+    fn remove(&mut self) {
+        for (_, body) in self.iter_mut() {
+            body.remove()
+        }
+    }
 }
 
 impl<V, B, F> Tree for Node<V, B, F>
