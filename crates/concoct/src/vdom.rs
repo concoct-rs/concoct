@@ -1,16 +1,8 @@
-use crate::{Runtime, Tree, View};
+use crate::{Runtime, Tree};
 use std::{
     task::{Poll, Waker},
     time::{Duration, Instant},
 };
-
-/// Create a new virtual dom from a view.
-pub fn virtual_dom(view: impl View) -> VirtualDom<impl Tree> {
-    VirtualDom {
-        cx: Runtime::default(),
-        tree: view.into_tree(),
-    }
-}
 
 /// A virtual dom that renders a view on any backend.
 pub struct VirtualDom<T> {
@@ -19,6 +11,13 @@ pub struct VirtualDom<T> {
 }
 
 impl<T> VirtualDom<T> {
+    pub fn new(tree: T) -> Self {
+        VirtualDom {
+            cx: Runtime::default(),
+            tree,
+        }
+    }
+
     /// Build the initial virtual dom.
     pub fn build(&mut self)
     where

@@ -4,7 +4,7 @@
 //! to create an efficient tree of components. Updates to state re-render
 //! your application top-down, starting at the state's parent component.
 //!
-//! ```no_run
+//! ```ignore
 //! use concoct::{View, ViewBuilder};
 //! use concoct::hook::use_state;
 //! use concoct_web::html;
@@ -39,7 +39,7 @@ pub(crate) use tree::Node;
 pub use tree::Tree;
 
 mod vdom;
-pub use self::vdom::{virtual_dom, VirtualDom};
+pub use self::vdom::VirtualDom;
 
 mod view_builder;
 pub use self::view_builder::ViewBuilder;
@@ -49,7 +49,7 @@ pub use self::view::View;
 
 /// Run a view in a new virtual dom.
 pub async fn run(view: impl ViewBuilder) {
-    let mut vdom = virtual_dom(view);
+    let mut vdom = VirtualDom::new(view.into_tree());
     vdom.build();
 
     loop {
