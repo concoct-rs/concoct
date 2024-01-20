@@ -14,7 +14,9 @@ use std::{cell::RefCell, rc::Rc};
 /// let (count, set_count) = use_state(|| 0);
 /// assert_eq!(count, 0);
 /// ```
-pub fn use_state<T: Clone + 'static>(make_value: impl FnOnce() -> T) -> (T, Rc<dyn Fn(T)>) {
+pub fn use_state<T: Clone + 'static>(
+    make_value: impl FnOnce() -> T,
+) -> (T, impl Fn(T) + Clone + 'static) {
     let cell = use_ref(|| RefCell::new(make_value()));
     let getter = cell.borrow().clone();
 
@@ -30,5 +32,5 @@ pub fn use_state<T: Clone + 'static>(make_value: impl FnOnce() -> T) -> (T, Rc<d
         }
     };
 
-    (getter, Rc::new(setter))
+    (getter, setter)
 }

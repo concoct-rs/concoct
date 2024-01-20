@@ -1,10 +1,5 @@
-use rustc_hash::FxHasher;
-
 use crate::{body::Empty, Body};
-use std::{
-    hash::{Hash, Hasher},
-    rc::Rc,
-};
+use std::rc::Rc;
 
 pub trait View: 'static {
     fn body(&self) -> impl Body;
