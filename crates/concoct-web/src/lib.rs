@@ -61,6 +61,6 @@ impl<B: View> View for WebRoot<B> {
 pub async fn run(view: impl View) {
     concoct::run(WebRoot {
         body: Rc::new(view),
-    }).await;
-   
+    })
+    .await;
 }

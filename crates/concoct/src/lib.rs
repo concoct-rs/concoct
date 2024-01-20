@@ -14,7 +14,6 @@ pub mod hook;
 pub mod view;
 pub use self::view::View;
 
-
 #[derive(Default)]
 struct ScopeInner {
     contexts: HashMap<TypeId, Rc<dyn Any>>,
@@ -293,8 +292,7 @@ pub async fn run(view: impl View) {
     let cx = Context::default();
     cx.enter();
 
-    let mut tree = view
-    .into_tree();
+    let mut tree = view.into_tree();
     tree.build();
 
     loop {
