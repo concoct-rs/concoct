@@ -1,5 +1,20 @@
-use concoct::{hook::use_state, web::html, Body, View};
+use concoct::{
+    hook::{use_on_drop, use_state},
+    web::html,
+    Body, View,
+};
 use wasm_bindgen_futures::spawn_local;
+
+struct Child;
+
+impl View for Child {
+    fn body(&self) -> impl Body {
+        use_on_drop(|| {
+            tracing::info!("DROP");
+        });
+        "test"
+    }
+}
 
 struct App;
 
@@ -13,6 +28,7 @@ impl View for App {
             format!("High five count: {}", count),
             html::button("Up high!").on_click(move |_| set_count(n + 1)),
             html::button("Down low!").on_click(move |_| set_count_clone(n - 1)),
+            if n == 0 { Some(Child) } else { None },
         )
     }
 }

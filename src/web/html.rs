@@ -1,7 +1,7 @@
 use super::{Data, WebContext};
 use crate::{
     body::Child,
-    hook::{use_context, use_provider, use_ref},
+    hook::{use_context, use_on_drop, use_provider, use_ref},
     Body, View,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
@@ -59,6 +59,13 @@ impl<C: Body> View for Html<C> {
         let mut data_ref = data.borrow_mut();
 
         let web_cx = use_context::<WebContext>().unwrap();
+        let data_clone = data.clone();
+
+        use_on_drop(move || {
+            if let Some(element) = &data_clone.borrow_mut().element {
+                element.remove();
+            }
+        });
 
         if data_ref.element.is_none() {
             let elem = web_cx.document.create_element(&self.tag).unwrap();

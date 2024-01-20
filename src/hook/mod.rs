@@ -6,3 +6,6 @@ pub use use_ref::use_ref;
 
 mod use_state;
 pub use use_state::use_state;
+
+mod use_on_drop;
+pub use use_on_drop::use_on_drop;

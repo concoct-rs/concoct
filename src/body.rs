@@ -5,6 +5,12 @@ pub trait Body: 'static {
     fn into_tree(self) -> impl Tree;
 }
 
+impl<B: Body> Body for Option<B> {
+    fn into_tree(self) -> impl Tree {
+        self.map(|me| me.into_tree())
+    }
+}
+
 pub struct Child<B> {
     cell: Rc<RefCell<Option<B>>>,
 }
@@ -53,13 +59,12 @@ impl<V: View> Body for V {
 
 macro_rules! impl_body_for_tuple {
     ($($t:tt : $idx:tt),*) => {
-        impl<$($t : Body),*> Body for ($($t),*) {
+        impl<$($t: Body),*> Body for ($($t),*) {
             fn into_tree(self) -> impl Tree {
                 ($(  self.$idx.into_tree() ),*)
 
             }
         }
-
     };
 }
 

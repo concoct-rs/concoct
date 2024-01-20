@@ -1,5 +1,5 @@
 use crate::{
-    hook::{use_context, use_provider, use_ref},
+    hook::{use_context, use_on_drop, use_provider, use_ref},
     Body, TextViewContext, View,
 };
 use std::{cell::RefCell, rc::Rc};
@@ -35,6 +35,13 @@ impl<B: View> View for WebRoot<B> {
             let data = use_ref(|| RefCell::new((s.clone(), None::<Text>)));
             let (last, node_cell) = &mut *data.borrow_mut();
 
+            let data_clone = data.clone();
+            use_on_drop(move || {
+                if let Some(node) = &data_clone.borrow_mut().1 {
+                    node.remove();
+                }
+            });
+
             if let Some(node) = node_cell {
                 if s != *last {
                     node.set_text_content(Some(&s));
@@ -59,18 +66,3 @@ struct Data {
         Rc<RefCell<Rc<RefCell<dyn FnMut(Event)>>>>,
     )>,
 }
-
-macro_rules! impl_string_view {
-    ($t:ty) => {
-        impl View for $t {
-            fn body(&self) -> impl Body {
-                let cx = use_context::<TextViewContext>().unwrap();
-                let mut view = cx.view.borrow_mut();
-                view(self.clone().into())
-            }
-        }
-    };
-}
-
-impl_string_view!(&'static str);
-impl_string_view!(String);

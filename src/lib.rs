@@ -22,6 +22,7 @@ struct ScopeInner {
     contexts: HashMap<TypeId, Rc<dyn Any>>,
     hooks: Vec<Rc<dyn Any>>,
     hook_idx: usize,
+    droppers: Vec<Box<dyn FnMut()>>,
 }
 
 #[derive(Clone, Default)]
@@ -92,6 +93,34 @@ pub trait Tree: 'static {
     fn build(&mut self);
 
     fn rebuild(&mut self, last: &mut dyn Any);
+
+    fn remove(&mut self);
+}
+
+impl<T: Tree> Tree for Option<T> {
+    fn build(&mut self) {
+        if let Some(tree) = self {
+            tree.build()
+        }
+    }
+
+    fn rebuild(&mut self, last: &mut dyn Any) {
+        if let Some(tree) = self {
+            if let Some(last_tree) = last.downcast_mut::<Self>().unwrap() {
+                tree.rebuild(last_tree)
+            } else {
+                tree.build();
+            }
+        } else if let Some(last_tree) = last.downcast_mut::<Self>().unwrap() {
+            last_tree.remove();
+        }
+    }
+
+    fn remove(&mut self) {
+        if let Some(tree) = self {
+            tree.remove()
+        }
+    }
 }
 
 macro_rules! impl_tree_for_tuple {
@@ -110,8 +139,13 @@ macro_rules! impl_tree_for_tuple {
                     )*
                 }
             }
-        }
 
+            fn remove(&mut self) {
+                $(
+                     self.$idx.remove();
+                )*
+             }
+        }
     };
 }
 
@@ -129,6 +163,8 @@ impl Tree for Empty {
     fn build(&mut self) {}
 
     fn rebuild(&mut self, _last: &mut dyn Any) {}
+
+    fn remove(&mut self) {}
 }
 
 impl<V, B, F> Tree for Node<V, B, F>
@@ -208,6 +244,20 @@ where
 
             self.scope.inner.borrow_mut().hook_idx = 0;
         }
+    }
+
+    fn remove(&mut self) {
+        let cx = Context::current();
+        let mut cx_ref = cx.inner.borrow_mut();
+        let key = self.key.unwrap();
+        cx_ref.nodes.remove(key);
+        drop(cx_ref);
+
+        for dropper in &mut self.scope.inner.borrow_mut().droppers {
+            dropper()
+        }
+
+        self.body.as_mut().unwrap().remove();
     }
 }
 
