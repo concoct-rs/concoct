@@ -1,10 +1,8 @@
 [package]
 name = "concoct-web"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-concoct = { path = "../concoct" }
+concoct = "0.17.0-alpha.2"
 web-sys = { version = "0.3.66", features = ["Document", "Event", "HtmlElement", "HtmlCollection", "Text", "Window"] }
