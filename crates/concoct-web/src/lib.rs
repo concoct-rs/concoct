@@ -1,4 +1,4 @@
-use crate::{
+use concoct::{
     hook::{use_context, use_on_drop, use_provider, use_ref},
     Body, TextViewContext, View,
 };
@@ -56,4 +56,11 @@ impl<B: View> View for WebRoot<B> {
 
         self.body.clone()
     }
+}
+
+pub async fn run(view: impl View) {
+    concoct::run(WebRoot {
+        body: Rc::new(view),
+    }).await;
+   
 }

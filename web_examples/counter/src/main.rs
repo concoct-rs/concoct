@@ -1,4 +1,5 @@
-use concoct::{hook::use_state, web::html, Body, View};
+use concoct::{hook::use_state, Body, View};
+use concoct_web::html;
 use wasm_bindgen_futures::spawn_local;
 
 struct App;
@@ -25,5 +26,5 @@ fn main() {
             .build(),
     );
 
-    spawn_local(concoct::run(App))
+    spawn_local(concoct_web::run(App))
 }

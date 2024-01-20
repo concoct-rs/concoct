@@ -14,8 +14,6 @@ pub mod hook;
 pub mod view;
 pub use self::view::View;
 
-pub mod web;
-use web::WebRoot;
 
 #[derive(Default)]
 struct ScopeInner {
@@ -295,9 +293,7 @@ pub async fn run(view: impl View) {
     let cx = Context::default();
     cx.enter();
 
-    let mut tree = WebRoot {
-        body: Rc::new(view),
-    }
+    let mut tree = view
     .into_tree();
     tree.build();
 

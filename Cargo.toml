@@ -1,27 +1,6 @@
-[package]
-name = "concoct"
-version = "0.17.0-alpha.1"
-edition = "2021"
-license = "MIT OR Apache-2.0"
-description = "A runtime for user-interfaces"
-repository = "https://github.com/concoct-rs/concoct"
-
 [workspace]
 members = [
-    ".",
+    "crates/concoct",
+    "crates/concoct-web",
     "web_examples/counter"
 ]
-
-[features]
-full = []
-
-[dependencies]
-bumpalo = "3.14.0"
-futures = "0.3.30"
-slotmap = "1.0.7"
-web-sys = { version = "0.3.66", features = ["Document", "Event", "HtmlElement", "HtmlCollection", "Text", "Window"] }
-tracing = "0.1.40"
-
-[package.metadata.docs.rs]
-features = ["full"]
-rustdoc-args = ["--cfg", "docsrs"]
