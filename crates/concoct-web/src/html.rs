@@ -47,6 +47,16 @@ pub struct Html<C> {
     child: Child<C>,
 }
 
+macro_rules! impl_attr_methods {
+    ($($fn_name: tt: $name: tt),*) => {
+        $(
+            pub fn $fn_name(self, value: impl Into<Cow<'static, str>>,) -> Self {
+                self.attr($name, value)
+            }
+        )*
+    };
+}
+
 macro_rules! impl_handler_methods {
     ($($fn_name: tt: $name: tt),*) => {
         $(
@@ -86,7 +96,16 @@ impl<C> Html<C> {
         self
     }
 
-    impl_handler_methods!(on_click: "click", on_input: "input", on_submit: "submit");
+    impl_attr_methods!(
+        class: "class",
+        kind: "type"
+    );
+
+    impl_handler_methods!(
+        on_click: "click",
+        on_input: "input",
+        on_submit: "submit"
+    );
 }
 
 impl<C: Body> View for Html<C> {
