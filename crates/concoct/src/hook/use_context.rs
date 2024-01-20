@@ -1,6 +1,7 @@
 use crate::Context;
 use std::{any::TypeId, rc::Rc};
 
+/// Hook to provide a context.
 pub fn use_provider<T: 'static>(value: T) {
     let cx = Context::current();
     let cx_ref = cx.inner.borrow();
@@ -9,6 +10,7 @@ pub fn use_provider<T: 'static>(value: T) {
     scope.contexts.insert(TypeId::of::<T>(), Rc::new(value));
 }
 
+/// Hook to get a context from its type.
 pub fn use_context<T: 'static>() -> Option<Rc<T>> {
     Context::current()
         .inner

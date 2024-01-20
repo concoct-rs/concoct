@@ -1,7 +1,10 @@
 use rustc_hash::FxHasher;
 
 use crate::{body::Empty, Body};
-use std::{rc::Rc, hash::{Hash, Hasher}};
+use std::{
+    hash::{Hash, Hasher},
+    rc::Rc,
+};
 
 pub trait View: 'static {
     fn body(&self) -> impl Body;
@@ -33,4 +36,3 @@ macro_rules! impl_string_view {
 
 impl_string_view!(&'static str);
 impl_string_view!(String);
-

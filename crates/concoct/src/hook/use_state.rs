@@ -2,6 +2,18 @@ use super::use_ref;
 use crate::Context;
 use std::{cell::RefCell, rc::Rc};
 
+/// Hook to create render state.
+///
+/// This function will only call `make_value` once, on the first render,
+/// to create the initial state.
+/// The returned function can be called to set the state.
+///
+/// ```no_run
+/// use concoct::hook::use_state;
+///
+/// let (count, set_count) = use_state(|| 0);
+/// assert_eq!(count, 0);
+/// ```
 pub fn use_state<T: Clone + 'static>(make_value: impl FnOnce() -> T) -> (T, Rc<dyn Fn(T)>) {
     let cell = use_ref(|| RefCell::new(make_value()));
     let getter = cell.borrow().clone();

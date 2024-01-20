@@ -1,6 +1,10 @@
 use crate::Context;
 use std::rc::Rc;
 
+/// Hook to store a stateless value.
+///
+/// This function will only call `make_value` once, on the first render,
+/// to create the initial value.
 pub fn use_ref<T: 'static>(make_value: impl FnOnce() -> T) -> Rc<T> {
     let cx = Context::current();
     let cx_ref = cx.inner.borrow();
