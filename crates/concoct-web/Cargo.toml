@@ -7,5 +7,6 @@ description = "Web backend for concoct"
 repository = "https://github.com/concoct-rs/concoct"
 
 [dependencies]
-concoct = "0.17.0-alpha.2"
+# concoct = "0.17.0-alpha.2"
+concoct = { path = "../concoct" }
 web-sys = { version = "0.3.66", features = ["Document", "Event", "HtmlElement", "HtmlCollection", "Text", "Window"] }
