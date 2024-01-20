@@ -2,9 +2,9 @@ use super::use_ref;
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
 
-pub fn use_effect(dependencies: impl Hash, effect: impl FnOnce()) {
+pub fn use_effect(input: impl Hash, effect: impl FnOnce()) {
     let mut hasher = FxHasher::default();
-    dependencies.hash(&mut hasher);
+    input.hash(&mut hasher);
     let hash = hasher.finish();
 
     let mut is_initial = false;

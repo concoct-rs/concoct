@@ -1,8 +1,9 @@
+use rustc_hash::FxHasher;
 use slotmap::{DefaultKey, SlotMap};
 use std::any::{Any, TypeId};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::task::{Poll, Waker};
 use std::{cell::RefCell, mem, rc::Rc};
 
@@ -404,5 +405,44 @@ impl TextViewContext {
         Self {
             view: RefCell::new(Box::new(view)),
         }
+    }
+}
+
+pub fn memo<B>(input: impl Hash, body: B) -> Memo<B> {
+    let mut hasher = FxHasher::default();
+    input.hash(&mut hasher);
+    let hash = hasher.finish();
+
+    Memo { hash, body }
+}
+
+pub struct Memo<B> {
+    hash: u64,
+    body: B,
+}
+
+impl<B: Body> Body for Memo<B> {
+    fn into_tree(self) -> impl Tree {
+        Memo {
+            hash: self.hash,
+            body: self.body.into_tree(),
+        }
+    }
+}
+
+impl<T: Tree> Tree for Memo<T> {
+    fn build(&mut self) {
+        self.body.build()
+    }
+
+    fn rebuild(&mut self, last: &mut dyn Any) {
+        let last = last.downcast_mut::<Self>().unwrap();
+        if self.hash != last.hash {
+            self.body.rebuild(&mut last.body)
+        }
+    }
+
+    fn remove(&mut self) {
+        self.body.remove()
     }
 }
