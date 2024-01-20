@@ -4,7 +4,7 @@ use crate::{Node, Tree, ViewBuilder};
 use std::hash::Hash;
 
 mod child;
-pub use child::Child;
+pub use child::{child, Child};
 
 mod empty;
 pub use empty::Empty;

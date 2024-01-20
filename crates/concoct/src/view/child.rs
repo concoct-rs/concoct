@@ -1,34 +1,44 @@
 use crate::{Tree, View};
-use std::{cell::RefCell, rc::Rc};
+use std::{any::Any, cell::RefCell, rc::Rc};
 
-/// Child view.
+/// Create a child view.
 ///
 /// This type should be cloned and returned from a parent view to wrap its content.
-///
-/// ## Panics
-/// This view can only be used once, then it will panic.
-pub struct Child<V> {
-    cell: Rc<RefCell<Option<V>>>,
-}
-
-impl<B> Child<B> {
-    pub fn new(view: B) -> Self {
-        Self {
-            cell: Rc::new(RefCell::new(Some(view))),
-        }
+pub fn child(view: impl View) -> Child<impl Tree> {
+    Child {
+        tree: Rc::new(RefCell::new(view.into_tree())),
     }
 }
 
-impl<B> Clone for Child<B> {
+pub struct Child<T> {
+    tree: Rc<RefCell<T>>,
+}
+
+impl<T> Clone for Child<T> {
     fn clone(&self) -> Self {
         Self {
-            cell: self.cell.clone(),
+            tree: self.tree.clone(),
         }
     }
 }
 
-impl<B: View> View for Child<B> {
+impl<T: Tree> View for Child<T> {
     fn into_tree(self) -> impl Tree {
-        self.cell.take().unwrap().into_tree()
+        self
+    }
+}
+
+impl<T: Tree> Tree for Child<T> {
+    unsafe fn build(&mut self) {
+        self.tree.borrow_mut().build()
+    }
+
+    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+        let last = last.downcast_mut::<Self>().unwrap();
+        self.tree.borrow_mut().rebuild(&mut *last.tree.borrow_mut())
+    }
+
+    unsafe fn remove(&mut self) {
+        self.tree.borrow_mut().remove()
     }
 }

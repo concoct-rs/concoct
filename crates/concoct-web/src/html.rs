@@ -2,7 +2,7 @@ use super::WebContext;
 use concoct::{
     hook::{use_context, use_on_drop, use_provider, use_ref},
     view::Child,
-    View, ViewBuilder,
+    Tree, View, ViewBuilder,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -13,8 +13,8 @@ use web_sys::{
 macro_rules! make_tag_fns {
     ($($name:tt),*) => {
         $(
-            pub fn $name<C: View>(child: C) -> Html<C> {
-                Html::new(stringify!($name), child)
+            pub fn $name(child: impl View) -> Html<impl Tree> {
+                html(stringify!($name), child)
             }
         )*
     };
@@ -24,11 +24,11 @@ make_tag_fns!(
     a, abbr, address, area, article, aside, audio, b, base, bdi, bdo, blockquote, body, br, button,
     canvas, caption, cite, code, col, colgroup, data, datalist, dd, del, details, dfn, dialog, div,
     dl, dt, em, embed, fieldset, figcaption, figure, footer, form, h1, h2, h3, h4, h5, h6, head,
-    header, hr, html, i, iframe, img, input, ins, kbd, label, legend, li, link, main, map, mark,
-    meta, meter, nav, noscript, object, ol, optgroup, option, output, p, param, picture, pre,
-    progress, q, rp, rt, ruby, s, samp, script, section, select, small, source, span, strong, sub,
-    summary, sup, svg, table, tbody, td, template, textarea, tfoot, th, thead, time, title, tr,
-    track, u, ul, var, video, wbr
+    header, hr, i, iframe, img, input, ins, kbd, label, legend, li, link, main, map, mark, meta,
+    meter, nav, noscript, object, ol, optgroup, option, output, p, param, picture, pre, progress,
+    q, rp, rt, ruby, s, samp, script, section, select, small, source, span, strong, sub, summary,
+    sup, svg, table, tbody, td, template, textarea, tfoot, th, thead, time, title, tr, track, u,
+    ul, var, video, wbr
 );
 
 #[derive(Default)]
@@ -67,16 +67,16 @@ macro_rules! impl_handler_methods {
     };
 }
 
-impl<C> Html<C> {
-    pub fn new(tag: impl Into<Cow<'static, str>>, child: C) -> Self {
-        Self {
-            tag: tag.into(),
-            attrs: Vec::new(),
-            handlers: Vec::new(),
-            child: Child::new(child),
-        }
+pub fn html(tag: impl Into<Cow<'static, str>>, child: impl View) -> Html<impl Tree> {
+    Html {
+        tag: tag.into(),
+        attrs: Vec::new(),
+        handlers: Vec::new(),
+        child: concoct::view::child(child),
     }
+}
 
+impl<C> Html<C> {
     pub fn attr(
         mut self,
         name: impl Into<Cow<'static, str>>,
@@ -108,7 +108,7 @@ impl<C> Html<C> {
     );
 }
 
-impl<C: View> ViewBuilder for Html<C> {
+impl<C: Tree> ViewBuilder for Html<C> {
     fn build(&self) -> impl View {
         let data = use_ref(|| RefCell::new(Data::default()));
         let mut data_ref = data.borrow_mut();
