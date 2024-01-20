@@ -1,4 +1,4 @@
-use super::{Data, WebContext};
+use super::WebContext;
 use crate::{
     body::Child,
     hook::{use_context, use_on_drop, use_provider, use_ref},
@@ -7,7 +7,7 @@ use crate::{
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
     wasm_bindgen::{closure::Closure, JsCast},
-    Event,
+    Element, Event,
 };
 
 macro_rules! make_tag_fns {
@@ -30,6 +30,15 @@ make_tag_fns!(
     summary, sup, svg, table, tbody, td, template, textarea, tfoot, th, thead, time, title, tr,
     track, u, ul, var, video, wbr
 );
+
+#[derive(Default)]
+struct Data {
+    element: Option<Element>,
+    callbacks: Vec<(
+        Closure<dyn FnMut(Event)>,
+        Rc<RefCell<Rc<RefCell<dyn FnMut(Event)>>>>,
+    )>,
+}
 
 pub struct Html<C> {
     tag: Cow<'static, str>,
@@ -103,14 +112,16 @@ impl<C: Body> View for Html<C> {
             }
 
             for (name, handler) in &self.handlers {
-                let handler = Rc::new(RefCell::new(handler.clone()));
-                let handler_clone = handler.clone();
+                let handler_cell = Rc::new(RefCell::new(handler.clone()));
+                let handler_cell_clone = handler_cell.clone();
+
                 let callback: Closure<dyn FnMut(Event)> = Closure::wrap(Box::new(move |event| {
-                    handler.borrow_mut().borrow_mut()(event)
+                    handler_cell.borrow().borrow_mut()(event)
                 }));
                 elem.add_event_listener_with_callback(&name, callback.as_ref().unchecked_ref())
                     .unwrap();
-                data_ref.callbacks.push((callback, handler_clone));
+
+                data_ref.callbacks.push((callback, handler_cell_clone));
             }
 
             data_ref.element = Some(elem);

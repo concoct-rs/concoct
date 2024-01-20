@@ -3,7 +3,7 @@ use crate::{
     Body, TextViewContext, View,
 };
 use std::{cell::RefCell, rc::Rc};
-use web_sys::{wasm_bindgen::closure::Closure, Document, Element, Event, Node, Text, Window};
+use web_sys::{Document, Node, Text, Window};
 
 pub mod html;
 
@@ -56,13 +56,4 @@ impl<B: View> View for WebRoot<B> {
 
         self.body.clone()
     }
-}
-
-#[derive(Default)]
-struct Data {
-    element: Option<Element>,
-    callbacks: Vec<(
-        Closure<dyn FnMut(Event)>,
-        Rc<RefCell<Rc<RefCell<dyn FnMut(Event)>>>>,
-    )>,
 }

@@ -1,4 +1,4 @@
-use crate::{Node, Scope, Tree, View};
+use crate::{Node, Tree, View};
 use std::{cell::RefCell, rc::Rc};
 
 pub trait Body: 'static {
@@ -51,7 +51,7 @@ impl<V: View> Body for V {
             view: self,
             body: None,
             builder: |me: &'static V| me.body().into_tree(),
-            scope: Scope::default(),
+            scope: None,
             key: None,
         }
     }
