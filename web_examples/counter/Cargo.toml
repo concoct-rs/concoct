@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-concoct = { path = "../../crates/concoct" }
-concoct-web = { path = "../../crates/concoct-web" }
+concoct = "0.17.0-alpha.2"
+concoct-web = "0.1.0-alpha.1"
 wasm-bindgen-futures = "0.4.40"
 console_error_panic_hook = "0.1.7"
 tracing-wasm = { version = "0.2.1" }
