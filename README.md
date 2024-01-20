@@ -16,7 +16,7 @@
 </div>
 
 <div align="center">
- <a href="https://github.com/concoct-rs/concoct/tree/main/examples">Examples</a>
+ <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Examples</a>
 </div>
 
 <br />
@@ -28,8 +28,8 @@ This crate provides a diffing-engine and state management system for any backend
 ```rust
 struct App;
 
-impl View for App {
-    fn body(&self) -> impl Body {
+impl ViewBuilder for App {
+    fn build(&self) -> impl View {
         let (count, set_high) = use_state(|| 0);
         let set_low = set_high.clone();
 
@@ -41,6 +41,45 @@ impl View for App {
     }
 }
 ```
+
+## Components
+```rust
+struct Readme {
+    crate_name: String,
+    version: String,
+}
+
+impl ViewBuilder for Readme {
+    fn build(&self) -> impl View {
+        let (content, set_content) = use_state(|| None);
+
+        use_effect(&self.crate_name, || {
+            let name = self.crate_name.clone();
+            let version = self.version.clone();
+            spawn_local(async move {
+                let readme = api::get_readme(&name, &version).await;
+                set_content(Some(readme));
+            })
+        });
+
+        content
+            .map(|content| OneOf2::A(content))
+            .unwrap_or_else(|| OneOf2::B("Loading..."))
+    }
+}
+
+struct App;
+
+impl ViewBuilder for App {
+    fn build(&self) -> impl View {
+        Readme {
+            crate_name: String::from("concoct"),
+            version: String::from("1.0"),
+        }
+    }
+}
+```
+
 
 ## Installation
 The easiest way to get started is using the `full` feature flag.
