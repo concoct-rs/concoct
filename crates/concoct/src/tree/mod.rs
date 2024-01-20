@@ -3,6 +3,9 @@ use std::{any::Any, collections::HashSet, hash::Hash};
 mod node;
 pub use node::Node;
 
+/// Statically-typed view tree.
+///
+/// This trait is unsafe and intended as the lower-level backend of [`View`](crate::View).
 pub trait Tree: 'static {
     unsafe fn build(&mut self);
 

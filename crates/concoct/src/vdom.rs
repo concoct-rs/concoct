@@ -4,6 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Create a new virtual dom from a view.
 pub fn virtual_dom(view: impl View) -> VirtualDom<impl Tree> {
     VirtualDom {
         cx: Runtime::default(),
@@ -11,12 +12,14 @@ pub fn virtual_dom(view: impl View) -> VirtualDom<impl Tree> {
     }
 }
 
+/// A virtual dom that renders a view on any backend.
 pub struct VirtualDom<T> {
     cx: Runtime,
     tree: T,
 }
 
 impl<T> VirtualDom<T> {
+    /// Build the initial virtual dom.
     pub fn build(&mut self)
     where
         T: Tree,
@@ -26,6 +29,7 @@ impl<T> VirtualDom<T> {
         unsafe { self.tree.build() }
     }
 
+    /// Rebuild the virtual dom.
     pub async fn rebuild(&mut self) {
         futures::future::poll_fn(|cx| {
             self.try_rebuild_with_limit_inner(None, Some(cx.waker().clone()));

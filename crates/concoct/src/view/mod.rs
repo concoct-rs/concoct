@@ -1,3 +1,5 @@
+//! Viewable components of a user-interface.
+
 use crate::{Node, Tree, ViewBuilder};
 use std::hash::Hash;
 
@@ -13,6 +15,13 @@ pub use memo::{memo, Memo};
 mod one_of;
 pub use one_of::*;
 
+/// Viewable component of a user-interface.
+///
+/// This trait creates a statically-typed tree of views
+/// for efficient state updates.
+///
+/// Most implementations should come from [`ViewBuilder`], which this trait
+/// is implemented for.
 pub trait View: 'static {
     fn into_tree(self) -> impl Tree;
 }

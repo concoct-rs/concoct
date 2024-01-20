@@ -3,6 +3,7 @@ use std::any::Any;
 
 macro_rules! one_of {
     ($name:tt, $($t:tt),*) => {
+        /// Container view for children of multiple types.
         pub enum $name<$($t),*> {
             $($t($t)),*
         }

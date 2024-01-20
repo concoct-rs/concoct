@@ -1,6 +1,9 @@
 use crate::{view::Empty, View};
 use std::rc::Rc;
 
+/// Builder for a [`View`].
+///
+/// [`View`] is implemented for anything that implements this trait.
 pub trait ViewBuilder: 'static {
     fn build(&self) -> impl View;
 }

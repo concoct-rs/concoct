@@ -1,6 +1,7 @@
 use crate::{Tree, View};
 use std::any::Any;
 
+/// Empty view.
 pub struct Empty;
 
 impl View for Empty {

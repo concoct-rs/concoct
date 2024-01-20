@@ -1,3 +1,5 @@
+//! Hooks to access render context.
+
 mod use_context;
 pub use use_context::{use_context, use_provider};
 

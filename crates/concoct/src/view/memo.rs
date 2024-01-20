@@ -5,20 +5,22 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-pub fn memo<B>(input: impl Hash, body: B) -> Memo<B> {
+/// Memoize a view, only rendering it when some input has changed.
+pub fn memo<V: View>(input: impl Hash, view: V) -> Memo<V> {
     let mut hasher = FxHasher::default();
     input.hash(&mut hasher);
     let hash = hasher.finish();
 
-    Memo { hash, body }
+    Memo { hash, body: view }
 }
 
-pub struct Memo<B> {
+/// View for the [`memo`] function.
+pub struct Memo<V> {
     hash: u64,
-    body: B,
+    body: V,
 }
 
-impl<B: View> View for Memo<B> {
+impl<V: View> View for Memo<V> {
     fn into_tree(self) -> impl Tree {
         Memo {
             hash: self.hash,

@@ -1,14 +1,20 @@
 use crate::{Tree, View};
 use std::{cell::RefCell, rc::Rc};
 
-pub struct Child<B> {
-    cell: Rc<RefCell<Option<B>>>,
+/// Child view.
+///
+/// This type should be cloned and returned from a parent view to wrap its content.
+///
+/// ## Panics
+/// This view can only be used once, then it will panic.
+pub struct Child<V> {
+    cell: Rc<RefCell<Option<V>>>,
 }
 
 impl<B> Child<B> {
-    pub fn new(body: B) -> Self {
+    pub fn new(view: B) -> Self {
         Self {
-            cell: Rc::new(RefCell::new(Some(body))),
+            cell: Rc::new(RefCell::new(Some(view))),
         }
     }
 }

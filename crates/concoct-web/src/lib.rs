@@ -13,11 +13,11 @@ struct WebContext {
     parent: Node,
 }
 
-pub struct WebRoot<B> {
-    pub body: Rc<B>,
+struct WebRoot<VB> {
+    pub body: Rc<VB>,
 }
 
-impl<B: ViewBuilder> ViewBuilder for WebRoot<B> {
+impl<VB: ViewBuilder> ViewBuilder for WebRoot<VB> {
     fn build(&self) -> impl View {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
