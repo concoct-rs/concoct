@@ -1,6 +1,5 @@
 use super::use_ref;
 use rustc_hash::FxHasher;
-
 use std::hash::{Hash, Hasher};
 
 pub fn use_effect(dependencies: impl Hash, effect: impl FnOnce()) {
