@@ -2,7 +2,7 @@ use super::WebContext;
 use concoct::{
     hook::{use_context, use_on_drop, use_provider, use_ref},
     view::Child,
-    Tree, View, ViewBuilder,
+    View, ViewBuilder,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -13,8 +13,8 @@ use web_sys::{
 macro_rules! make_tag_fns {
     ($($name:tt),*) => {
         $(
-            pub fn $name(child: impl View) -> Html<impl Tree> {
-                html(stringify!($name), child)
+            pub fn $name<C: View>(content: C) -> Html<C> {
+                Html::new(stringify!($name), content)
             }
         )*
     };
@@ -67,16 +67,19 @@ macro_rules! impl_handler_methods {
     };
 }
 
-pub fn html(tag: impl Into<Cow<'static, str>>, child: impl View) -> Html<impl Tree> {
-    Html {
-        tag: tag.into(),
-        attrs: Vec::new(),
-        handlers: Vec::new(),
-        child: concoct::view::child(child),
-    }
-}
-
 impl<C> Html<C> {
+    pub fn new(tag: impl Into<Cow<'static, str>>, child: C) -> Html<C>
+    where
+        C: View,
+    {
+        Html {
+            tag: tag.into(),
+            attrs: Vec::new(),
+            handlers: Vec::new(),
+            child: Child::new(child),
+        }
+    }
+
     pub fn attr(
         mut self,
         name: impl Into<Cow<'static, str>>,
@@ -108,7 +111,7 @@ impl<C> Html<C> {
     );
 }
 
-impl<C: Tree> ViewBuilder for Html<C> {
+impl<C: View> ViewBuilder for Html<C> {
     fn build(&self) -> impl View {
         let data = use_ref(|| RefCell::new(Data::default()));
         let mut data_ref = data.borrow_mut();
