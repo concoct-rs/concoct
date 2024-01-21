@@ -24,6 +24,10 @@
 //!     }
 //! }
 //! ```
+//! 
+//! ## Feature flags
+//! - `full`: Enables all of the features below.
+//! - `tracing`: Enables logging with the `tracing` crate.
 //!
 
 use std::borrow::Cow;
