@@ -54,7 +54,7 @@ impl<V: View> Tree for ViewCell<V> {
         self.tree.borrow_mut().as_tree().build()
     }
 
-    unsafe fn rebuild(&mut self, last: &mut dyn Any,is_changed: bool) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any, is_changed: bool) {
         let last = last.downcast_mut::<Self>().unwrap();
         self.tree
             .borrow_mut()

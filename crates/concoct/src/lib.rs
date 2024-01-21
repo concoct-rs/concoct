@@ -68,6 +68,10 @@ pub struct TextViewContext {
 }
 
 impl TextViewContext {
+    /// Create a text view context from a view function.
+    ///
+    /// Text-based views, such as `&str` or `String` will call
+    /// this view function on when rendered.
     pub fn new(view: impl FnMut(Cow<'static, str>) + 'static) -> Self {
         Self {
             view: RefCell::new(Box::new(view)),

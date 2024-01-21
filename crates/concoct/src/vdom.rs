@@ -11,6 +11,7 @@ pub struct VirtualDom<T> {
 }
 
 impl<T> VirtualDom<T> {
+    /// Create a new virtual dom from a tree.
     pub fn new(tree: T) -> Self {
         VirtualDom {
             cx: Runtime::default(),
@@ -25,6 +26,7 @@ impl<T> VirtualDom<T> {
     {
         self.cx.enter();
 
+        // Safety: Context is dropped when the tree is
         unsafe { self.tree.build() }
     }
 
@@ -62,13 +64,14 @@ impl<T> VirtualDom<T> {
         inner.waker = waker;
 
         if let Some(key) = inner.pending.pop_front() {
-            let raw = inner.nodes[key];
-            drop(inner);
+            if let Some(raw) = inner.nodes.get(key).copied() {
+                drop(inner);
 
-            self.cx.enter();
+                self.cx.enter();
 
-            let pending = unsafe { &mut *raw };
-            unsafe { pending.build() };
+                // Safety: `raw` is guaranteed to be an `&mut dyn Tree`.
+                unsafe { (&mut *raw).build() };
+            }
         }
     }
 }

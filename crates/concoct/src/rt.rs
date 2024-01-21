@@ -1,9 +1,10 @@
 use crate::Tree;
+use rustc_hash::FxHashMap;
 use slotmap::{DefaultKey, SlotMap};
 use std::{
     any::{Any, TypeId},
     cell::RefCell,
-    collections::{HashMap, VecDeque},
+    collections::VecDeque,
     rc::Rc,
     task::Waker,
     time::Instant,
@@ -11,7 +12,7 @@ use std::{
 
 #[derive(Default)]
 pub(crate) struct ScopeInner {
-    pub(crate) contexts: HashMap<TypeId, Rc<dyn Any>>,
+    pub(crate) contexts: FxHashMap<TypeId, Rc<dyn Any>>,
     pub(crate) hooks: Vec<Rc<dyn Any>>,
     pub(crate) hook_idx: usize,
     pub(crate) droppers: Vec<Box<dyn FnMut()>>,
@@ -29,7 +30,7 @@ pub(crate) struct RuntimeInner {
     pub(crate) scope: Option<Scope>,
     pub(crate) nodes: SlotMap<DefaultKey, *mut dyn Tree>,
     pub(crate) waker: Option<Waker>,
-    pub(crate) contexts: HashMap<TypeId, Rc<dyn Any>>,
+    pub(crate) contexts: FxHashMap<TypeId, Rc<dyn Any>>,
     pub(crate) limit: Option<Instant>,
 }
 
