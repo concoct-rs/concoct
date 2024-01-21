@@ -1,7 +1,7 @@
 use super::WebContext;
 use concoct::{
     hook::{use_context, use_on_drop, use_provider, use_ref},
-    view::Child,
+    view::ViewCell,
     View, ViewBuilder,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
@@ -44,7 +44,7 @@ pub struct Html<C> {
     tag: Cow<'static, str>,
     attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     handlers: Vec<(Cow<'static, str>, Rc<RefCell<dyn FnMut(Event)>>)>,
-    child: Child<C>,
+    content: ViewCell<C>,
 }
 
 macro_rules! impl_attr_methods {
@@ -68,7 +68,7 @@ macro_rules! impl_handler_methods {
 }
 
 impl<C> Html<C> {
-    pub fn new(tag: impl Into<Cow<'static, str>>, child: C) -> Html<C>
+    pub fn new(tag: impl Into<Cow<'static, str>>, content: C) -> Html<C>
     where
         C: View,
     {
@@ -76,7 +76,7 @@ impl<C> Html<C> {
             tag: tag.into(),
             attrs: Vec::new(),
             handlers: Vec::new(),
-            child: Child::new(child),
+            content: ViewCell::new(content),
         }
     }
 
@@ -161,6 +161,6 @@ impl<C: View> ViewBuilder for Html<C> {
             parent: data_ref.element.as_ref().unwrap().clone().into(),
         });
 
-        self.child.clone()
+        self.content.clone()
     }
 }

@@ -17,15 +17,15 @@ impl<T: Tree> AnyTree for T {
     }
 }
 
-/// Child view.
+/// Cell that contains a subtree.
 ///
 /// This type should be cloned and returned from a parent view to wrap its content.
-pub struct Child<V> {
+pub struct ViewCell<V> {
     tree: Rc<RefCell<dyn AnyTree>>,
     _marker: PhantomData<V>,
 }
 
-impl<V: View> Child<V> {
+impl<V: View> ViewCell<V> {
     pub fn new(view: V) -> Self {
         Self {
             tree: Rc::new(RefCell::new(view.into_tree())),
@@ -34,7 +34,7 @@ impl<V: View> Child<V> {
     }
 }
 
-impl<T> Clone for Child<T> {
+impl<T> Clone for ViewCell<T> {
     fn clone(&self) -> Self {
         Self {
             tree: self.tree.clone(),
@@ -43,13 +43,13 @@ impl<T> Clone for Child<T> {
     }
 }
 
-impl<V: View> View for Child<V> {
+impl<V: View> View for ViewCell<V> {
     fn into_tree(self) -> impl Tree {
         self
     }
 }
 
-impl<V: View> Tree for Child<V> {
+impl<V: View> Tree for ViewCell<V> {
     unsafe fn build(&mut self) {
         self.tree.borrow_mut().as_tree().build()
     }

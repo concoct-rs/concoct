@@ -3,8 +3,8 @@
 use crate::{Node, Tree, ViewBuilder};
 use std::hash::Hash;
 
-mod child;
-pub use child::Child;
+mod cell;
+pub use cell::ViewCell;
 
 mod empty;
 pub use empty::Empty;
