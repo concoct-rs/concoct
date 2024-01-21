@@ -24,7 +24,7 @@
 Concoct is a framework for user-interfaces in Rust.
 
 This crate provides a diffing-engine and state management system for any backend.
-Concoct uses static typing to describe your UI at compile-time, which creates an efficient
+Concoct uses static typing to describe your UI at compile-time to create an efficient
 tree without allocations. Updates to state re-render your application top-down,
 starting at the state's parent component.
 
