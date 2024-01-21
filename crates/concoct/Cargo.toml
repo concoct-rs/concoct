@@ -7,13 +7,13 @@ description = "Cross-platform UI framework"
 repository = "https://github.com/concoct-rs/concoct"
 
 [features]
-full = []
+full = ["tracing"]
 
 [dependencies]
 futures = "0.3.30"
 rustc-hash = "1.1.0"
 slotmap = "1.0.7"
-tracing = "0.1.40"
+tracing = { version ="0.1.40", optional = true }
 
 [package.metadata.docs.rs]
 features = ["full"]

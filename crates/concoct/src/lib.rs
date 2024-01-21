@@ -31,6 +31,9 @@ use std::cell::RefCell;
 
 pub mod hook;
 
+#[macro_use]
+pub(crate) mod macros;
+
 mod rt;
 pub(crate) use self::rt::{Runtime, Scope};
 

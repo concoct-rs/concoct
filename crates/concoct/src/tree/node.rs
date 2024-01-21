@@ -1,6 +1,9 @@
 use crate::{Runtime, Scope, Tree, ViewBuilder};
 use slotmap::DefaultKey;
-use std::{any::Any, mem};
+use std::{
+    any::{self, Any},
+    mem,
+};
 
 pub struct Node<V, B, F> {
     pub(crate) view: V,
@@ -33,6 +36,8 @@ where
             cx_ref.scope = Some(self.scope.clone().unwrap());
             drop(cx_ref);
 
+            trace!("rebuilding from {}", any::type_name::<V>());
+
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
 
@@ -59,6 +64,8 @@ where
             cx_ref.node = Some(key);
             cx_ref.scope = Some(self.scope.clone().unwrap());
             drop(cx_ref);
+
+            trace!("building {}", any::type_name::<V>());
 
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
@@ -100,6 +107,8 @@ where
             cx_ref.scope = Some(self.scope.clone().unwrap());
             drop(cx_ref);
 
+            trace!("rebuilding {}", any::type_name::<V>());
+
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
 
@@ -120,11 +129,15 @@ where
             let mut cx_ref = cx.inner.borrow_mut();
             cx_ref.contexts = parent_contexts;
         } else {
+            trace!("skipping {}", any::type_name::<V>());
+
             self.body = last.body.take();
         }
     }
 
     unsafe fn remove(&mut self) {
+        trace!("removing {}", any::type_name::<V>());
+
         let cx = Runtime::current();
         let mut cx_ref = cx.inner.borrow_mut();
         let key = self.key.unwrap();
