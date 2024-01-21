@@ -1,10 +1,10 @@
 [package]
-name = "counter-example"
+name = "concoct-counter-example"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# concoct = "0.17.0-alpha.2"
+# concoct = "0.18.0"
 concoct = { path = "../../crates/concoct" }
 # concoct-web = "0.1.0-alpha.1"
 concoct-web = { path = "../../crates/concoct-web" }

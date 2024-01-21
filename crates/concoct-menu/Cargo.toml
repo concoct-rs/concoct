@@ -1,0 +1,9 @@
+[package]
+name = "concoct-menu"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+concoct = { path = "../concoct" }
+muda = "0.11.4"
+winit = "0.29"

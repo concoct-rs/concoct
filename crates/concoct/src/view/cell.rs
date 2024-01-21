@@ -19,7 +19,7 @@ impl<T: Tree> AnyTree for T {
 
 /// Cell that contains a subtree.
 ///
-/// This type should be cloned and returned from a parent view to wrap its content.
+/// This type can be cloned and returned from a parent view to wrap its content.
 pub struct ViewCell<V> {
     tree: Rc<RefCell<dyn AnyTree>>,
     _marker: PhantomData<V>,

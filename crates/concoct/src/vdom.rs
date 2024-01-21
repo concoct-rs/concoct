@@ -1,5 +1,5 @@
-use crate::{macros::trace, Runtime, Tree};
 use slotmap::Key;
+use crate::{macros::trace, Runtime, Tree};
 use std::{
     task::{Poll, Waker},
     time::{Duration, Instant},
