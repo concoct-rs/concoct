@@ -44,7 +44,7 @@ where
             };
 
             let mut last_body = mem::replace(&mut self.body, Some(body)).unwrap();
-            self.body.as_mut().unwrap().rebuild(&mut last_body);
+            self.body.as_mut().unwrap().rebuild(&mut last_body, true);
 
             let mut cx_ref = cx.inner.borrow_mut();
             cx_ref.contexts = parent_contexts;
@@ -78,7 +78,7 @@ where
         }
     }
 
-    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any, is_changed: bool) {
         let last = (*last).downcast_mut::<Self>().unwrap();
         let cx = Runtime::current();
         let mut cx_ref = cx.inner.borrow_mut();
@@ -87,36 +87,41 @@ where
         self.key = Some(key);
         self.scope = last.scope.clone();
 
-        let mut scope = self.scope.as_ref().unwrap().inner.borrow_mut();
-        for (name, value) in cx_ref.contexts.iter() {
-            if !scope.contexts.contains_key(name) {
-                scope.contexts.insert(*name, value.clone());
-            }
-        }
-        drop(scope);
-
-        cx_ref.node = Some(key);
-        cx_ref.scope = Some(self.scope.clone().unwrap());
-        drop(cx_ref);
-
-        let view = unsafe { mem::transmute(&self.view) };
-        let body = (self.builder)(view);
-
-        let parent_contexts = {
-            let mut cx_ref = cx.inner.borrow_mut();
+        if is_changed {
             let mut scope = self.scope.as_ref().unwrap().inner.borrow_mut();
-            scope.hook_idx = 0;
-            mem::replace(&mut cx_ref.contexts, scope.contexts.clone())
-        };
+            for (name, value) in cx_ref.contexts.iter() {
+                if !scope.contexts.contains_key(name) {
+                    scope.contexts.insert(*name, value.clone());
+                }
+            }
+            drop(scope);
 
-        self.body = Some(body);
-        self.body
-            .as_mut()
-            .unwrap()
-            .rebuild(last.body.as_mut().unwrap());
+            cx_ref.node = Some(key);
+            cx_ref.scope = Some(self.scope.clone().unwrap());
+            drop(cx_ref);
 
-        let mut cx_ref = cx.inner.borrow_mut();
-        cx_ref.contexts = parent_contexts;
+            let view = unsafe { mem::transmute(&self.view) };
+            let body = (self.builder)(view);
+
+            let parent_contexts = {
+                let mut cx_ref = cx.inner.borrow_mut();
+                let mut scope = self.scope.as_ref().unwrap().inner.borrow_mut();
+                scope.hook_idx = 0;
+                mem::replace(&mut cx_ref.contexts, scope.contexts.clone())
+            };
+
+            self.body = Some(body);
+
+            self.body
+                .as_mut()
+                .unwrap()
+                .rebuild(last.body.as_mut().unwrap(), is_changed);
+
+            let mut cx_ref = cx.inner.borrow_mut();
+            cx_ref.contexts = parent_contexts;
+        } else {
+            self.body = last.body.take();
+        }
     }
 
     unsafe fn remove(&mut self) {

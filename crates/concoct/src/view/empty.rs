@@ -13,7 +13,7 @@ impl View for Empty {
 impl Tree for Empty {
     unsafe fn build(&mut self) {}
 
-    unsafe fn rebuild(&mut self, _last: &mut dyn Any) {}
+    unsafe fn rebuild(&mut self, _last: &mut dyn Any, _is_changed: bool) {}
 
     unsafe fn remove(&mut self) {}
 }

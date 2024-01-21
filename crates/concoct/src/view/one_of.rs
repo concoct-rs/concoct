@@ -27,12 +27,12 @@ macro_rules! one_of {
                 }
             }
 
-            unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+            unsafe fn rebuild(&mut self, last: &mut dyn Any, is_changed: bool) {
                 let last =  last.downcast_mut::<Self>().unwrap();
                 match (self, last) {
                     $(
                         ($name::$t(tree), $name::$t(last_tree)) => {
-                            tree.rebuild(last_tree)
+                            tree.rebuild(last_tree, is_changed)
                         }
                     ),*
                     (me, last) => {

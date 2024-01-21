@@ -34,11 +34,10 @@ impl<T: Tree> Tree for Memo<T> {
         self.body.build()
     }
 
-    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any, is_changed: bool) {
         let last = last.downcast_mut::<Self>().unwrap();
-        if self.hash != last.hash {
-            self.body.rebuild(&mut last.body)
-        }
+        self.body
+            .rebuild(&mut last.body, is_changed && self.hash != last.hash)
     }
 
     unsafe fn remove(&mut self) {

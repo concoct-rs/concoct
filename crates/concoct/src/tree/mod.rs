@@ -9,7 +9,7 @@ pub use node::Node;
 pub trait Tree: 'static {
     unsafe fn build(&mut self);
 
-    unsafe fn rebuild(&mut self, last: &mut dyn Any);
+    unsafe fn rebuild(&mut self, last: &mut dyn Any, is_changed: bool);
 
     unsafe fn remove(&mut self);
 }
@@ -21,10 +21,10 @@ impl<T: Tree> Tree for Option<T> {
         }
     }
 
-    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any, _is_changed: bool) {
         if let Some(tree) = self {
             if let Some(last_tree) = last.downcast_mut::<Self>().unwrap() {
-                tree.rebuild(last_tree)
+                tree.rebuild(last_tree, true)
             } else {
                 tree.build();
             }
@@ -51,13 +51,13 @@ where
         }
     }
 
-    unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+    unsafe fn rebuild(&mut self, last: &mut dyn Any, _is_changed: bool) {
         let mut visited = HashSet::new();
         let last = last.downcast_mut::<Self>().unwrap();
 
         for (key, body) in self.iter_mut() {
             if let Some((_, last_body)) = last.iter_mut().find(|(last_key, _)| last_key == key) {
-                body.rebuild(last_body);
+                body.rebuild(last_body, true);
                 visited.insert(key);
             } else {
                 body.build();
@@ -87,10 +87,10 @@ macro_rules! impl_tree_for_tuple {
                )*
             }
 
-            unsafe fn rebuild(&mut self, last: &mut dyn Any) {
+            unsafe fn rebuild(&mut self, last: &mut dyn Any, is_changed: bool) {
                 if let Some(last) = last.downcast_mut::<Self>() {
                     $(
-                        self.$idx.rebuild(&mut last.$idx);
+                        self.$idx.rebuild(&mut last.$idx, is_changed);
                     )*
                 }
             }
