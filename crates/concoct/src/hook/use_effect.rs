@@ -1,3 +1,5 @@
+use crate::macros::trace;
+
 use super::use_ref;
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
@@ -15,6 +17,8 @@ pub fn use_effect(input: impl Hash, effect: impl FnOnce()) {
     });
 
     if is_initial || hash != *last_hash {
+        trace!("running effect");
+
         effect()
     }
 }

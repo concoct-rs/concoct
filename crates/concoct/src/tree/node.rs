@@ -1,5 +1,5 @@
-use crate::{Runtime, Scope, Tree, ViewBuilder};
-use slotmap::DefaultKey;
+use crate::{macros::trace, Runtime, Scope, Tree, ViewBuilder};
+use slotmap::{DefaultKey, Key};
 use std::{
     any::{self, Any},
     mem,
@@ -11,6 +11,18 @@ pub struct Node<V, B, F> {
     pub(crate) builder: F,
     pub(crate) scope: Option<Scope>,
     pub(crate) key: Option<DefaultKey>,
+}
+
+impl<V, B, F> Node<V, B, F> {
+    fn name(&self) -> &'static str {
+        let name = any::type_name::<V>();
+        name.split('<')
+            .next()
+            .unwrap_or(name)
+            .split("::")
+            .last()
+            .unwrap_or(name)
+    }
 }
 
 impl<V, B, F> Tree for Node<V, B, F>
@@ -36,7 +48,7 @@ where
             cx_ref.scope = Some(self.scope.clone().unwrap());
             drop(cx_ref);
 
-            trace!("rebuilding from {}", any::type_name::<V>());
+            trace!("rebuilding from {:?}: {}", key.data(), self.name());
 
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
@@ -65,7 +77,7 @@ where
             cx_ref.scope = Some(self.scope.clone().unwrap());
             drop(cx_ref);
 
-            trace!("building {}", any::type_name::<V>());
+            trace!("building {:?}: {}", key.data(), self.name());
 
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
@@ -107,7 +119,7 @@ where
             cx_ref.scope = Some(self.scope.clone().unwrap());
             drop(cx_ref);
 
-            trace!("rebuilding {}", any::type_name::<V>());
+            trace!("rebuilding {:?}: {}", key.data(), self.name());
 
             let view = unsafe { mem::transmute(&self.view) };
             let body = (self.builder)(view);
@@ -129,20 +141,20 @@ where
             let mut cx_ref = cx.inner.borrow_mut();
             cx_ref.contexts = parent_contexts;
         } else {
-            trace!("skipping {}", any::type_name::<V>());
+            trace!("skipping {:?}: {}", self.key.unwrap().data(), self.name());
 
             self.body = last.body.take();
         }
     }
 
     unsafe fn remove(&mut self) {
-        trace!("removing {}", any::type_name::<V>());
-
         let cx = Runtime::current();
         let mut cx_ref = cx.inner.borrow_mut();
         let key = self.key.unwrap();
         cx_ref.nodes.remove(key);
         drop(cx_ref);
+
+        trace!("removing {:?}: {}", key.data(), self.name());
 
         for dropper in &mut self.scope.as_ref().unwrap().inner.borrow_mut().droppers {
             dropper()

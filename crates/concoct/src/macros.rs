@@ -6,3 +6,5 @@ macro_rules! trace {
         tracing::trace!($($tt)*)
     }
 }
+
+pub(crate) use trace;

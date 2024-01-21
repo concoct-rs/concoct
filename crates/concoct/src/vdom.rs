@@ -1,4 +1,5 @@
-use crate::{Runtime, Tree};
+use crate::{macros::trace, Runtime, Tree};
+use slotmap::Key;
 use std::{
     task::{Poll, Waker},
     time::{Duration, Instant},
@@ -64,6 +65,8 @@ impl<T> VirtualDom<T> {
         inner.waker = waker;
 
         if let Some(key) = inner.pending.pop_front() {
+            trace!("Received rebuild event for {:?}", key.data());
+
             if let Some(raw) = inner.nodes.get(key).copied() {
                 drop(inner);
 
