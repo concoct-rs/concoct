@@ -5,6 +5,8 @@ use std::{
     rc::Rc,
 };
 
+pub mod hook;
+
 pub enum ActionResult<A> {
     Action(A),
     Rebuild,
@@ -109,7 +111,7 @@ impl<V> App<V> {
         let cx = Scope {
             key: root_key,
             node,
-            update: Rc::new(|f| {}),
+            update: Rc::new(|_f| {}),
             is_empty: Cell::new(false),
             nodes: self.nodes.clone(),
         };
@@ -141,7 +143,7 @@ fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
     let child_cx = Scope {
         key,
         node,
-        update: Rc::new(|f| {}),
+        update: Rc::new(|_f| {}),
         is_empty: Cell::new(false),
         nodes: cx.nodes.clone(),
     };

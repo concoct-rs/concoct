@@ -11,7 +11,7 @@ impl View<Counter> for Child {
 struct Counter;
 
 impl View<Self> for Counter {
-    fn body(&mut self, cx: &Scope<Self>) -> impl View<Self> {
+    fn body(&mut self, _cx: &Scope<Self>) -> impl View<Self> {
         dbg!("view");
         (Child, Child)
     }
