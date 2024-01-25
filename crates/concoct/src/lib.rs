@@ -1,6 +1,8 @@
+use hook::use_context;
+use rustc_hash::FxHashMap;
 use slotmap::{DefaultKey, SlotMap};
 use std::{
-    any::Any,
+    any::{Any, TypeId},
     cell::{Cell, RefCell, UnsafeCell},
     rc::Rc,
 };
@@ -18,6 +20,7 @@ pub struct Scope<T, A = ()> {
     update: Rc<dyn Fn(Rc<dyn Fn(T) -> Option<ActionResult<A>>>)>,
     is_empty: Cell<bool>,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
+    contexts: RefCell<FxHashMap<TypeId, Rc<dyn Any>>>,
 }
 
 pub trait View<T, A = ()> {
@@ -27,6 +30,12 @@ pub trait View<T, A = ()> {
 impl<T, A> View<T, A> for () {
     fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
         cx.is_empty.set(true);
+    }
+}
+
+impl<T, A, V: View<T, A>> View<T, A> for &mut V {
+    fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
+        (&mut **self).body(cx)
     }
 }
 
@@ -47,6 +56,7 @@ macro_rules! impl_view_for_tuple {
                             update: cx.update.clone(),
                             is_empty: Cell::new(false),
                             nodes: cx.nodes.clone(),
+                            contexts: cx.contexts.clone()
                         };
 
                         let mut body = self.$idx.body(&cx);
@@ -83,14 +93,14 @@ struct Node {
     inner: Rc<RefCell<NodeInner>>,
 }
 
-pub struct App<V> {
+pub struct VirtualDom<V> {
     content: V,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
     pending_updates: Vec<Box<dyn FnMut()>>,
     root_key: Option<DefaultKey>,
 }
 
-impl<V> App<V> {
+impl<V> VirtualDom<V> {
     pub fn new(content: V) -> Self {
         Self {
             content,
@@ -114,6 +124,7 @@ impl<V> App<V> {
             update: Rc::new(|_f| {}),
             is_empty: Cell::new(false),
             nodes: self.nodes.clone(),
+            contexts: Default::default(),
         };
         build_inner(&mut self.content, &cx)
     }
@@ -130,6 +141,7 @@ impl<V> App<V> {
             update: Rc::new(|_| {}),
             is_empty: Cell::new(false),
             nodes: self.nodes.clone(),
+            contexts: Default::default(),
         };
         rebuild_inner(&mut self.content, &cx)
     }
@@ -146,6 +158,7 @@ fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
         update: Rc::new(|_f| {}),
         is_empty: Cell::new(false),
         nodes: cx.nodes.clone(),
+        contexts: cx.contexts.clone(),
     };
 
     let mut body = view.body(&child_cx);
@@ -163,6 +176,7 @@ fn rebuild_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
             update: cx.update.clone(),
             is_empty: Cell::new(false),
             nodes: cx.nodes.clone(),
+            contexts: cx.contexts.clone(),
         };
 
         let mut body = view.body(&child_cx);
@@ -170,4 +184,48 @@ fn rebuild_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
             rebuild_inner(&mut body, &child_cx);
         }
     }
+}
+
+/// Provider for a platform-specific text view.
+///
+/// If you're writing a custom backend, you can use this to override
+/// the default implementation of `View` for string types (like `&str` and `String`).
+///
+/// To expose it to child views, use [`use_provider`](`crate::hook::use_provider`).
+pub struct TextViewContext<T, A> {
+    view: RefCell<Box<dyn FnMut(&Scope<T, A>, &str)>>,
+}
+
+impl<T, A> TextViewContext<T, A> {
+    /// Create a text view context from a view function.
+    ///
+    /// Text-based views, such as `&str` or `String` will call
+    /// this view function on when rendered.
+    pub fn new(view: impl FnMut(&Scope<T, A>, &str) + 'static) -> Self {
+        Self {
+            view: RefCell::new(Box::new(view)),
+        }
+    }
+}
+
+impl<T: 'static, A: 'static> View<T, A> for &str {
+    fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
+        let text_cx: Rc<TextViewContext<T, A>> = use_context(cx);
+        let mut view = text_cx.view.borrow_mut();
+        view(cx, self)
+    }
+}
+
+impl<T: 'static, A: 'static> View<T, A> for String {
+    fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
+        let text_cx: Rc<TextViewContext<T, A>> = use_context(cx);
+        let mut view = text_cx.view.borrow_mut();
+        view(cx, self)
+    }
+}
+
+pub fn run<V: View<V>>(content: V) {
+    let mut vdom = VirtualDom::new(content);
+    vdom.build();
+    vdom.rebuild();
 }

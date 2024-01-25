@@ -1,4 +1,4 @@
-use concoct::{App, Scope, View};
+use concoct::{Scope, View, VirtualDom};
 
 struct Child;
 
@@ -18,7 +18,7 @@ impl View<Self> for Counter {
 }
 
 fn main() {
-    let mut app = App::new(Counter);
+    let mut app = VirtualDom::new(Counter);
     app.build();
     app.rebuild();
 }

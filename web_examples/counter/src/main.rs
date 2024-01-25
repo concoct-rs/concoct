@@ -1,19 +1,11 @@
-use concoct::{hook::use_state, View, ViewBuilder};
+use concoct::View;
 use concoct_web::html;
-use wasm_bindgen_futures::spawn_local;
 
 struct App;
 
-impl ViewBuilder for App {
-    fn build(&self) -> impl View {
-        let (count, set_high) = use_state(|| 0);
-        let set_low = set_high.clone();
-
-        (
-            format!("High five count: {}", count),
-            html::button("Up high!").on_click(move |_| set_high(count + 1)),
-            html::button("Down low!").on_click(move |_| set_low(count - 1)),
-        )
+impl View<i32> for App {
+    fn body(&mut self, _cx: &concoct::Scope<i32, ()>) -> impl View<i32, ()> {
+        html::button("Up high!")
     }
 }
 
@@ -24,6 +16,4 @@ fn main() {
             .set_max_level(tracing::Level::TRACE)
             .build(),
     );
-
-    spawn_local(concoct_web::run(App))
 }

@@ -10,3 +10,4 @@ repository = "https://github.com/concoct-rs/concoct"
 # concoct = "0.17.0-alpha.2"
 concoct = { path = "../concoct" }
 web-sys = { version = "0.3.66", features = ["Document", "Event", "HtmlElement", "HtmlCollection", "Text", "Window"] }
+rustc-hash = "1.1.0"
