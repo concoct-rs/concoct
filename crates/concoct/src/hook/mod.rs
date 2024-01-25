@@ -1,16 +1,8 @@
-//! Hooks to access render context.
-
 mod use_context;
-pub use use_context::{use_context, use_provider};
+pub use self::use_context::use_context;
 
-mod use_effect;
-pub use self::use_effect::use_effect;
+mod use_provider;
+pub use self::use_provider::use_provider;
 
 mod use_ref;
-pub use use_ref::use_ref;
-
-mod use_state;
-pub use use_state::use_state;
-
-mod use_on_drop;
-pub use use_on_drop::use_on_drop;
+pub use self::use_ref::use_ref;

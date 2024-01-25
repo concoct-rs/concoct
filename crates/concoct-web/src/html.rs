@@ -1,19 +1,19 @@
-use super::WebContext;
 use concoct::{
-    hook::{use_context, use_on_drop, use_provider, use_ref},
-    view::ViewCell,
-    View, ViewBuilder,
+    hook::{use_context, use_provider, use_ref},
+    View,
 };
-use std::{borrow::Cow, cell::RefCell, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, marker::PhantomData, rc::Rc};
 use web_sys::{
     wasm_bindgen::{closure::Closure, JsCast},
     Element, Event,
 };
 
+use crate::WebContext;
+
 macro_rules! make_tag_fns {
     ($($name:tt),*) => {
         $(
-            pub fn $name<C: View>(content: C) -> Html<C> {
+            pub fn $name<T, A, C: View<T, A>>(content: C) -> Html<C, T, A> {
                 Html::new(stringify!($name), content)
             }
         )*
@@ -40,11 +40,12 @@ struct Data {
     )>,
 }
 
-pub struct Html<C> {
+pub struct Html<C, T, A> {
     tag: Cow<'static, str>,
     attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     handlers: Vec<(Cow<'static, str>, Rc<RefCell<dyn FnMut(Event)>>)>,
-    content: ViewCell<C>,
+    content: C,
+    _marker: PhantomData<(T, A)>,
 }
 
 macro_rules! impl_attr_methods {
@@ -67,16 +68,17 @@ macro_rules! impl_handler_methods {
     };
 }
 
-impl<C> Html<C> {
-    pub fn new(tag: impl Into<Cow<'static, str>>, content: C) -> Html<C>
+impl<C, T, A> Html<C, T, A> {
+    pub fn new(tag: impl Into<Cow<'static, str>>, content: C) -> Html<C, T, A>
     where
-        C: View,
+        C: View<T, A>,
     {
         Html {
             tag: tag.into(),
             attrs: Vec::new(),
             handlers: Vec::new(),
-            content: ViewCell::new(content),
+            content,
+            _marker: PhantomData,
         }
     }
 
@@ -111,19 +113,24 @@ impl<C> Html<C> {
     );
 }
 
-impl<C: View> ViewBuilder for Html<C> {
-    fn build(&self) -> impl View {
-        let data = use_ref(|| RefCell::new(Data::default()));
+impl<T, A, C> View<T, A> for Html<C, T, A>
+where
+    C: View<T, A>,
+{
+    fn body(&mut self, cx: &concoct::Scope<T, A>) -> impl View<T, A> {
+        let data = use_ref(cx, || Rc::new(RefCell::new(Data::default())));
         let mut data_ref = data.borrow_mut();
 
-        let web_cx = use_context::<WebContext>().unwrap();
-        let data_clone = data.clone();
+        let web_cx: Rc<WebContext> = use_context(cx);
+        let _data_clone = data.clone();
 
-        use_on_drop(move || {
+        /*
+         use_on_drop(move || {
             if let Some(element) = &data_clone.borrow_mut().element {
                 element.remove();
             }
         });
+         */
 
         if data_ref.element.is_none() {
             let elem = web_cx.document.create_element(&self.tag).unwrap();
@@ -155,12 +162,13 @@ impl<C: View> ViewBuilder for Html<C> {
             }
         }
 
-        use_provider(WebContext {
+        use_provider(cx, || WebContext {
             window: web_cx.window.clone(),
             document: web_cx.document.clone(),
-            parent: data_ref.element.as_ref().unwrap().clone().into(),
+            body: web_cx.body.clone(),
+            parent: data_ref.element.as_ref().unwrap().clone().unchecked_into(),
         });
 
-        self.content.clone()
+        &mut self.content
     }
 }
