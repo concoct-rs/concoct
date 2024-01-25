@@ -1,10 +1,10 @@
-use concoct::View;
+use concoct::{Scope, View};
 use concoct_web::html;
 
 struct App;
 
 impl View<i32> for App {
-    fn body(&mut self, _cx: &concoct::Scope<i32, ()>) -> impl View<i32, ()> {
+    fn body(&mut self, _cx: &Scope<i32>) -> impl View<i32> {
         html::button("Up high!")
     }
 }
