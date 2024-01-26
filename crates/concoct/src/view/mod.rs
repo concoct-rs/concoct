@@ -1,6 +1,6 @@
 //! Viewable components.
 
-use crate::{build_inner, hook::use_context, rebuild_inner, Scope, TextViewContext};
+use crate::{build_inner, hook::use_context, rebuild_inner, Scope};
 use std::{cell::Cell, rc::Rc};
 
 mod adapt;
@@ -8,6 +8,9 @@ pub use self::adapt::{adapt, Adapt};
 
 mod memo;
 pub use self::memo::{memo, Memo};
+
+mod text_context;
+pub use self::text_context::TextContext;
 
 /// Viewable component.
 pub trait View<T, A = ()> {
@@ -72,7 +75,7 @@ impl_view_for_tuple!(V1: 0, V2: 1, V3: 2, V4: 3, V5: 4, V6: 5, V7: 6, V8: 7, V9:
 
 impl<T: 'static, A: 'static> View<T, A> for &str {
     fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
-        let text_cx: Rc<TextViewContext<T, A>> = use_context(cx);
+        let text_cx: Rc<TextContext<T, A>> = use_context(cx);
         let mut view = text_cx.view.borrow_mut();
         view(cx, self)
     }
@@ -80,7 +83,7 @@ impl<T: 'static, A: 'static> View<T, A> for &str {
 
 impl<T: 'static, A: 'static> View<T, A> for String {
     fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
-        let text_cx: Rc<TextViewContext<T, A>> = use_context(cx);
+        let text_cx: Rc<TextContext<T, A>> = use_context(cx);
         let mut view = text_cx.view.borrow_mut();
         view(cx, self)
     }

@@ -21,6 +21,8 @@
 //! }
 //! ```
 
+#![deny(missing_docs)]
+
 use rustc_hash::FxHashMap;
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -31,21 +33,30 @@ use std::{
     task::Waker,
 };
 
+mod action;
+pub use self::action::{Action, IntoAction};
+
 pub mod hook;
+
+mod vdom;
+pub use self::vdom::VirtualDom;
 
 pub mod view;
 pub use self::view::View;
 
+/// Handle to update a scope.
 pub struct Handle<T, A = ()> {
     update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<A>>)>,
 }
 
 impl<T, A> Handle<T, A> {
+    /// Send an update to the virtual dom from this handle's scope.
     pub fn update(&self, f: Rc<dyn Fn(&mut T) -> Option<A>>) {
         (self.update)(f)
     }
 }
 
+/// Scope of a view.
 pub struct Scope<T, A = ()> {
     key: DefaultKey,
     node: Node,
@@ -56,6 +67,7 @@ pub struct Scope<T, A = ()> {
 }
 
 impl<T, A> Scope<T, A> {
+    /// Create a handle to this scope.
     pub fn handle(&self) -> Handle<T, A> {
         Handle {
             update: self.update.clone(),
@@ -78,107 +90,6 @@ struct Node {
 struct Channel<T> {
     updates: Vec<Rc<dyn Fn(&mut T) -> Option<()>>>,
     waker: Option<Waker>,
-}
-
-/// Virtual DOM for a view.
-pub struct VirtualDom<T, V> {
-    content: V,
-    nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
-    channel: Rc<RefCell<Channel<T>>>,
-    root_key: Option<DefaultKey>,
-}
-
-impl<T, V> VirtualDom<T, V> {
-    /// Create a new virtual dom from its content.
-    pub fn new(content: V) -> Self {
-        Self {
-            content,
-            nodes: Rc::default(),
-            channel: Rc::new(RefCell::new(Channel {
-                updates: Vec::new(),
-                waker: None,
-            })),
-            root_key: None,
-        }
-    }
-
-    /// Build the initial content.
-    pub fn build(&mut self)
-    where
-        T: 'static,
-        V: View<T> + DerefMut<Target = T>,
-    {
-        let node = Node::default();
-        let root_key = self.nodes.borrow_mut().insert(node.clone());
-        self.root_key = Some(root_key);
-
-        let channel = self.channel.clone();
-        let cx = Scope {
-            key: root_key,
-            node,
-            update: Rc::new(move |f| {
-                let mut channel_ref = channel.borrow_mut();
-                channel_ref.updates.push(f);
-                if let Some(waker) = channel_ref.waker.take() {
-                    waker.wake();
-                }
-            }),
-            is_empty: Cell::new(false),
-            nodes: self.nodes.clone(),
-            contexts: Default::default(),
-        };
-        build_inner(&mut self.content, &cx)
-    }
-
-    /// Rebuild the content from the last build
-    ///
-    /// ## Panics
-    /// This function will panic if no initial build has been performed.
-    pub async fn rebuild(&mut self)
-    where
-        T: 'static,
-        V: View<T> + DerefMut<Target = T>,
-    {
-        futures::future::poll_fn(|cx| {
-            self.channel.borrow_mut().waker = Some(cx.waker().clone());
-
-            let mut is_updated = false;
-            loop {
-                let mut channel_ref = self.channel.borrow_mut();
-                if let Some(update) = channel_ref.updates.pop() {
-                    update(&mut self.content);
-                    is_updated = true;
-                } else {
-                    break;
-                }
-            }
-
-            if is_updated {
-                let root_key = self.root_key.unwrap();
-                let node = self.nodes.borrow()[root_key].clone();
-
-                let channel = self.channel.clone();
-                let cx = Scope {
-                    key: root_key,
-                    node,
-                    update: Rc::new(move |f| {
-                        let mut channel_ref = channel.borrow_mut();
-                        channel_ref.updates.push(f);
-                        if let Some(waker) = channel_ref.waker.take() {
-                            waker.wake();
-                        }
-                    }),
-                    is_empty: Cell::new(false),
-                    nodes: self.nodes.clone(),
-                    contexts: Default::default(),
-                };
-                rebuild_inner(&mut self.content, &cx);
-            }
-
-            std::task::Poll::Pending
-        })
-        .await
-    }
 }
 
 fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
@@ -222,28 +133,7 @@ fn rebuild_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
     }
 }
 
-/// Provider for a platform-specific text view.
-///
-/// If you're writing a custom backend, you can use this to override
-/// the default implementation of `View` for string types (like `&str` and `String`).
-///
-/// To expose it to child views, use [`use_provider`](`crate::hook::use_provider`).
-pub struct TextViewContext<T, A> {
-    view: RefCell<Box<dyn FnMut(&Scope<T, A>, &str)>>,
-}
-
-impl<T, A> TextViewContext<T, A> {
-    /// Create a text view context from a view function.
-    ///
-    /// Text-based views, such as `&str` or `String` will call
-    /// this view function on when rendered.
-    pub fn new(view: impl FnMut(&Scope<T, A>, &str) + 'static) -> Self {
-        Self {
-            view: RefCell::new(Box::new(view)),
-        }
-    }
-}
-
+/// Run a view on a new virtual dom.
 pub async fn run<T, V>(content: V)
 where
     T: 'static,
@@ -253,41 +143,5 @@ where
     vdom.build();
     loop {
         vdom.rebuild().await;
-    }
-}
-
-/// Marker trait for an action.
-pub trait Action {}
-
-/// Convert an output to an optional action.
-pub trait IntoAction<A>: sealed::Sealed {
-    fn into_action(self) -> Option<A>;
-}
-
-mod sealed {
-    pub trait Sealed {}
-}
-
-impl sealed::Sealed for () {}
-
-impl<A> IntoAction<A> for () {
-    fn into_action(self) -> Option<A> {
-        None
-    }
-}
-
-impl<A: Action> sealed::Sealed for A {}
-
-impl<A: Action> IntoAction<A> for A {
-    fn into_action(self) -> Option<A> {
-        Some(self)
-    }
-}
-
-impl<A: Action> sealed::Sealed for Option<A> {}
-
-impl<A: Action> IntoAction<A> for Option<A> {
-    fn into_action(self) -> Option<A> {
-        self
     }
 }

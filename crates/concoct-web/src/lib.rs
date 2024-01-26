@@ -1,6 +1,5 @@
 use concoct::{
-    hook::{use_context, use_provider, use_ref},
-    Scope, TextViewContext, View,
+    hook::{use_context, use_provider, use_ref}, view::TextContext, Scope, View
 };
 use rustc_hash::FxHasher;
 use std::{
@@ -39,7 +38,7 @@ impl<T: 'static, A: 'static, C: View<T, A>> View<T, A> for HtmlRoot<C> {
         });
 
         use_provider(cx, || {
-            TextViewContext::new(|cx: &Scope<T, A>, s| {
+            TextContext::new(|cx: &Scope<T, A>, s| {
                 let web_cx: Rc<WebContext> = use_context(cx);
 
                 let mut is_init = false;
