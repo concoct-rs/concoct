@@ -19,7 +19,7 @@ pub enum ActionResult<A> {
 pub struct Scope<T, A = ()> {
     pub key: DefaultKey,
     node: Node,
-    update: Rc<dyn Fn(Rc<dyn Fn(T) -> Option<ActionResult<A>>>)>,
+    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>)>,
     is_empty: Cell<bool>,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
     contexts: RefCell<FxHashMap<TypeId, Rc<dyn Any>>>,

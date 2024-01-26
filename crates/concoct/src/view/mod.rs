@@ -1,6 +1,9 @@
 use crate::{build_inner, hook::use_context, rebuild_inner, Scope, TextViewContext};
 use std::{cell::Cell, rc::Rc};
 
+mod adapt;
+pub use self::adapt::{adapt, Adapt};
+
 pub trait View<T, A = ()> {
     fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A>;
 }

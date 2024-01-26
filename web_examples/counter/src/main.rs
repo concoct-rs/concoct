@@ -1,11 +1,18 @@
 use concoct::{Scope, View};
 use concoct_web::html;
 
-struct App;
+#[derive(Default)]
+struct App {
+    count: i32,
+}
 
 impl View<i32> for App {
     fn body(&mut self, _cx: &Scope<i32>) -> impl View<i32> {
-        html::button("Up high!")
+        (
+            format!("High five count: {}", self.count),
+            html::button("Up high!"),
+            html::button("Down low!"),
+        )
     }
 }
 
