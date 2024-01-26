@@ -53,3 +53,6 @@ cargo add concoct --features full
 ```
 
 To see a list of the available features flags that can be enabled, check our [docs](https://docs.rs/concoct/latest/concoct/#feature-flags).
+
+## Inspiration
+This crate is inspired by [xilem](https://github.com/linebender/xilem), React, and SwiftUI.
