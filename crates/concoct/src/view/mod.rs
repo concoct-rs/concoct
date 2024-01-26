@@ -30,6 +30,7 @@ macro_rules! impl_view_for_tuple {
                     $( {
                         let key = cx.node.inner.borrow().children[$idx];
                         let node = cx.nodes.borrow()[key].clone();
+                        node.inner.borrow_mut().hook_idx = 0;
 
                         let cx = Scope {
                             key,

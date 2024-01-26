@@ -1,8 +1,8 @@
 use concoct::{
     hook::{use_context, use_provider, use_ref},
-    View,
+    ActionResult, View,
 };
-use std::{borrow::Cow, cell::RefCell, marker::PhantomData, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
     wasm_bindgen::{closure::Closure, JsCast},
     Element, Event,
@@ -31,21 +31,22 @@ make_tag_fns!(
     ul, var, video, wbr
 );
 
-#[derive(Default)]
-struct Data {
+struct Data<T, A> {
     element: Option<Element>,
     callbacks: Vec<(
         Closure<dyn FnMut(Event)>,
-        Rc<RefCell<Rc<RefCell<dyn FnMut(Event)>>>>,
+        Rc<RefCell<Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<ActionResult<A>>>>>>,
     )>,
 }
 
 pub struct Html<C, T, A> {
     tag: Cow<'static, str>,
     attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
-    handlers: Vec<(Cow<'static, str>, Rc<RefCell<dyn FnMut(Event)>>)>,
+    handlers: Vec<(
+        Cow<'static, str>,
+        Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<ActionResult<A>>>>,
+    )>,
     content: C,
-    _marker: PhantomData<(T, A)>,
 }
 
 macro_rules! impl_attr_methods {
@@ -61,7 +62,7 @@ macro_rules! impl_attr_methods {
 macro_rules! impl_handler_methods {
     ($($fn_name: tt: $name: tt),*) => {
         $(
-            pub fn $fn_name(self, handler: impl FnMut(Event) + 'static) -> Self {
+            pub fn $fn_name(self, handler: impl FnMut(&mut T, Event) -> Option<ActionResult<A>> + 'static) -> Self {
                 self.handler($name, handler)
             }
         )*
@@ -78,7 +79,6 @@ impl<C, T, A> Html<C, T, A> {
             attrs: Vec::new(),
             handlers: Vec::new(),
             content,
-            _marker: PhantomData,
         }
     }
 
@@ -94,7 +94,7 @@ impl<C, T, A> Html<C, T, A> {
     pub fn handler(
         mut self,
         name: impl Into<Cow<'static, str>>,
-        handler: impl FnMut(Event) + 'static,
+        handler: impl FnMut(&mut T, Event) -> Option<ActionResult<A>> + 'static,
     ) -> Self {
         self.handlers
             .push((name.into(), Rc::new(RefCell::new(handler))));
@@ -115,10 +115,17 @@ impl<C, T, A> Html<C, T, A> {
 
 impl<T, A, C> View<T, A> for Html<C, T, A>
 where
+    T: 'static,
+    A: 'static,
     C: View<T, A>,
 {
     fn body(&mut self, cx: &concoct::Scope<T, A>) -> impl View<T, A> {
-        let data = use_ref(cx, || Rc::new(RefCell::new(Data::default())));
+        let data = use_ref(cx, || {
+            Rc::new(RefCell::new(Data {
+                element: Default::default(),
+                callbacks: Default::default(),
+            }))
+        });
         let mut data_ref = data.borrow_mut();
 
         let web_cx: Rc<WebContext> = use_context(cx);
@@ -144,8 +151,12 @@ where
                 let handler_cell = Rc::new(RefCell::new(handler.clone()));
                 let handler_cell_clone = handler_cell.clone();
 
+                let handle = cx.handle();
                 let callback: Closure<dyn FnMut(Event)> = Closure::wrap(Box::new(move |event| {
-                    handler_cell.borrow().borrow_mut()(event)
+                    let handler_cell_clone = handler_cell.clone();
+                    handle.update(Rc::new(move |state| {
+                        handler_cell_clone.borrow().borrow_mut()(state, event.clone())
+                    }))
                 }));
                 elem.add_event_listener_with_callback(&name, callback.as_ref().unchecked_ref())
                     .unwrap();

@@ -6,6 +6,7 @@ use rustc_hash::FxHasher;
 use std::{
     cell::Cell,
     hash::{Hash, Hasher},
+    ops::{Deref, DerefMut},
     rc::Rc,
 };
 use web_sys::{Document, HtmlElement, Window};
@@ -71,4 +72,22 @@ impl<T: 'static, A: 'static, C: View<T, A>> View<T, A> for HtmlRoot<C> {
 
         &mut self.content
     }
+}
+
+impl<C> Deref for HtmlRoot<C> {
+    type Target = C;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
+}
+
+impl<C> DerefMut for HtmlRoot<C> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.content
+    }
+}
+
+pub async fn run<V: View<V> + 'static>(content: V) {
+    concoct::run(HtmlRoot { content }).await
 }

@@ -6,8 +6,12 @@ license = "MIT OR Apache-2.0"
 description = "Web backend for concoct"
 repository = "https://github.com/concoct-rs/concoct"
 
+[features]
+full = ["tracing"]
+
 [dependencies]
 # concoct = "0.17.0-alpha.2"
 concoct = { path = "../concoct" }
 web-sys = { version = "0.3.66", features = ["Document", "Event", "HtmlElement", "HtmlCollection", "Text", "Window"] }
 rustc-hash = "1.1.0"
+tracing = { version ="0.1.40", optional = true }

@@ -3,7 +3,9 @@ use slotmap::{DefaultKey, SlotMap};
 use std::{
     any::{Any, TypeId},
     cell::{Cell, RefCell, UnsafeCell},
+    ops::DerefMut,
     rc::Rc,
+    task::Waker,
 };
 
 pub mod hook;
@@ -16,6 +18,16 @@ pub enum ActionResult<A> {
     Rebuild,
 }
 
+pub struct Handle<T, A = ()> {
+    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>)>,
+}
+
+impl<T, A> Handle<T, A> {
+    pub fn update(&self, f: Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>) {
+        (self.update)(f)
+    }
+}
+
 pub struct Scope<T, A = ()> {
     pub key: DefaultKey,
     node: Node,
@@ -23,6 +35,14 @@ pub struct Scope<T, A = ()> {
     is_empty: Cell<bool>,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
     contexts: RefCell<FxHashMap<TypeId, Rc<dyn Any>>>,
+}
+
+impl<T, A> Scope<T, A> {
+    pub fn handle(&self) -> Handle<T, A> {
+        Handle {
+            update: self.update.clone(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -37,35 +57,51 @@ struct Node {
     inner: Rc<RefCell<NodeInner>>,
 }
 
-pub struct VirtualDom<V> {
+struct Channel<T> {
+    updates: Vec<Rc<dyn Fn(&mut T) -> Option<ActionResult<()>>>>,
+    waker: Option<Waker>,
+}
+
+pub struct VirtualDom<T, V> {
     content: V,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
-    pending_updates: Vec<Box<dyn FnMut()>>,
+    channel: Rc<RefCell<Channel<T>>>,
     root_key: Option<DefaultKey>,
 }
 
-impl<V> VirtualDom<V> {
+impl<T, V> VirtualDom<T, V> {
     pub fn new(content: V) -> Self {
         Self {
             content,
             nodes: Rc::default(),
-            pending_updates: Vec::new(),
+            channel: Rc::new(RefCell::new(Channel {
+                updates: Vec::new(),
+                waker: None,
+            })),
             root_key: None,
         }
     }
 
     pub fn build(&mut self)
     where
-        V: View<V>,
+        T: 'static,
+        V: View<T> + DerefMut<Target = T>,
     {
         let node = Node::default();
         let root_key = self.nodes.borrow_mut().insert(node.clone());
         self.root_key = Some(root_key);
 
+        let channel = self.channel.clone();
         let cx = Scope {
             key: root_key,
             node,
-            update: Rc::new(|_f| {}),
+            update: Rc::new(move |f| {
+                let mut channel_ref = channel.borrow_mut();
+                channel_ref.updates.push(f);
+                if let Some(waker) = channel_ref.waker.take() {
+                    waker.wake();
+                }
+            }),
             is_empty: Cell::new(false),
             nodes: self.nodes.clone(),
             contexts: Default::default(),
@@ -73,21 +109,50 @@ impl<V> VirtualDom<V> {
         build_inner(&mut self.content, &cx)
     }
 
-    pub fn rebuild(&mut self)
+    pub async fn rebuild(&mut self)
     where
-        V: View<V>,
+        T: 'static,
+        V: View<T> + DerefMut<Target = T>,
     {
-        let root_key = self.root_key.unwrap();
-        let node = self.nodes.borrow()[root_key].clone();
-        let cx = Scope {
-            key: root_key,
-            node,
-            update: Rc::new(|_| {}),
-            is_empty: Cell::new(false),
-            nodes: self.nodes.clone(),
-            contexts: Default::default(),
-        };
-        rebuild_inner(&mut self.content, &cx)
+        futures::future::poll_fn(|cx| {
+            self.channel.borrow_mut().waker = Some(cx.waker().clone());
+
+            let mut is_updated = false;
+            loop {
+                let mut channel_ref = self.channel.borrow_mut();
+                if let Some(update) = channel_ref.updates.pop() {
+                    update(&mut self.content);
+                    is_updated = true;
+                } else {
+                    break;
+                }
+            }
+
+            if is_updated {
+                let root_key = self.root_key.unwrap();
+                let node = self.nodes.borrow()[root_key].clone();
+
+                let channel = self.channel.clone();
+                let cx = Scope {
+                    key: root_key,
+                    node,
+                    update: Rc::new(move |f| {
+                        let mut channel_ref = channel.borrow_mut();
+                        channel_ref.updates.push(f);
+                        if let Some(waker) = channel_ref.waker.take() {
+                            waker.wake();
+                        }
+                    }),
+                    is_empty: Cell::new(false),
+                    nodes: self.nodes.clone(),
+                    contexts: Default::default(),
+                };
+                rebuild_inner(&mut self.content, &cx);
+            }
+
+            std::task::Poll::Pending
+        })
+        .await
     }
 }
 
@@ -99,7 +164,7 @@ fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
     let child_cx = Scope {
         key,
         node,
-        update: Rc::new(|_f| {}),
+        update: cx.update.clone(),
         is_empty: Cell::new(false),
         nodes: cx.nodes.clone(),
         contexts: cx.contexts.clone(),
@@ -114,6 +179,8 @@ fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
 fn rebuild_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
     for child_key in &cx.node.inner.borrow().children {
         let node = cx.nodes.borrow()[*child_key].clone();
+        node.inner.borrow_mut().hook_idx = 0;
+
         let child_cx = Scope {
             key: *child_key,
             node,
@@ -152,8 +219,14 @@ impl<T, A> TextViewContext<T, A> {
     }
 }
 
-pub fn run<V: View<V>>(content: V) {
+pub async fn run<T, V>(content: V)
+where
+    T: 'static,
+    V: View<T> + DerefMut<Target = T>,
+{
     let mut vdom = VirtualDom::new(content);
     vdom.build();
-    vdom.rebuild();
+    loop {
+        vdom.rebuild().await;
+    }
 }
