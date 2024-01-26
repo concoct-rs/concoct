@@ -230,3 +230,36 @@ where
         vdom.rebuild().await;
     }
 }
+
+pub trait Action {}
+
+pub trait IntoAction<A>: sealed::Sealed {
+    fn into_action(self) -> Option<ActionResult<A>>;
+}
+mod sealed {
+    pub trait Sealed {}
+}
+
+impl sealed::Sealed for () {}
+
+impl<A> IntoAction<A> for () {
+    fn into_action(self) -> Option<ActionResult<A>> {
+        None
+    }
+}
+
+impl<A: Action> sealed::Sealed for A {}
+
+impl<A: Action> IntoAction<A> for A {
+    fn into_action(self) -> Option<ActionResult<A>> {
+        Some(ActionResult::Action(self))
+    }
+}
+
+impl<A: Action> sealed::Sealed for Option<ActionResult<A>> {}
+
+impl<A: Action> IntoAction<A> for Option<ActionResult<A>> {
+    fn into_action(self) -> Option<ActionResult<A>> {
+        self
+    }
+}

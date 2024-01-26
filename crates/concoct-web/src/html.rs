@@ -1,6 +1,6 @@
 use concoct::{
     hook::{use_context, use_provider, use_ref},
-    ActionResult, View,
+    ActionResult, IntoAction, View,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -62,7 +62,7 @@ macro_rules! impl_attr_methods {
 macro_rules! impl_handler_methods {
     ($($fn_name: tt: $name: tt),*) => {
         $(
-            pub fn $fn_name(self, handler: impl FnMut(&mut T, Event) -> Option<ActionResult<A>> + 'static) -> Self {
+            pub fn $fn_name<R: IntoAction<A>>(self, handler: impl FnMut(&mut T, Event) -> R + 'static) -> Self {
                 self.handler($name, handler)
             }
         )*
@@ -91,13 +91,17 @@ impl<C, T, A> Html<C, T, A> {
         self
     }
 
-    pub fn handler(
+    pub fn handler<R: IntoAction<A>>(
         mut self,
         name: impl Into<Cow<'static, str>>,
-        handler: impl FnMut(&mut T, Event) -> Option<ActionResult<A>> + 'static,
+        mut handler: impl FnMut(&mut T, Event) -> R + 'static,
     ) -> Self {
-        self.handlers
-            .push((name.into(), Rc::new(RefCell::new(handler))));
+        self.handlers.push((
+            name.into(),
+            Rc::new(RefCell::new(move |state: &mut T, event| {
+                handler(state, event).into_action()
+            })),
+        ));
         self
     }
 

@@ -29,60 +29,21 @@ tree without allocations. Updates to state re-render your application top-down,
 starting at the state's parent component.
 
 ```rust
-struct App;
+#[derive(Default)]
+struct Counter {
+    count: i32,
+}
 
-impl ViewBuilder for App {
-    fn build(&self) -> impl View {
-        let (count, set_high) = use_state(|| 0);
-        let set_low = set_high.clone();
-
+impl View<Counter> for Counter {
+    fn body(&mut self, _cx: &Scope<Counter>) -> impl View<Counter> {
         (
-            format!("High five count: {}", count),
-            html::button("Up high!").on_click(move |_| set_high(count + 1)),
-            html::button("Down low!").on_click(move |_| set_low(count - 1)),
+            format!("High five count: {}", self.count),
+            html::button("Up high!").on_click(|state: &mut Self, _event| state.count += 1),
+            html::button("Down low!").on_click(|state: &mut Self, _event| state.count -= 1),
         )
     }
 }
 ```
-
-## Components
-```rust
-struct Readme {
-    crate_name: String,
-    version: String,
-}
-
-impl ViewBuilder for Readme {
-    fn build(&self) -> impl View {
-        let (content, set_content) = use_state(|| None);
-
-        use_effect(&self.crate_name, || {
-            let name = self.crate_name.clone();
-            let version = self.version.clone();
-            spawn_local(async move {
-                let readme = api::get_readme(&name, &version).await;
-                set_content(Some(readme));
-            })
-        });
-
-        content
-            .map(|content| OneOf2::A(content))
-            .unwrap_or_else(|| OneOf2::B("Loading..."))
-    }
-}
-
-struct App;
-
-impl ViewBuilder for App {
-    fn build(&self) -> impl View {
-        Readme {
-            crate_name: String::from("concoct"),
-            version: String::from("1.0"),
-        }
-    }
-}
-```
-
 
 ## Installation
 The easiest way to get started is using the `full` feature flag.
