@@ -1,3 +1,26 @@
+//! Concoct is a framework for user-interfaces in Rust.
+//!
+//! This crate provides a virtual DOM and state management system for any backend.
+//! Concoct uses static typing to describe your UI at compile-time to create an efficient
+//! tree without allocations.
+//!
+//! ```ignore
+//! #[derive(Default)]
+//! struct Counter {
+//!     count: i32,
+//! }
+//!
+//! impl View<Counter> for Counter {
+//!     fn body(&mut self, _cx: &Scope<Counter>) -> impl View<Counter> {
+//!         (
+//!             format!("High five count: {}", self.count),
+//!             html::button("Up high!").on_click(|state: &mut Self, _event| state.count += 1),
+//!             html::button("Down low!").on_click(|state: &mut Self, _event| state.count -= 1),
+//!         )
+//!     }
+//! }
+//! ```
+
 use rustc_hash::FxHashMap;
 use slotmap::{DefaultKey, SlotMap};
 use std::{
@@ -29,7 +52,7 @@ impl<T, A> Handle<T, A> {
 }
 
 pub struct Scope<T, A = ()> {
-    pub key: DefaultKey,
+    key: DefaultKey,
     node: Node,
     update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>)>,
     is_empty: Cell<bool>,

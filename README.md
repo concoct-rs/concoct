@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Concoct</h1>
-  
+
  <a href="https://crates.io/crates/concoct">
     <img src="https://img.shields.io/crates/v/concoct?style=flat-square"
     alt="Crates.io version" />
@@ -23,10 +23,9 @@
 
 Concoct is a framework for user-interfaces in Rust.
 
-This crate provides a diffing-engine and state management system for any backend.
+This crate provides a virtual DOM and state management system for any backend.
 Concoct uses static typing to describe your UI at compile-time to create an efficient
-tree without allocations. Updates to state re-render your application top-down,
-starting at the state's parent component.
+tree without allocations.
 
 ```rust
 #[derive(Default)]

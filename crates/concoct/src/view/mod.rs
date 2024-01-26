@@ -4,7 +4,12 @@ use std::{cell::Cell, rc::Rc};
 mod adapt;
 pub use self::adapt::{adapt, Adapt};
 
+mod memo;
+pub use self::memo::{memo, Memo};
+
+/// Viewable component.
 pub trait View<T, A = ()> {
+    /// View this component, returning its body.
     fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A>;
 }
 

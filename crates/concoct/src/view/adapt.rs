@@ -1,6 +1,7 @@
-use crate::{build_inner, ActionResult, Scope, View};
+use crate::{build_inner, rebuild_inner, ActionResult, Scope, View};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
+/// Adapt a view's state to a different one.
 pub fn adapt<T1, A1, F, V, T2, A2>(f: F, view: V) -> Adapt<T1, A1, F, V, T2, A2>
 where
     T1: 'static,
@@ -18,6 +19,7 @@ where
     }
 }
 
+/// View for the [`adapt`] function.
 pub struct Adapt<T1, A1, F, V, T2, A2> {
     f: Rc<RefCell<F>>,
     view: V,
@@ -49,6 +51,11 @@ where
             nodes: cx.nodes.clone(),
             contexts: cx.contexts.clone(),
         };
-        build_inner(&mut self.view, &child_cx);
+
+        if cx.node.inner.borrow().children.is_empty() {
+            build_inner(&mut self.view, &child_cx);
+        } else {
+            rebuild_inner(&mut self.view, &child_cx);
+        }
     }
 }
