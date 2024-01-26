@@ -34,7 +34,7 @@ where
     F: FnMut(&mut T1, Rc<dyn Fn(&mut T2) -> Option<A2>>) -> Option<A1> + 'static,
     V: View<T2, A2>,
 {
-    fn body(&mut self, cx: &crate::Scope<T1, A1>) -> impl View<T1, A1> {
+    fn body(&mut self, cx: &Scope<T1, A1>) -> impl View<T1, A1> {
         let parent_update = cx.update.clone();
         let mapper = self.f.clone();
         let update = Rc::new(move |f: Rc<dyn Fn(&mut T2) -> Option<A2>>| {
@@ -44,6 +44,7 @@ where
         let child_cx = Scope {
             key: cx.key,
             node: cx.node.clone(),
+            parent: cx.parent,
             update,
             is_empty: cx.is_empty.clone(),
             nodes: cx.nodes.clone(),

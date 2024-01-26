@@ -1,5 +1,7 @@
 use concoct::{
-    hook::{use_context, use_provider, use_ref}, view::TextContext, Scope, View
+    hook::{use_context, use_on_drop, use_provider, use_ref},
+    view::TextContext,
+    Scope, View,
 };
 use rustc_hash::FxHasher;
 use std::{
@@ -52,6 +54,11 @@ impl<T: 'static, A: 'static, C: View<T, A>> View<T, A> for HtmlRoot<C> {
 
                     is_init = true;
                     (Cell::new(hash), elem)
+                });
+
+                let node_clone = node.clone();
+                use_on_drop(cx, move || {
+                    node_clone.remove();
                 });
 
                 if !is_init {

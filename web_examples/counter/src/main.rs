@@ -13,6 +13,7 @@ impl View<Counter> for Counter {
             format!("High five count: {}", self.count),
             html::button("Up high!").on_click(|state: &mut Self, _event| state.count += 1),
             html::button("Down low!").on_click(|state: &mut Self, _event| state.count -= 1),
+           
         )
     }
 }

@@ -1,6 +1,8 @@
 //! Viewable components.
 
+use crate::hook::use_ref;
 use crate::{build_inner, hook::use_context, rebuild_inner, Scope};
+use std::mem;
 use std::{cell::Cell, rc::Rc};
 
 mod adapt;
@@ -30,6 +32,39 @@ impl<T, A, V: View<T, A>> View<T, A> for &mut V {
     }
 }
 
+impl<T, A, V: View<T, A>> View<T, A> for Option<V> {
+    fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
+        let is_some = use_ref(cx, || false);
+
+        if let Some(view) = self {
+            if *is_some {
+                rebuild_inner(view, cx);
+            } else {
+                build_inner(view, cx);
+            }
+            *is_some = true;
+        } else if *is_some {
+            *is_some = false;
+
+            let mut nodes_ref = cx.nodes.borrow_mut();
+
+            let mut stack = Vec::new();
+            for child_key in &mem::take(&mut cx.node.inner.borrow_mut().children) {
+                let child_node = nodes_ref[*child_key].clone();
+                stack.push((*child_key, child_node));
+            }
+
+            while let Some((key, node)) = stack.pop() {
+                nodes_ref.remove(key);
+                for child_key in &node.inner.borrow().children {
+                    let child_node = nodes_ref[*child_key].clone();
+                    stack.push((*child_key, child_node));
+                }
+            }
+        }
+    }
+}
+
 macro_rules! impl_view_for_tuple {
     ($($t:tt : $idx:tt),*) => {
         impl<T, A, $($t: View<T, A>),*> View<T, A> for ($($t),*) {
@@ -45,6 +80,7 @@ macro_rules! impl_view_for_tuple {
                         let cx = Scope {
                             key,
                             node,
+                            parent: Some(cx.key),
                             update: cx.update.clone(),
                             is_empty: Cell::new(false),
                             nodes: cx.nodes.clone(),

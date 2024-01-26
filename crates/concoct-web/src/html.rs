@@ -1,6 +1,6 @@
 use concoct::{
-    hook::{use_context, use_provider, use_ref},
-     IntoAction, View,
+    hook::{use_context, use_on_drop, use_provider, use_ref},
+    IntoAction, View,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -133,15 +133,13 @@ where
         let mut data_ref = data.borrow_mut();
 
         let web_cx: Rc<WebContext> = use_context(cx);
-        let _data_clone = data.clone();
+        let data_clone = data.clone();
 
-        /*
-         use_on_drop(move || {
+        use_on_drop(cx, move || {
             if let Some(element) = &data_clone.borrow_mut().element {
                 element.remove();
             }
         });
-         */
 
         if data_ref.element.is_none() {
             let elem = web_cx.document.create_element(&self.tag).unwrap();

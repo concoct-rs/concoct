@@ -44,6 +44,7 @@ impl<T, V> VirtualDom<T, V> {
         let cx = Scope {
             key: root_key,
             node,
+            parent: None,
             update: Rc::new(move |f| {
                 let mut channel_ref = channel.borrow_mut();
                 channel_ref.updates.push(f);
@@ -89,6 +90,7 @@ impl<T, V> VirtualDom<T, V> {
                 let cx = Scope {
                     key: root_key,
                     node,
+                    parent: None,
                     update: Rc::new(move |f| {
                         let mut channel_ref = channel.borrow_mut();
                         channel_ref.updates.push(f);

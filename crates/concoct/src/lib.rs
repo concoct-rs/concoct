@@ -59,6 +59,7 @@ impl<T, A> Handle<T, A> {
 /// Scope of a view.
 pub struct Scope<T, A = ()> {
     key: DefaultKey,
+    parent: Option<DefaultKey>,
     node: Node,
     update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<A>>)>,
     is_empty: Cell<bool>,
@@ -99,6 +100,7 @@ fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
 
     let child_cx = Scope {
         key,
+        parent: Some(cx.key),
         node,
         update: cx.update.clone(),
         is_empty: Cell::new(false),
@@ -114,21 +116,24 @@ fn build_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
 
 fn rebuild_inner<T, A>(view: &mut impl View<T, A>, cx: &Scope<T, A>) {
     for child_key in &cx.node.inner.borrow().children {
-        let node = cx.nodes.borrow()[*child_key].clone();
-        node.inner.borrow_mut().hook_idx = 0;
+        let node = cx.nodes.borrow().get(*child_key).cloned();
+        if let Some(node) = node {
+            node.inner.borrow_mut().hook_idx = 0;
 
-        let child_cx = Scope {
-            key: *child_key,
-            node,
-            update: cx.update.clone(),
-            is_empty: Cell::new(false),
-            nodes: cx.nodes.clone(),
-            contexts: cx.contexts.clone(),
-        };
+            let child_cx = Scope {
+                key: *child_key,
+                node,
+                parent: Some(cx.key),
+                update: cx.update.clone(),
+                is_empty: Cell::new(false),
+                nodes: cx.nodes.clone(),
+                contexts: cx.contexts.clone(),
+            };
 
-        let mut body = view.body(&child_cx);
-        if !child_cx.is_empty.get() {
-            rebuild_inner(&mut body, &child_cx);
+            let mut body = view.body(&child_cx);
+            if !child_cx.is_empty.get() {
+                rebuild_inner(&mut body, &child_cx);
+            }
         }
     }
 }
