@@ -1,6 +1,5 @@
 use concoct::{
-    hook::{use_context, use_on_drop, use_provider, use_ref},
-    IntoAction, View,
+    hook::{use_context, use_on_drop, use_provider, use_ref}, Handle, IntoAction, View
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -35,7 +34,7 @@ struct Data<T, A> {
     element: Option<Element>,
     callbacks: Vec<(
         Closure<dyn FnMut(Event)>,
-        Rc<RefCell<Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<A>>>>>,
+        Rc<RefCell<Rc<RefCell<dyn FnMut(&Handle<T, A>, &mut T, Event) -> Option<A>>>>>,
     )>,
 }
 
@@ -44,7 +43,7 @@ pub struct Html<C, T, A> {
     attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     handlers: Vec<(
         Cow<'static, str>,
-        Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<A>>>,
+        Rc<RefCell<dyn FnMut(&Handle<T, A>,&mut T, Event) -> Option<A>>>,
     )>,
     content: C,
 }
@@ -62,7 +61,10 @@ macro_rules! impl_attr_methods {
 macro_rules! impl_handler_methods {
     ($($fn_name: tt: $name: tt),*) => {
         $(
-            pub fn $fn_name<R: IntoAction<A>>(self, handler: impl FnMut(&mut T, Event) -> R + 'static) -> Self {
+            pub fn $fn_name<R: IntoAction<A>>(
+                self,
+                handler: impl FnMut(&Handle<T, A>, &mut T, Event) -> R + 'static
+            ) -> Self {
                 self.handler($name, handler)
             }
         )*
@@ -94,12 +96,12 @@ impl<C, T, A> Html<C, T, A> {
     pub fn handler<R: IntoAction<A>>(
         mut self,
         name: impl Into<Cow<'static, str>>,
-        mut handler: impl FnMut(&mut T, Event) -> R + 'static,
+        mut handler: impl FnMut(&Handle<T, A>, &mut T, Event) -> R + 'static,
     ) -> Self {
         self.handlers.push((
             name.into(),
-            Rc::new(RefCell::new(move |state: &mut T, event| {
-                handler(state, event).into_action()
+            Rc::new(RefCell::new(move |cx: &Handle<T, A>, state: &mut T, event| {
+                handler(cx, state, event).into_action()
             })),
         ));
         self
@@ -156,8 +158,8 @@ where
                 let handle = cx.handle();
                 let callback: Closure<dyn FnMut(Event)> = Closure::wrap(Box::new(move |event| {
                     let handler_cell_clone = handler_cell.clone();
-                    handle.update(Rc::new(move |state| {
-                        handler_cell_clone.borrow().borrow_mut()(state, event.clone())
+                    handle.update_raw(Rc::new(move |cx, state| {
+                        handler_cell_clone.borrow().borrow_mut()(cx, state, event.clone())
                     }))
                 }));
                 elem.add_event_listener_with_callback(&name, callback.as_ref().unchecked_ref())

@@ -1,4 +1,4 @@
-use crate::{Channel, Node, Scope, View};
+use crate::{Channel, Handle, Node, Scope, View};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
     cell::{Cell, RefCell},
@@ -74,7 +74,19 @@ impl<T, V> VirtualDom<T, V> {
             loop {
                 let mut channel_ref = self.channel.borrow_mut();
                 if let Some(update) = channel_ref.updates.pop() {
-                    update(&mut self.content);
+                    let channel = self.channel.clone();
+                    update(
+                        &Handle {
+                            update: Rc::new(move |f| {
+                                let mut channel_ref = channel.borrow_mut();
+                                channel_ref.updates.push(f);
+                                if let Some(waker) = channel_ref.waker.take() {
+                                    waker.wake();
+                                }
+                            }),
+                        },
+                        &mut self.content,
+                    );
                     is_updated = true;
                 } else {
                     break;

@@ -33,7 +33,6 @@ use std::{
     rc::Rc,
     task::Waker,
 };
-
 mod action;
 pub use self::action::{Action, IntoAction};
 
@@ -47,13 +46,26 @@ pub use self::view::View;
 
 /// Handle to update a scope.
 pub struct Handle<T, A = ()> {
-    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<A>>)>,
+    update: Rc<dyn Fn(Rc<dyn Fn(&Handle<T, A>, &mut T) -> Option<A>>)>,
 }
 
 impl<T, A> Handle<T, A> {
     /// Send an update to the virtual dom from this handle's scope.
-    pub fn update(&self, f: Rc<dyn Fn(&mut T) -> Option<A>>) {
+    pub fn update<IA: IntoAction<A>>(&self, f: impl Fn(&Handle<T, A>, &mut T) -> IA + 'static) {
+        self.update_raw(Rc::new(move |cx, state| f(cx, state).into_action()))
+    }
+
+    /// Send an update to the virtual dom from this handle's scope.
+    pub fn update_raw(&self, f: Rc<dyn Fn(&Handle<T, A>, &mut T) -> Option<A>>) {
         (self.update)(f)
+    }
+}
+
+impl<T, A> Clone for Handle<T, A> {
+    fn clone(&self) -> Self {
+        Self {
+            update: self.update.clone(),
+        }
     }
 }
 
@@ -62,7 +74,7 @@ pub struct Scope<T, A = ()> {
     key: DefaultKey,
     parent: Option<DefaultKey>,
     node: Node,
-    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<A>>)>,
+    update: Rc<dyn Fn(Rc<dyn Fn(&Handle<T, A>, &mut T) -> Option<A>>)>,
     is_empty: Cell<bool>,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
     contexts: RefCell<FxHashMap<TypeId, Rc<dyn Any>>>,
@@ -155,7 +167,7 @@ struct Node {
 }
 
 struct Channel<T> {
-    updates: Vec<Rc<dyn Fn(&mut T) -> Option<()>>>,
+    updates: Vec<Rc<dyn Fn(&Handle<T, ()>, &mut T) -> Option<()>>>,
     waker: Option<Waker>,
 }
 

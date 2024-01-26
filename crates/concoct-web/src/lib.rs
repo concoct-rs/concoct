@@ -1,14 +1,10 @@
 use concoct::{
-    hook::{use_context, use_on_drop, use_provider, use_ref},
-    view::TextContext,
-    Scope, View,
+    hook::{use_context, use_on_drop, use_provider, use_ref}, view::TextContext, Handle, IntoAction, Scope, View
 };
 use rustc_hash::FxHasher;
+use wasm_bindgen_futures::spawn_local;
 use std::{
-    cell::Cell,
-    hash::{Hash, Hasher},
-    ops::{Deref, DerefMut},
-    rc::Rc,
+    cell::{Cell, RefCell}, future::Future, hash::{Hash, Hasher}, ops::{Deref, DerefMut}, rc::Rc
 };
 use web_sys::{Document, HtmlElement, Window};
 
@@ -96,4 +92,30 @@ impl<C> DerefMut for HtmlRoot<C> {
 
 pub async fn run<V: View<V> + 'static>(content: V) {
     concoct::run(HtmlRoot { content }).await
+}
+
+pub fn launch<V: View<V> + 'static>(content: V) {
+    spawn_local(run(content))
+}
+
+/// Spawn a future on this handle's scope.
+pub fn spawn<T, A, R, IA>(
+    cx: Handle<T, A>,
+    future: impl Future<Output = R> + 'static,
+    on_ready: impl FnOnce(&mut T, R) -> IA + 'static,
+) where
+    T: 'static,
+    A: 'static,
+    R: 'static,
+    IA: IntoAction<A>,
+{
+    let me = cx.clone();
+    spawn_local(async move {
+        let output = future.await;
+        let cell = RefCell::new(Some((on_ready, output)));
+        me.update_raw(Rc::new(move |_cx, state| {
+            let (on_complete, output) = cell.take().unwrap();
+            on_complete(state, output).into_action()
+        }))
+    });
 }
