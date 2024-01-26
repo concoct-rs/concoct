@@ -1,3 +1,5 @@
+//! Hooks to access view context.
+
 mod use_context;
 pub use self::use_context::use_context;
 

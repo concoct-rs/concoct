@@ -1,6 +1,6 @@
 use concoct::{
     hook::{use_context, use_provider, use_ref},
-    ActionResult, IntoAction, View,
+     IntoAction, View,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -35,7 +35,7 @@ struct Data<T, A> {
     element: Option<Element>,
     callbacks: Vec<(
         Closure<dyn FnMut(Event)>,
-        Rc<RefCell<Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<ActionResult<A>>>>>>,
+        Rc<RefCell<Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<A>>>>>,
     )>,
 }
 
@@ -44,7 +44,7 @@ pub struct Html<C, T, A> {
     attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     handlers: Vec<(
         Cow<'static, str>,
-        Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<ActionResult<A>>>>,
+        Rc<RefCell<dyn FnMut(&mut T, Event) -> Option<A>>>,
     )>,
     content: C,
 }

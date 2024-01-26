@@ -1,3 +1,5 @@
+//! Viewable components.
+
 use crate::{build_inner, hook::use_context, rebuild_inner, Scope, TextViewContext};
 use std::{cell::Cell, rc::Rc};
 

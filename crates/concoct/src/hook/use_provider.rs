@@ -1,8 +1,8 @@
+use super::use_ref;
 use crate::Scope;
 use std::{any::TypeId, rc::Rc};
 
-use super::use_ref;
-
+/// Hook to provide a context.
 pub fn use_provider<T, A, R: 'static>(cx: &Scope<T, A>, make_initial: impl FnOnce() -> R) {
     let value = use_ref(cx, || Rc::new(make_initial()));
 

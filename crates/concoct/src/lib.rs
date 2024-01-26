@@ -36,17 +36,12 @@ pub mod hook;
 pub mod view;
 pub use self::view::View;
 
-pub enum ActionResult<A> {
-    Action(A),
-    Rebuild,
-}
-
 pub struct Handle<T, A = ()> {
-    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>)>,
+    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<A>>)>,
 }
 
 impl<T, A> Handle<T, A> {
-    pub fn update(&self, f: Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>) {
+    pub fn update(&self, f: Rc<dyn Fn(&mut T) -> Option<A>>) {
         (self.update)(f)
     }
 }
@@ -54,7 +49,7 @@ impl<T, A> Handle<T, A> {
 pub struct Scope<T, A = ()> {
     key: DefaultKey,
     node: Node,
-    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<ActionResult<A>>>)>,
+    update: Rc<dyn Fn(Rc<dyn Fn(&mut T) -> Option<A>>)>,
     is_empty: Cell<bool>,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
     contexts: RefCell<FxHashMap<TypeId, Rc<dyn Any>>>,
@@ -81,10 +76,11 @@ struct Node {
 }
 
 struct Channel<T> {
-    updates: Vec<Rc<dyn Fn(&mut T) -> Option<ActionResult<()>>>>,
+    updates: Vec<Rc<dyn Fn(&mut T) -> Option<()>>>,
     waker: Option<Waker>,
 }
 
+/// Virtual DOM for a view.
 pub struct VirtualDom<T, V> {
     content: V,
     nodes: Rc<RefCell<SlotMap<DefaultKey, Node>>>,
@@ -93,6 +89,7 @@ pub struct VirtualDom<T, V> {
 }
 
 impl<T, V> VirtualDom<T, V> {
+    /// Create a new virtual dom from its content.
     pub fn new(content: V) -> Self {
         Self {
             content,
@@ -105,6 +102,7 @@ impl<T, V> VirtualDom<T, V> {
         }
     }
 
+    /// Build the initial content.
     pub fn build(&mut self)
     where
         T: 'static,
@@ -132,6 +130,10 @@ impl<T, V> VirtualDom<T, V> {
         build_inner(&mut self.content, &cx)
     }
 
+    /// Rebuild the content from the last build
+    ///
+    /// ## Panics
+    /// This function will panic if no initial build has been performed.
     pub async fn rebuild(&mut self)
     where
         T: 'static,
@@ -254,11 +256,14 @@ where
     }
 }
 
+/// Marker trait for an action.
 pub trait Action {}
 
+/// Convert an output to an optional action.
 pub trait IntoAction<A>: sealed::Sealed {
-    fn into_action(self) -> Option<ActionResult<A>>;
+    fn into_action(self) -> Option<A>;
 }
+
 mod sealed {
     pub trait Sealed {}
 }
@@ -266,7 +271,7 @@ mod sealed {
 impl sealed::Sealed for () {}
 
 impl<A> IntoAction<A> for () {
-    fn into_action(self) -> Option<ActionResult<A>> {
+    fn into_action(self) -> Option<A> {
         None
     }
 }
@@ -274,15 +279,15 @@ impl<A> IntoAction<A> for () {
 impl<A: Action> sealed::Sealed for A {}
 
 impl<A: Action> IntoAction<A> for A {
-    fn into_action(self) -> Option<ActionResult<A>> {
-        Some(ActionResult::Action(self))
+    fn into_action(self) -> Option<A> {
+        Some(self)
     }
 }
 
-impl<A: Action> sealed::Sealed for Option<ActionResult<A>> {}
+impl<A: Action> sealed::Sealed for Option<A> {}
 
-impl<A: Action> IntoAction<A> for Option<ActionResult<A>> {
-    fn into_action(self) -> Option<ActionResult<A>> {
+impl<A: Action> IntoAction<A> for Option<A> {
+    fn into_action(self) -> Option<A> {
         self
     }
 }
