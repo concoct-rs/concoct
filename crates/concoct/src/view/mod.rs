@@ -1,8 +1,7 @@
 //! Viewable components.
 
 use crate::hook::use_ref;
-use crate::{build_inner, hook::use_context, rebuild_inner, Scope};
-use std::mem;
+use crate::{hook::use_context, Scope};
 use std::{cell::Cell, rc::Rc};
 
 mod adapt;
@@ -38,29 +37,14 @@ impl<T, A, V: View<T, A>> View<T, A> for Option<V> {
 
         if let Some(view) = self {
             if *is_some {
-                rebuild_inner(view, cx);
+                cx.rebuild(view);
             } else {
-                build_inner(view, cx);
+                cx.build(view);
             }
             *is_some = true;
         } else if *is_some {
             *is_some = false;
-
-            let mut nodes_ref = cx.nodes.borrow_mut();
-
-            let mut stack = Vec::new();
-            for child_key in &mem::take(&mut cx.node.inner.borrow_mut().children) {
-                let child_node = nodes_ref[*child_key].clone();
-                stack.push((*child_key, child_node));
-            }
-
-            while let Some((key, node)) = stack.pop() {
-                nodes_ref.remove(key);
-                for child_key in &node.inner.borrow().children {
-                    let child_node = nodes_ref[*child_key].clone();
-                    stack.push((*child_key, child_node));
-                }
-            }
+            cx.clear()
         }
     }
 }
@@ -70,7 +54,7 @@ macro_rules! impl_view_for_tuple {
         impl<T, A, $($t: View<T, A>),*> View<T, A> for ($($t),*) {
             fn body(&mut self, cx: &Scope<T, A>) -> impl View<T, A> {
                 if cx.node.inner.borrow().children.is_empty() {
-                    $( build_inner(&mut self.$idx, cx); )*
+                    $( cx.build(&mut self.$idx); )*
                 } else {
                     $( {
                         let key = cx.node.inner.borrow().children[$idx];
@@ -89,7 +73,7 @@ macro_rules! impl_view_for_tuple {
 
                         let mut body = self.$idx.body(&cx);
                         if !cx.is_empty.get() {
-                            rebuild_inner(&mut body, &cx);
+                            cx.rebuild(&mut body);
                         }
                     } )*
                 }

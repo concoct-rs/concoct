@@ -1,12 +1,10 @@
+use crate::{Channel, Node, Scope, View};
+use slotmap::{DefaultKey, SlotMap};
 use std::{
     cell::{Cell, RefCell},
     ops::DerefMut,
     rc::Rc,
 };
-
-use slotmap::{DefaultKey, SlotMap};
-
-use crate::{build_inner, rebuild_inner, Channel, Node, Scope, View};
 
 /// Virtual DOM for a view.
 pub struct VirtualDom<T, V> {
@@ -56,7 +54,8 @@ impl<T, V> VirtualDom<T, V> {
             nodes: self.nodes.clone(),
             contexts: Default::default(),
         };
-        build_inner(&mut self.content, &cx)
+
+        cx.build(&mut self.content)
     }
 
     /// Rebuild the content from the last build
@@ -102,7 +101,8 @@ impl<T, V> VirtualDom<T, V> {
                     nodes: self.nodes.clone(),
                     contexts: Default::default(),
                 };
-                rebuild_inner(&mut self.content, &cx);
+
+                cx.rebuild(&mut self.content)
             }
 
             std::task::Poll::Pending

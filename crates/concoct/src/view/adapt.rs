@@ -1,4 +1,4 @@
-use crate::{build_inner, rebuild_inner, Scope, View};
+use crate::{Scope, View};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 /// Adapt a view's state to a different one.
@@ -52,9 +52,9 @@ where
         };
 
         if cx.node.inner.borrow().children.is_empty() {
-            build_inner(&mut self.view, &child_cx);
+            child_cx.build(&mut self.view);
         } else {
-            rebuild_inner(&mut self.view, &child_cx);
+            child_cx.rebuild(&mut self.view);
         }
     }
 }

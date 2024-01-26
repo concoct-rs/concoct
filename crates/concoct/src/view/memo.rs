@@ -1,4 +1,4 @@
-use crate::{build_inner, hook::use_ref, rebuild_inner, Scope, View};
+use crate::{hook::use_ref, Scope, View};
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
 
@@ -32,9 +32,9 @@ where
             *last_hash = self.hash;
 
             if cx.node.inner.borrow().children.is_empty() {
-                build_inner(&mut self.view, &cx);
+                cx.build(&mut self.view)
             } else {
-                rebuild_inner(&mut self.view, &cx);
+                cx.rebuild(&mut self.view)
             }
         }
     }
