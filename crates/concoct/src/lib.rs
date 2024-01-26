@@ -5,21 +5,29 @@
 //! tree without allocations.
 //!
 //! ```ignore
+//! use concoct::{Scope, View};
+//! use concoct_web::html;
+//! 
 //! #[derive(Default)]
 //! struct Counter {
 //!     count: i32,
 //! }
-//!
-//! impl View<Counter> for Counter {
-//!     fn body(&mut self, _cx: &Scope<Counter>) -> impl View<Counter> {
+//! 
+//! impl View<Self> for Counter {
+//!     fn body(&mut self, _cx: &Scope<Self>) -> impl View<Self> {
 //!         (
 //!             format!("High five count: {}", self.count),
-//!             html::button("Up high!").on_click(|state: &mut Self, _event| state.count += 1),
-//!             html::button("Down low!").on_click(|state: &mut Self, _event| state.count -= 1),
+//!             html::button("Up high!").on_click(|_cx, state: &mut Self, _event| state.count += 1),
+//!             html::button("Down low!").on_click(|_cx, state: &mut Self, _event| state.count -= 1),
 //!         )
 //!     }
 //! }
+//! 
+//! fn main() {
+//!     concoct_web::launch(Counter::default())
+//! }
 //! ```
+//! 
 
 #![deny(missing_docs)]
 
