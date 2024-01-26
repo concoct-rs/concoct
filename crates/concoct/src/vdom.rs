@@ -1,10 +1,29 @@
-use crate::{Channel, Handle, Node, Scope, View};
+use crate::{Handle, Scope, View};
 use slotmap::{DefaultKey, SlotMap};
 use std::{
-    cell::{Cell, RefCell},
+    any::Any,
+    cell::{Cell, RefCell, UnsafeCell},
     ops::DerefMut,
     rc::Rc,
+    task::Waker,
 };
+
+#[derive(Default)]
+pub(crate) struct NodeInner {
+    pub(crate) hooks: Vec<UnsafeCell<Box<dyn Any>>>,
+    pub(crate) hook_idx: usize,
+    pub(crate) children: Vec<DefaultKey>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct Node {
+    pub(crate) inner: Rc<RefCell<NodeInner>>,
+}
+
+struct Channel<T> {
+    updates: Vec<Rc<dyn Fn(&Handle<T, ()>, &mut T) -> Option<()>>>,
+    waker: Option<Waker>,
+}
 
 /// Virtual DOM for a view.
 pub struct VirtualDom<T, V> {
@@ -114,7 +133,7 @@ impl<T, V> VirtualDom<T, V> {
                     contexts: Default::default(),
                 };
 
-                cx.rebuild(&mut self.content)
+                unsafe { cx.rebuild(&mut self.content) }
             }
 
             std::task::Poll::Pending

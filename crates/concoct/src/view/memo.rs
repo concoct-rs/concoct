@@ -34,7 +34,7 @@ where
             if cx.node.inner.borrow().children.is_empty() {
                 cx.build(&mut self.view)
             } else {
-                cx.rebuild(&mut self.view)
+                unsafe { cx.rebuild(&mut self.view) };
             }
         }
     }

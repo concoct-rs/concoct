@@ -37,7 +37,7 @@ impl<T, A, V: View<T, A>> View<T, A> for Option<V> {
 
         if let Some(view) = self {
             if *is_some {
-                cx.rebuild(view);
+                unsafe { cx.rebuild(view) };
             } else {
                 cx.build(view);
             }
@@ -73,7 +73,7 @@ macro_rules! impl_view_for_tuple {
 
                         let mut body = self.$idx.body(&cx);
                         if !cx.is_empty.get() {
-                            cx.rebuild(&mut body);
+                            unsafe { cx.rebuild(&mut body) };
                         }
                     } )*
                 }

@@ -1,11 +1,17 @@
 use concoct::{
-    hook::{use_context, use_on_drop, use_provider, use_ref}, view::TextContext, Handle, IntoAction, Scope, View
+    hook::{use_context, use_on_drop, use_provider, use_ref},
+    view::TextContext,
+    Handle, IntoAction, Scope, View,
 };
 use rustc_hash::FxHasher;
-use wasm_bindgen_futures::spawn_local;
 use std::{
-    cell::{Cell, RefCell}, future::Future, hash::{Hash, Hasher}, ops::{Deref, DerefMut}, rc::Rc
+    cell::{Cell, RefCell},
+    future::Future,
+    hash::{Hash, Hasher},
+    ops::{Deref, DerefMut},
+    rc::Rc,
 };
+use wasm_bindgen_futures::spawn_local;
 use web_sys::{Document, HtmlElement, Window};
 
 pub mod html;

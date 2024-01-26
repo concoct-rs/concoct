@@ -1,5 +1,6 @@
 use concoct::{
-    hook::{use_context, use_on_drop, use_provider, use_ref}, Handle, IntoAction, View
+    hook::{use_context, use_on_drop, use_provider, use_ref},
+    Handle, IntoAction, View,
 };
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 use web_sys::{
@@ -43,7 +44,7 @@ pub struct Html<C, T, A> {
     attrs: Vec<(Cow<'static, str>, Cow<'static, str>)>,
     handlers: Vec<(
         Cow<'static, str>,
-        Rc<RefCell<dyn FnMut(&Handle<T, A>,&mut T, Event) -> Option<A>>>,
+        Rc<RefCell<dyn FnMut(&Handle<T, A>, &mut T, Event) -> Option<A>>>,
     )>,
     content: C,
 }
@@ -100,9 +101,11 @@ impl<C, T, A> Html<C, T, A> {
     ) -> Self {
         self.handlers.push((
             name.into(),
-            Rc::new(RefCell::new(move |cx: &Handle<T, A>, state: &mut T, event| {
-                handler(cx, state, event).into_action()
-            })),
+            Rc::new(RefCell::new(
+                move |cx: &Handle<T, A>, state: &mut T, event| {
+                    handler(cx, state, event).into_action()
+                },
+            )),
         ));
         self
     }
