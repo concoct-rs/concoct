@@ -1,4 +1,16 @@
-use concoct::{Model, View, VirtualDom};
+use concoct::{Context, Model, View, VirtualDom};
+
+struct Child;
+
+impl View for Child {
+    type Message = ();
+
+    type Model = ();
+
+    fn build(&mut self) -> Self::Model {}
+
+    fn body(&mut self, _cx: &Context, _model: &Self::Model) -> impl View<Self::Message> {}
+}
 
 struct AppModel;
 
@@ -21,7 +33,9 @@ impl View for App {
         AppModel
     }
 
-    fn body(&self, _model: &Self::Model) -> impl View<Self::Message> {}
+    fn body(&mut self, _cx: &Context, _model: &Self::Model) -> impl View<Self::Message> {
+        (Child, Child)
+    }
 }
 
 fn main() {
