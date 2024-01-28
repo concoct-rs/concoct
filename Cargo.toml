@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/concoct",
-    "crates/concoct-web",
+    # "crates/concoct-web",
     # "crates/concoct-menu",
-    "web_examples/counter"
+    # "web_examples/counter"
 ]

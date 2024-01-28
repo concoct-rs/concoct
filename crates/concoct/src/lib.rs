@@ -1,65 +1,105 @@
-//! Concoct is a framework for user-interfaces in Rust.
-//!
-//! This crate provides a virtual DOM and state management system for any backend.
-//! Concoct uses static typing to describe your UI at compile-time to create an efficient
-//! tree without allocations.
-//!
-//! ```ignore
-//! use concoct::{Scope, View};
-//! use concoct_web::html;
-//! 
-//! #[derive(Default)]
-//! struct Counter {
-//!     count: i32,
-//! }
-//! 
-//! impl View<Self> for Counter {
-//!     fn body(&mut self, _cx: &Scope<Self>) -> impl View<Self> {
-//!         (
-//!             format!("High five count: {}", self.count),
-//!             html::button("Up high!").on_click(|_cx, state: &mut Self, _event| state.count += 1),
-//!             html::button("Down low!").on_click(|_cx, state: &mut Self, _event| state.count -= 1),
-//!         )
-//!     }
-//! }
-//! 
-//! fn main() {
-//!     concoct_web::launch(Counter::default())
-//! }
-//! ```
-//! 
+use slotmap::{DefaultKey, SlotMap};
+use std::{any, fmt, marker::PhantomData};
 
-#![deny(missing_docs)]
+pub trait Model<A = ()>: 'static {
+    type Message: 'static;
 
-use std::ops::DerefMut;
+    fn update(&mut self, msg: Self::Message) -> Option<A>;
+}
 
-mod action;
-pub use self::action::{Action, IntoAction};
+impl<A> Model<A> for () {
+    type Message = ();
 
-mod handle;
-pub use self::handle::Handle;
+    fn update(&mut self, msg: Self::Message) -> Option<A> {
+        None
+    }
+}
 
-pub mod hook;
+pub trait View<A = ()> {
+    type Message: 'static;
 
-mod vdom;
-pub use self::vdom::VirtualDom;
+    type Model: Model<A, Message = Self::Message>;
 
-pub mod view;
-pub use self::view::View;
+    fn build(&mut self) -> Self::Model;
 
-mod scope;
-pub use self::scope::Scope;
+    fn body(&self, model: &Self::Model) -> impl View<Self::Message>;
+}
 
-/// Run a view on a new virtual dom.
-pub async fn run<T, V>(content: V)
+impl<A> View<A> for () {
+    type Message = ();
+
+    type Model = ();
+
+    fn build(&mut self) -> Self::Model {}
+
+    fn body(&self, model: &Self::Model) -> impl View<Self::Message> {}
+}
+
+trait AnyModel {
+    fn view_name(&self) -> &'static str;
+}
+
+struct Pod<M, A> {
+    model: M,
+    view_name: &'static str,
+    _marker: PhantomData<A>,
+}
+
+impl<M, A> AnyModel for Pod<M, A>
 where
-    T: 'static,
-    V: View<T> + DerefMut<Target = T>,
+    M: Model<A>,
 {
-    let mut vdom = VirtualDom::new(content);
-    vdom.build();
+    fn view_name(&self) -> &'static str {
+        self.view_name
+    }
+}
 
-    loop {
-        vdom.rebuild().await;
+struct Node {
+    model: Box<dyn AnyModel>,
+    children: Vec<DefaultKey>,
+}
+
+pub struct VirtualDom<V> {
+    root: V,
+    nodes: SlotMap<DefaultKey, Node>,
+    root_key: Option<DefaultKey>,
+}
+
+impl<V> VirtualDom<V> {
+    pub fn new(view: V) -> Self {
+        Self {
+            root: view,
+            nodes: SlotMap::new(),
+            root_key: None,
+        }
+    }
+
+    pub fn build(&mut self)
+    where
+        V: View,
+    {
+        let model = self.root.build();
+        let pod = Pod {
+            model,
+            view_name: any::type_name::<V>(),
+            _marker: PhantomData,
+        };
+        let node = Node {
+            model: Box::new(pod),
+            children: Vec::new(),
+        };
+        let key = self.nodes.insert(node);
+        self.root_key = Some(key);
+    }
+}
+
+impl<V> fmt::Debug for VirtualDom<V> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut tuple = f.debug_tuple("VirtualDom");
+        if let Some(root_key) = self.root_key {
+            let node = &self.nodes[root_key];
+            tuple.field(&node.model.view_name());
+        }
+        tuple.finish()
     }
 }
