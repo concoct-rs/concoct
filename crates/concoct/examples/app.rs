@@ -5,7 +5,7 @@ struct AppModel;
 impl Model for AppModel {
     type Message = ();
 
-    fn update(&mut self, msg: Self::Message) -> Option<()> {
+    fn update(&mut self, _msg: Self::Message) -> Option<()> {
         todo!()
     }
 }
@@ -21,7 +21,7 @@ impl View for App {
         AppModel
     }
 
-    fn body(&self, model: &Self::Model) -> impl View<Self::Message> {}
+    fn body(&self, _model: &Self::Model) -> impl View<Self::Message> {}
 }
 
 fn main() {
