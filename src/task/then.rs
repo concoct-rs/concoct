@@ -1,4 +1,4 @@
-use super::{Context, Task};
+use super::{Scope, Task};
 use std::marker::PhantomData;
 
 pub struct Then<T1, F, T2, M> {
@@ -28,7 +28,7 @@ where
 
     type State = (T1::State, T2::State);
 
-    fn build(&mut self, cx: &Context<M, ()>, model: &mut M) -> (Self::Output, Self::State) {
+    fn build(&mut self, cx: &Scope<M, ()>, model: &mut M) -> (Self::Output, Self::State) {
         let (output, state) = self.task.build(cx, model);
         let mut next = (self.f)(model, output);
         let (next_output, next_state) = next.build(cx, model);
@@ -37,7 +37,7 @@ where
 
     fn rebuild(
         &mut self,
-        cx: &Context<M, ()>,
+        cx: &Scope<M, ()>,
         model: &mut M,
         state: &mut Self::State,
     ) -> Self::Output {

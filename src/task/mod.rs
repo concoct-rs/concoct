@@ -1,16 +1,26 @@
+use std::any::{Any, TypeId};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
+
+mod context;
+pub use self::context::{context, Context};
 
 mod from_fn;
 pub use self::from_fn::{from_fn, FromFn};
 
+mod provider;
+pub use self::provider::{provider, Provider};
+
 mod then;
 pub use self::then::Then;
 
-pub struct Context<M, A = ()> {
+pub struct Scope<M, A = ()> {
     pub(crate) waker: Rc<dyn Fn(Rc<dyn Fn(&mut M) -> Option<A>>)>,
+    pub(crate) contexts: RefCell<HashMap<TypeId, Rc<dyn Any>>>,
 }
 
-impl<M, A> Context<M, A> {
+impl<M, A> Scope<M, A> {
     pub fn update(&self, f: impl Fn(&mut M) -> Option<A> + 'static) {
         (self.waker)(Rc::new(f))
     }
@@ -21,14 +31,10 @@ pub trait Task<M, A = ()> {
 
     type State;
 
-    fn build(&mut self, cx: &Context<M, A>, model: &mut M) -> (Self::Output, Self::State);
+    fn build(&mut self, cx: &Scope<M, A>, model: &mut M) -> (Self::Output, Self::State);
 
-    fn rebuild(
-        &mut self,
-        cx: &Context<M, A>,
-        model: &mut M,
-        state: &mut Self::State,
-    ) -> Self::Output;
+    fn rebuild(&mut self, cx: &Scope<M, A>, model: &mut M, state: &mut Self::State)
+        -> Self::Output;
 
     fn then<F, T>(self, f: F) -> Then<Self, F, T, M>
     where
@@ -46,13 +52,13 @@ impl<M> Task<M> for () {
 
     type State = ();
 
-    fn build(&mut self, _cx: &Context<M, ()>, _model: &mut M) -> (Self::Output, Self::State) {
+    fn build(&mut self, _cx: &Scope<M, ()>, _model: &mut M) -> (Self::Output, Self::State) {
         ((), ())
     }
 
     fn rebuild(
         &mut self,
-        _cx: &Context<M, ()>,
+        _cx: &Scope<M, ()>,
         _model: &mut M,
         _state: &mut Self::State,
     ) -> Self::Output {

@@ -24,13 +24,13 @@ where
 
     type State = ();
 
-    fn build(&mut self, _cx: &super::Context<M, ()>, model: &mut M) -> (Self::Output, Self::State) {
+    fn build(&mut self, _cx: &super::Scope<M, ()>, model: &mut M) -> (Self::Output, Self::State) {
         ((self.f)(model), ())
     }
 
     fn rebuild(
         &mut self,
-        _cx: &super::Context<M, ()>,
+        _cx: &super::Scope<M, ()>,
         model: &mut M,
         _state: &mut Self::State,
     ) -> Self::Output {

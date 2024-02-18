@@ -1,6 +1,10 @@
-use std::{cell::RefCell, collections::VecDeque, rc::Rc, task::Waker};
-
-use task::{Context, Task};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, VecDeque},
+    rc::Rc,
+    task::Waker,
+};
+use task::{Scope, Task};
 
 pub mod task;
 
@@ -13,7 +17,7 @@ pub struct System<M, F, S> {
     pub model: M,
     make_task: F,
     state: Option<S>,
-    cx: Context<M>,
+    cx: Scope<M>,
     queue: Rc<RefCell<Queue<M>>>,
 }
 
@@ -29,7 +33,7 @@ impl<M: 'static, F, S> System<M, F, S> {
             make_task,
             state: None,
             queue: queue.clone(),
-            cx: Context {
+            cx: Scope {
                 waker: Rc::new(move |f| {
                     let mut q = queue.borrow_mut();
                     q.events.push_back(f);
@@ -37,6 +41,7 @@ impl<M: 'static, F, S> System<M, F, S> {
                         waker.wake();
                     }
                 }),
+                contexts: RefCell::new(HashMap::new()),
             },
         }
     }

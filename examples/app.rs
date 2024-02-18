@@ -3,7 +3,7 @@ use concoct::{
     System,
 };
 
-fn app(count: &mut i32) -> impl Task<i32> {
+fn app(_count: &mut i32) -> impl Task<i32> {
     task::from_fn(|_| dbg!("Hello World!"))
 }
 
