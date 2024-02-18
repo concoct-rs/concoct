@@ -1,5 +1,5 @@
 use super::{Scope, Task};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 pub struct Then<T1, F, T2, M> {
     task: T1,

@@ -15,50 +15,26 @@
   </a>
 </div>
 
-<div align="center">
- <a href="https://github.com/concoct-rs/concoct/tree/main/web_examples">Examples</a>
-</div>
-
 <br />
 
-Concoct is a framework for user-interfaces in Rust.
-
-This crate provides a virtual DOM and state management system for any backend.
-Concoct uses static typing to describe your UI at compile-time to create an efficient
-tree without allocations.
+Concoct is a reactive runtime for embedded systems.
 
 ```rust
-use concoct::{Scope, View};
-use concoct_web::html;
+use concoct::{
+    task::{self, Task},
+    System,
+};
 
-#[derive(Default)]
-struct Counter {
-    count: i32,
-}
-
-impl View<Self> for Counter {
-    fn body(&mut self, _cx: &Scope<Self>) -> impl View<Self> {
-        (
-            format!("High five count: {}", self.count),
-            html::button("Up high!").on_click(|_cx, state: &mut Self, _event| state.count += 1),
-            html::button("Down low!").on_click(|_cx, state: &mut Self, _event| state.count -= 1),
-        )
-    }
+fn app(_count: &mut i32) -> impl Task<i32> {
+    task::from_fn(|_| dbg!("Hello World!"))
 }
 
 fn main() {
-    concoct_web::launch(Counter::default())
+    let mut system = System::new(0, app);
+    system.build();
+    system.rebuild();
 }
 ```
 
-## Installation
-The easiest way to get started is using the `full` feature flag.
-
-```
-cargo add concoct --features full
-```
-
-To see a list of the available features flags that can be enabled, check our [docs](https://docs.rs/concoct/latest/concoct/#feature-flags).
-
 ## Inspiration
-This crate is inspired by [xilem](https://github.com/linebender/xilem), React, and SwiftUI.
+This crate is inspired by [xilem](https://github.com/linebender/xilem), [Drake](https://drake.mit.edu) and [ArduPilot](https://ardupilot.org).

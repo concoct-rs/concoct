@@ -1,5 +1,5 @@
 use super::Task;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 pub fn from_fn<F, M, O>(f: F) -> FromFn<F, M>
 where

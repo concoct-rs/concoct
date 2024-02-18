@@ -1,5 +1,6 @@
 use super::Task;
-use std::{any::TypeId, marker::PhantomData, rc::Rc};
+use alloc::rc::Rc;
+use core::{any::TypeId, marker::PhantomData};
 
 pub fn context<T: 'static>() -> Context<T> {
     Context {

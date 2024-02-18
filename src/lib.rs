@@ -1,9 +1,13 @@
-use std::{
+#![no_std]
+
+extern crate alloc;
+
+use alloc::{collections::VecDeque, rc::Rc};
+use core::{
     cell::RefCell,
-    collections::{HashMap, VecDeque},
-    rc::Rc,
-    task::Waker,
+    task::{Poll, Waker},
 };
+use hashbrown::HashMap;
 use task::{Scope, Task};
 
 pub mod task;
@@ -75,10 +79,10 @@ impl<M: 'static, F, S> System<M, F, S> {
                 is_ready = true;
             }
             if is_ready {
-                std::task::Poll::Ready(())
+                Poll::Ready(())
             } else {
                 queue.waker = Some(cx.waker().clone());
-                std::task::Poll::Pending
+                Poll::Pending
             }
         })
         .await

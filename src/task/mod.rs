@@ -1,7 +1,7 @@
-use std::any::{Any, TypeId};
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
+use alloc::rc::Rc;
+use core::any::{Any, TypeId};
+use core::cell::RefCell;
+use hashbrown::HashMap;
 
 mod context;
 pub use self::context::{context, Context};

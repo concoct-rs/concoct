@@ -1,5 +1,6 @@
 use super::Task;
-use std::{any::TypeId, rc::Rc};
+use alloc::rc::Rc;
+use core::any::TypeId;
 
 pub fn provider<T: 'static>(value: T) -> Provider<T> {
     Provider {
