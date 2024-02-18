@@ -1,8 +1,19 @@
-[workspace]
-resolver = "2"
-members = [
-    "crates/concoct",
-    "crates/concoct-web",
-    # "crates/concoct-menu",
-    "web_examples/counter"
-]
+[package]
+name = "concoct"
+version = "0.19.0-alpha.3"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Cross-platform UI framework"
+repository = "https://github.com/concoct-rs/concoct"
+
+[features]
+full = ["tracing"]
+
+[dependencies]
+futures = "0.3.30"
+rustc-hash = "1.1.0"
+tracing = { version = "0.1.40", optional = true }
+
+[package.metadata.docs.rs]
+features = ["full"]
+rustdoc-args = ["--cfg", "docsrs"]
