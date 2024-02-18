@@ -1,10 +1,19 @@
 use std::rc::Rc;
 
+mod from_fn;
+pub use self::from_fn::{from_fn, FromFn};
+
 mod then;
 pub use self::then::Then;
 
 pub struct Context<M, A> {
     waker: Rc<dyn Fn(Rc<dyn Fn(&mut M) -> Option<A>>)>,
+}
+
+impl<M, A> Context<M, A> {
+    pub fn update(&self, f: impl Fn(&mut M) -> Option<A> + 'static) {
+        (self.waker)(Rc::new(f))
+    }
 }
 
 pub trait Task<M, A = ()> {
