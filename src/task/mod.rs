@@ -6,8 +6,8 @@ pub use self::from_fn::{from_fn, FromFn};
 mod then;
 pub use self::then::Then;
 
-pub struct Context<M, A> {
-    waker: Rc<dyn Fn(Rc<dyn Fn(&mut M) -> Option<A>>)>,
+pub struct Context<M, A = ()> {
+    pub(crate) waker: Rc<dyn Fn(Rc<dyn Fn(&mut M) -> Option<A>>)>,
 }
 
 impl<M, A> Context<M, A> {
