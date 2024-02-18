@@ -36,5 +36,5 @@ fn main() {
 }
 ```
 
-## Inspiration
-This crate is inspired by [xilem](https://github.com/linebender/xilem), [Drake](https://drake.mit.edu) and [ArduPilot](https://ardupilot.org).
+## Goals
+This crate is intended to provide a generic reactive system for a wide range of use cases. It was originally intended for user-interfaces, and is inspired by [xilem](https://github.com/linebender/xilem). However, I noticed the system being created was better suited for robotics or animation (where continous systems are more common than discrete ones).
